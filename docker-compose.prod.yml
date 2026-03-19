@@ -1,0 +1,78 @@
+# ============================================================
+# NODE DATA MARINGÁ — Docker Compose PRODUÇÃO
+# Para usar no Coolify: aponte para este arquivo
+# ============================================================
+
+version: '3.8'
+
+services:
+
+  # ── Redis ────────────────────────────────────────────────
+  # Banco de mensagens em memória (fila de webhooks do WhatsApp)
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    # ⚠️ Sem "ports" aqui — Redis só é acessível internamente pelos outros containers
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend ───────────────────────────────────────────────
+  # API FastAPI — sem --reload e sem hot-reload em produção
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=production
+      - DEBUG=false
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    # ⚠️ Sem "ports" — o backend só é acessível pelo nginx do frontend (via nome "backend")
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Workers ───────────────────────────────────────────────
+  # Processam a fila de mensagens do WhatsApp em paralelo
+  worker:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=production
+      - DEBUG=false
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    command: rq worker --url redis://redis:6379 denuncias sos ocorrencias
+    deploy:
+      replicas: 2
+
+  # ── Frontend ──────────────────────────────────────────────
+  # React buildado + Nginx servindo os arquivos e fazendo proxy para o backend
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    env_file: ./frontend/.env
+    ports:
+      - "80:80"   # ← Única porta exposta ao mundo. O Coolify coloca SSL na frente.
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  redis_data:
