@@ -66,8 +66,7 @@ services:
     build: ./frontend
     restart: unless-stopped
     env_file: ./frontend/.env
-    ports:
-      - "80:80"   # ← Única porta exposta ao mundo. O Coolify coloca SSL na frente.
+    # ⚠️ Sem "ports" — o Coolify/Traefik roteia o tráfego via labels (configurado no domínio :80)
     depends_on:
       backend:
         condition: service_healthy
