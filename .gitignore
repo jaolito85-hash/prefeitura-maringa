@@ -1,0 +1,43 @@
+# ============================================================
+# NODE DATA MARINGÁ — .gitignore
+# ============================================================
+
+# Pasta de skills do Cursor (não usamos Cursor neste projeto)
+.cursor/
+
+# Dependências Node.js (geradas pelo npm install)
+node_modules/
+
+# Variáveis de ambiente — NUNCA commitar esses arquivos!
+.env
+backend/.env
+frontend/.env
+
+# Build do React (gerado pelo npm run build)
+frontend/dist/
+frontend/build/
+
+# Cache do Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+backend/.venv/
+
+# Cache do sistema operacional
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Ferramentas de IA / agentes (não fazem parte do código do projeto)
+.agents/
+.claude/
+_bmad/
+_bmad-output/

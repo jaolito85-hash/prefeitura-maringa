@@ -1,0 +1,53 @@
+version: '3.8'
+
+# ============================================================
+# NODE DATA MARINGÁ — Docker Compose
+# Para rodar localmente: docker compose up
+# Para produção no Coolify: usar docker-compose.prod.yml
+# ============================================================
+
+services:
+  # Banco de mensagens em memória
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes  # Persiste dados no disco
+
+  # Backend FastAPI
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file: ./backend/.env
+    depends_on:
+      - redis
+    volumes:
+      - ./backend:/app  # Hot reload em desenvolvimento
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+  # Workers que processam a fila de mensagens
+  # (processam 1 mensagem por vez, sem travar o servidor)
+  worker:
+    build: ./backend
+    env_file: ./backend/.env
+    depends_on:
+      - redis
+      - backend
+    command: rq worker --url redis://redis:6379 denuncias sos ocorrencias
+    deploy:
+      replicas: 2  # 2 workers rodando em paralelo
+
+  # Frontend React (dashboard)
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    env_file: ./frontend/.env
+    depends_on:
+      - backend
+
+volumes:
+  redis_data:
