@@ -6,15 +6,19 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import Header, HTTPException, Request, status
+from fastapi import Header, HTTPException, Query, Request, status
 
 from app.config import settings
 from app.services.webhook_queue import QueueUnavailableError, enqueue_webhook
 
 
 def require_evolution_apikey(
-    apikey: str | None = Header(default=None, alias="apikey"),
+    apikey_header: str | None = Header(default=None, alias="apikey"),
+    apikey_query: str | None = Query(default=None, alias="apikey"),
 ) -> str | None:
+    # Aceita a chave tanto pelo header quanto pela URL (?apikey=...)
+    apikey = apikey_header or apikey_query
+
     expected_key = (settings.evolution_api_key or "").strip()
     placeholder_key = "sua-chave-api-aqui"
 
