@@ -58,7 +58,7 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
-    command: rq worker --url redis://redis:6379 denuncias sos ocorrencias
+    command: python worker.py
 
   # ── Frontend ──────────────────────────────────────────────
   # React buildado + Nginx servindo os arquivos e fazendo proxy para o backend
