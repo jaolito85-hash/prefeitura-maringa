@@ -258,6 +258,46 @@ const SOS=[
   {id:1,telefone:'+5544999112233',codigo_usado:'SOCORRO',status:'active',sos_cadastros:{nome:'Maria Silva',endereco:'Rua das Hortênsias, 234 — Zona 5',agressor:'João da Silva (ex-marido)',contato_confianca_nome:'Ana Souza',contato_confianca_telefone:'+5544988776655'},lat:-23.4155,lng:-51.9380,created_at:new Date(Date.now()-1800000).toISOString()},
 ];
 
+/* ─── FEEDBACKS DATA ───────────────────────────────────────────── */
+const CAT_FBK={
+  infraestrutura_obras:{label:'Infraestrutura & Obras',emoji:'🏗️',color:'#f59e0b'},
+  seguranca_publica:{label:'Segurança Pública',emoji:'🛡️',color:'#dc2626'},
+  limpeza_urbana:{label:'Limpeza Urbana',emoji:'♻️',color:'#10b981'},
+  educacao_escolas:{label:'Educação & Escolas',emoji:'📚',color:'#3b82f6'},
+  saude_atendimento:{label:'Saúde & Atendimento',emoji:'🏥',color:'#7c3aed'},
+  transporte:{label:'Transporte',emoji:'🚌',color:'#00D1FF'},
+};
+const PRI_FBK={
+  critico:{label:'Crítico',color:'#dc2626',pulse:true},
+  urgente:{label:'Urgente',color:'#f97316',pulse:false},
+  normal:{label:'Normal',color:'#6b7280',pulse:false},
+  baixa:{label:'Baixa',color:'#4b5563',pulse:false},
+};
+const STA_FBK={
+  aberto:{label:'Aberto',color:'#fbbf24',bg:'rgba(251,191,36,.1)',border:'rgba(251,191,36,.3)'},
+  em_atendimento:{label:'Em Atendimento',color:'#3b82f6',bg:'rgba(59,130,246,.1)',border:'rgba(59,130,246,.3)'},
+  encaminhado:{label:'Encaminhado',color:'#a78bfa',bg:'rgba(167,139,250,.1)',border:'rgba(167,139,250,.3)'},
+  resolvido:{label:'Resolvido',color:'#4ade80',bg:'rgba(74,222,128,.1)',border:'rgba(74,222,128,.3)'},
+};
+const FBK=[
+  {id:'1',protocolo:'FBK-001',telefone:'44999991111',nome:'João Silva',mensagem:'Oi, gostaria de fazer uma reclamação da minha rua. Muito buraco, já tem uns 90 dias que tem um buraco a céu aberto na Rua das Flores perto do número 340.',categoria:'infraestrutura_obras',prioridade:'critico',status:'aberto',endereco:'Rua das Flores, 340',bairro:'Zona 5',created_at:new Date(Date.now()-3600000).toISOString()},
+  {id:'2',protocolo:'FBK-002',telefone:'44999992222',nome:'Maria Santos',mensagem:'Prefeito, precisa melhorar urgente a segurança pública aqui em Ivaté, pelo amor de Deus, não tem viatura, não tem policiamento de jeito nenhum.',categoria:'seguranca_publica',prioridade:'urgente',status:'aberto',endereco:null,bairro:'Ivaté',created_at:new Date(Date.now()-5400000).toISOString()},
+  {id:'3',protocolo:'FBK-003',telefone:'44999993333',nome:'Carlos Oliveira',mensagem:'Eu gostaria de saber quando que o caminhão do lixo da limpeza aí da cidade vai passar aqui na minha rua e retirar o entulho que ficou depois da reforma.',categoria:'limpeza_urbana',prioridade:'urgente',status:'em_atendimento',endereco:null,bairro:'Zona 3',created_at:new Date(Date.now()-6600000).toISOString()},
+  {id:'4',protocolo:'FBK-004',telefone:'44999994444',nome:'Ana Lima',mensagem:'Na creche minha filha está reclamando da professora Sílvia que está batendo nas crianças. Isso é um absurdo! Preciso de uma resposta urgente da prefeitura.',categoria:'educacao_escolas',prioridade:'critico',status:'aberto',endereco:null,bairro:'Jardim Alvorada',created_at:new Date(Date.now()-7800000).toISOString()},
+  {id:'5',protocolo:'FBK-005',telefone:'44999995555',nome:'Pedro Rocha',mensagem:'Boa tarde, eu tô aqui pra reclamar que minha rua tá cheia de buraco. Já tem uns 90 dias que tem um buraco a céu aberto.',categoria:'infraestrutura_obras',prioridade:'urgente',status:'aberto',endereco:'Av. Brasil, 1200',bairro:'Centro',created_at:new Date(Date.now()-9000000).toISOString()},
+  {id:'6',protocolo:'FBK-006',telefone:'44999996666',nome:'Lucia Fernandes',mensagem:'Aqui no hospital o médico é muito ruim e não dá atenção. A fila não anda, não tem equipe médica para atender a população. Minha sobrinha está aguardando a dois dias na fila do hospital regional.',categoria:'saude_atendimento',prioridade:'critico',status:'aberto',endereco:null,bairro:'Zona Sul',created_at:new Date(Date.now()-10200000).toISOString()},
+  {id:'7',protocolo:'FBK-007',telefone:'44999997777',nome:'Roberto Alves',mensagem:'Meu filho tá reclamando que não tem merenda a 15 dias na escola dele. Absurdo isso! Escola Municipal João XXIII na zona leste.',categoria:'educacao_escolas',prioridade:'urgente',status:'encaminhado',endereco:null,bairro:'Zona Leste',created_at:new Date(Date.now()-14400000).toISOString()},
+  {id:'8',protocolo:'FBK-008',telefone:'44999998888',nome:'Fernanda Costa',mensagem:'Não aguento mais o mato alto no terreno baldio da esquina. Cobra já apareceu duas vezes esse mês. Precisamos de limpeza urgente.',categoria:'limpeza_urbana',prioridade:'urgente',status:'aberto',endereco:'Rua Osvaldo Cruz',bairro:'Bela Vista',created_at:new Date(Date.now()-18000000).toISOString()},
+];
+const FBK_MSGS={
+  '1':[
+    {id:'m1',de:'cidadao',mensagem:'Oi, gostaria de fazer uma reclamação da minha rua. Muito buraco!',created_at:new Date(Date.now()-3700000).toISOString()},
+    {id:'m2',de:'ia',mensagem:'📋 Olá! Recebi sua reclamação sobre infraestrutura viária. Pode me informar o endereço exato do problema?',created_at:new Date(Date.now()-3650000).toISOString()},
+    {id:'m3',de:'cidadao',mensagem:'Rua das Flores, 340 - perto da padaria do Zé. Já tem 90 dias esse buraco!',created_at:new Date(Date.now()-3600000).toISOString()},
+    {id:'m4',de:'ia',mensagem:'✅ Registrado! Protocolo FBK-001. Sua reclamação foi categorizada como Infraestrutura & Obras com prioridade CRÍTICA. Equipe de vistoria será acionada.',created_at:new Date(Date.now()-3580000).toISOString()},
+  ],
+};
+
 /* ─── BASES DE OPERAÇÃO ───────────────────────────────────────── */
 const BASES=[
   {id:'gcm',nome:'GCM Central',tipo:'gcm',icon:'🛡️',lat:-23.4236,lng:-51.9383,endereco:'Rua Fernão Dias, 688 — Zona 9',telefone:'(44) 3221-8696',cor:'#1DB954'},
@@ -341,6 +381,7 @@ const Ico={
   alert:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
   shield:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
   report:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  chat:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
   eye:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
   pin:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
 };
@@ -1134,6 +1175,306 @@ function SOSMulher(){
   );
 }
 
+/* ─── FEEDBACKS ────────────────────────────────────────────────── */
+function Feedbacks(){
+  const [sel,setSel]=useState(null);
+  const [msgs,setMsgs]=useState([]);
+  const [filtCat,setFiltCat]=useState('');
+  const [filtPri,setFiltPri]=useState('');
+  const [filtSta,setFiltSta]=useState('ativos');
+
+  const lista=FBK.filter(f=>{
+    if(filtCat&&f.categoria!==filtCat)return false;
+    if(filtPri&&f.prioridade!==filtPri)return false;
+    if(filtSta==='ativos')return['aberto','em_atendimento','encaminhado'].includes(f.status);
+    if(filtSta==='resolvido')return f.status==='resolvido';
+    return true;
+  });
+  const criticos=lista.filter(f=>f.prioridade==='critico').length;
+  const urgentes=lista.filter(f=>f.prioridade==='urgente').length;
+
+  function selecionar(f){
+    if(sel?.id===f.id){setSel(null);setMsgs([]);return;}
+    setSel(f);setMsgs(FBK_MSGS[f.id]||[]);
+  }
+  function mudarStatus(id,novo){
+    /* In a real app this would call the API */
+    if(sel?.id===id)setSel(prev=>({...prev,status:novo}));
+  }
+
+  return(
+    <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
+      {/* ── Sidebar filtros ── */}
+      <div style={{width:220,flexShrink:0,display:'flex',flexDirection:'column',background:'var(--surface)',borderRight:'1px solid var(--border)',padding:16,gap:20}}>
+        <div>
+          <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.2px',color:'var(--text-muted)',marginBottom:10}}>Filtros</div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            <select value={filtSta} onChange={e=>setFiltSta(e.target.value)} style={{width:'100%',fontSize:12,padding:'7px 10px'}}>
+              <option value="ativos">Cards Ativos</option>
+              <option value="resolvido">Resolvidos</option>
+              <option value="todos">Todos</option>
+            </select>
+            <select value={filtCat} onChange={e=>setFiltCat(e.target.value)} style={{width:'100%',fontSize:12,padding:'7px 10px'}}>
+              <option value="">Todas Categorias</option>
+              {Object.entries(CAT_FBK).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
+            </select>
+            <select value={filtPri} onChange={e=>setFiltPri(e.target.value)} style={{width:'100%',fontSize:12,padding:'7px 10px'}}>
+              <option value="">Todas Prioridades</option>
+              {Object.entries(PRI_FBK).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.2px',color:'var(--text-muted)',marginBottom:2}}>Resumo</div>
+          <div style={{background:'rgba(255,255,255,.03)',border:'1px solid var(--border)',borderRadius:12,padding:12}}>
+            <div className="mono" style={{fontSize:24,fontWeight:700,color:'#fff'}}>{lista.length}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>mensagens</div>
+          </div>
+          {criticos>0&&(
+            <div style={{background:'rgba(220,38,38,.06)',border:'1px solid rgba(220,38,38,.2)',borderRadius:12,padding:12}}>
+              <div className="mono" style={{fontSize:24,fontWeight:700,color:'#f87171',animation:'pulse 2s infinite'}}>{criticos}</div>
+              <div style={{fontSize:11,color:'#f87171'}}>críticos</div>
+            </div>
+          )}
+          {urgentes>0&&(
+            <div style={{background:'rgba(249,115,22,.05)',border:'1px solid rgba(249,115,22,.2)',borderRadius:12,padding:12}}>
+              <div className="mono" style={{fontSize:24,fontWeight:700,color:'#fb923c'}}>{urgentes}</div>
+              <div style={{fontSize:11,color:'#fb923c'}}>urgentes</div>
+            </div>
+          )}
+        </div>
+
+        <div style={{marginTop:'auto',display:'flex',flexDirection:'column',gap:4}}>
+          <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.2px',color:'var(--text-muted)',marginBottom:6}}>Por Categoria</div>
+          {Object.entries(CAT_FBK).map(([k,v])=>{
+            const n=lista.filter(f=>f.categoria===k).length;
+            if(n===0)return null;
+            return(
+              <button key={k} onClick={()=>setFiltCat(filtCat===k?'':k)}
+                style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 8px',borderRadius:8,fontSize:12,cursor:'pointer',border:'none',
+                  background:filtCat===k?'rgba(255,255,255,.08)':'transparent',color:filtCat===k?'#fff':'var(--text-muted)',fontFamily:'inherit',transition:'all .15s'}}>
+                <span>{v.emoji} {v.label.split(' ')[0]}</span>
+                <span className="mono" style={{fontWeight:700}}>{n}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{fontSize:10,color:'#ca8a04',textAlign:'center'}}>⚠ dados de demonstração</div>
+      </div>
+
+      {/* ── Grid de cards ── */}
+      <div style={{flex:1,overflow:'hidden',display:sel?'none':'flex',flexDirection:'column'}}>
+        <div style={{padding:'16px 24px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'var(--surface)'}}>
+          <div>
+            <div style={{fontSize:18,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>Feedbacks</div>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Mensagens dos cidadãos via WhatsApp · IA categoriza e responde</div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <span style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:'var(--text-muted)'}}>
+              <span style={{width:6,height:6,borderRadius:'50%',background:'var(--success)',animation:'pulse 2s infinite',display:'inline-block'}}/>Tempo real
+            </span>
+            <span className="mono" style={{fontSize:12,fontWeight:700,color:'var(--text-secondary)',background:'var(--card)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 14px'}}>{lista.length} mensagem{lista.length!==1?'s':''}</span>
+          </div>
+        </div>
+
+        {lista.length===0?(
+          <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12}}>
+            <span style={{fontSize:48,opacity:.3}}>💬</span>
+            <div style={{fontSize:13,color:'var(--text-muted)'}}>Nenhum feedback encontrado</div>
+          </div>
+        ):(
+          <div className="scrollable" style={{flex:1,padding:20}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(380px,1fr))',gap:16}}>
+              {lista.map((f,i)=>{
+                const cat=CAT_FBK[f.categoria]||{label:f.categoria||'N/A',emoji:'📌',color:'#6b7280'};
+                const pri=PRI_FBK[f.prioridade]||PRI_FBK.normal;
+                const sta=STA_FBK[f.status]||STA_FBK.aberto;
+                const isCritico=f.prioridade==='critico';
+
+                return(
+                  <div key={f.id} className="anim-card" onClick={()=>selecionar(f)}
+                    style={{background:'var(--card)',border:'1px solid var(--border)',borderLeft:`4px solid ${cat.color}`,borderRadius:16,cursor:'pointer',overflow:'hidden',transition:'all .2s',
+                      boxShadow:isCritico?`0 0 12px rgba(220,38,38,.15)`:'none'}}>
+                    {/* Topo */}
+                    <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',padding:'16px 16px 8px',gap:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                        <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:8,background:`${cat.color}20`,color:cat.color,border:`1px solid ${cat.color}40`,textTransform:'uppercase',letterSpacing:'.5px'}}>
+                          {cat.emoji} {cat.label}
+                        </span>
+                        <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:11,fontWeight:800,padding:'4px 10px',borderRadius:8,background:pri.color,color:'#fff',animation:pri.pulse?'pulse 2s infinite':'none'}}>
+                          ● {pri.label}
+                        </span>
+                      </div>
+                      <span style={{fontSize:11,color:'var(--text-muted)',whiteSpace:'nowrap',flexShrink:0,marginTop:2}}>{ago(f.created_at)}</span>
+                    </div>
+
+                    {/* Endereço */}
+                    <div style={{padding:'0 16px 4px'}}>
+                      {(f.endereco||f.bairro)?(
+                        <span style={{fontSize:11,color:'var(--text-muted)',display:'flex',alignItems:'center',gap:4}}>📍 {f.endereco||f.bairro}</span>
+                      ):(
+                        <span style={{fontSize:11,color:'#4b5563',fontStyle:'italic'}}>Sem endereço</span>
+                      )}
+                    </div>
+
+                    {/* Mensagem */}
+                    <div style={{padding:'10px 16px'}}>
+                      <p style={{fontSize:13.5,lineHeight:1.6,color:'var(--text-secondary)',display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
+                        "{f.mensagem}"
+                      </p>
+                    </div>
+
+                    {/* Rodapé */}
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 16px',borderTop:'1px solid var(--border)',gap:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <span style={{fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:8,background:sta.bg,border:`1px solid ${sta.border}`,color:sta.color}}>{sta.label}</span>
+                        {f.protocolo&&<span className="mono" style={{fontSize:10,color:'var(--text-muted)'}}>{f.protocolo}</span>}
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:8}} onClick={e=>e.stopPropagation()}>
+                        <select value={f.status} onChange={e=>mudarStatus(f.id,e.target.value)}
+                          style={{fontSize:11,padding:'4px 8px',borderRadius:8}}>
+                          {Object.entries(STA_FBK).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+                        </select>
+                        <button className="btn" onClick={e=>{e.stopPropagation();selecionar(f);}}
+                          style={{fontSize:11,fontWeight:700,padding:'4px 12px',borderRadius:8,background:'rgba(29,185,84,.1)',border:'1px solid rgba(29,185,84,.3)',color:'#4ade80',cursor:'pointer'}}>
+                          Ver conversa
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Grid (visível no desktop quando detalhe aberto) ── */}
+      {sel&&(
+        <div className="scrollable" style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
+          <div style={{padding:'16px 24px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'var(--surface)'}}>
+            <div>
+              <div style={{fontSize:18,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>Feedbacks</div>
+              <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Mensagens dos cidadãos via WhatsApp</div>
+            </div>
+            <span className="mono" style={{fontSize:12,fontWeight:700,color:'var(--text-secondary)',background:'var(--card)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 14px'}}>{lista.length}</span>
+          </div>
+          <div className="scrollable" style={{flex:1,padding:16}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(340px,1fr))',gap:12}}>
+              {lista.map(f=>{
+                const cat=CAT_FBK[f.categoria]||{label:f.categoria,emoji:'📌',color:'#6b7280'};
+                const pri=PRI_FBK[f.prioridade]||PRI_FBK.normal;
+                const sta=STA_FBK[f.status]||STA_FBK.aberto;
+                const isActive=sel?.id===f.id;
+                return(
+                  <div key={f.id} onClick={()=>selecionar(f)}
+                    style={{background:isActive?'rgba(29,185,84,.06)':'var(--card)',border:`1px solid ${isActive?'rgba(29,185,84,.3)':'var(--border)'}`,borderLeft:`4px solid ${cat.color}`,borderRadius:12,cursor:'pointer',padding:'12px 14px',transition:'all .15s'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                      <span style={{fontSize:11,fontWeight:700,color:cat.color}}>{cat.emoji} {cat.label.split(' ')[0]}</span>
+                      <span style={{fontSize:10,fontWeight:800,padding:'2px 6px',borderRadius:4,background:pri.color,color:'#fff'}}>{pri.label}</span>
+                      <span style={{marginLeft:'auto',fontSize:10,color:'var(--text-muted)'}}>{ago(f.created_at)}</span>
+                    </div>
+                    <p style={{fontSize:12,color:'var(--text-secondary)',lineHeight:1.5,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>"{f.mensagem}"</p>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginTop:8}}>
+                      <span style={{fontSize:10,fontWeight:600,padding:'2px 8px',borderRadius:6,background:sta.bg,border:`1px solid ${sta.border}`,color:sta.color}}>{sta.label}</span>
+                      <span className="mono" style={{fontSize:9,color:'var(--text-muted)'}}>{f.protocolo}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Painel de detalhe: conversa WhatsApp ── */}
+      {sel&&(
+        <div style={{width:420,flexShrink:0,display:'flex',flexDirection:'column',background:'var(--surface)',borderLeft:'1px solid var(--border)'}}>
+          {/* Header */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+            <div style={{flex:1,minWidth:0}}>
+              {(()=>{
+                const cat=CAT_FBK[sel.categoria]||{emoji:'📌',label:sel.categoria};
+                const pri=PRI_FBK[sel.prioridade]||PRI_FBK.normal;
+                return(
+                  <div>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                      <span style={{fontSize:18}}>{cat.emoji}</span>
+                      <span style={{fontSize:14,fontWeight:700,color:'#fff'}}>{cat.label}</span>
+                      <span style={{fontSize:10,fontWeight:800,padding:'2px 8px',borderRadius:6,background:pri.color,color:'#fff'}}>{pri.label}</span>
+                    </div>
+                    <span className="mono" style={{fontSize:11,color:'var(--text-muted)'}}>{sel.protocolo}</span>
+                  </div>
+                );
+              })()}
+            </div>
+            <button onClick={()=>{setSel(null);setMsgs([]);}} style={{marginLeft:12,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',cursor:'pointer',borderRadius:8,border:'none',background:'none',fontSize:16,fontFamily:'inherit'}}>✕</button>
+          </div>
+
+          {/* Info cidadão */}
+          <div style={{padding:'12px 20px',borderBottom:'1px solid var(--border)',background:'rgba(255,255,255,.02)',flexShrink:0}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px 16px',fontSize:13}}>
+              {sel.nome&&(
+                <div><div style={{color:'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:'.5px',marginBottom:3,textTransform:'uppercase'}}>Cidadão</div><div style={{color:'#fff',fontWeight:600}}>{sel.nome}</div></div>
+              )}
+              <div><div style={{color:'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:'.5px',marginBottom:3,textTransform:'uppercase'}}>Telefone</div><div style={{color:'#fff',fontWeight:600}}>{sel.telefone||'—'}</div></div>
+              {sel.endereco&&(
+                <div style={{gridColumn:'span 2'}}><div style={{color:'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:'.5px',marginBottom:3,textTransform:'uppercase'}}>Endereço</div><div style={{color:'#fff',fontWeight:600}}>{sel.endereco}</div></div>
+              )}
+              {sel.bairro&&(
+                <div><div style={{color:'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:'.5px',marginBottom:3,textTransform:'uppercase'}}>Bairro</div><div style={{color:'#fff',fontWeight:600}}>{sel.bairro}</div></div>
+              )}
+              <div>
+                <div style={{color:'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:'.5px',marginBottom:3,textTransform:'uppercase'}}>Status</div>
+                <select value={sel.status} onChange={e=>mudarStatus(sel.id,e.target.value)} style={{fontSize:12,padding:'4px 8px',width:'100%'}}>
+                  {Object.entries(STA_FBK).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Thread conversa */}
+          <div className="scrollable" style={{flex:1,padding:16}}>
+            <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.2px',color:'var(--text-muted)',textAlign:'center',marginBottom:16}}>Conversa via WhatsApp</div>
+
+            {msgs.length===0?(
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:120,gap:8}}>
+                <span style={{fontSize:32,opacity:.3}}>💬</span>
+                <div style={{fontSize:12,color:'var(--text-muted)'}}>Nenhuma mensagem no histórico</div>
+              </div>
+            ):(
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                {msgs.map(m=>{
+                  const deCidadao=m.de==='cidadao';
+                  return(
+                    <div key={m.id} style={{display:'flex',justifyContent:deCidadao?'flex-start':'flex-end'}}>
+                      <div style={{maxWidth:'82%',borderRadius:16,padding:'10px 16px',
+                        background:deCidadao?'var(--card)':'rgba(59,130,246,.15)',
+                        border:`1px solid ${deCidadao?'var(--border)':'rgba(59,130,246,.3)'}`,
+                        borderTopLeftRadius:deCidadao?4:16,borderTopRightRadius:deCidadao?16:4}}>
+                        {!deCidadao&&<div style={{fontSize:10,fontWeight:700,color:'#60a5fa',marginBottom:4}}>🤖 IA Prefeitura</div>}
+                        <div style={{fontSize:13.5,color:'var(--text-secondary)',lineHeight:1.6}}>{m.mensagem}</div>
+                        <div style={{fontSize:10,color:'var(--text-muted)',marginTop:6,textAlign:'right'}}>{ago(m.created_at)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Rodapé */}
+          <div style={{padding:'10px 16px',borderTop:'1px solid var(--border)',flexShrink:0,textAlign:'center'}}>
+            <div style={{fontSize:11,color:'var(--text-muted)'}}>Respostas automáticas via IA · WhatsApp Evolution API</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── RELATÓRIOS ───────────────────────────────────────────────── */
 function Relatorios(){
   const [periodo,setPeriodo]=useState('mes');
@@ -1176,6 +1517,7 @@ function App(){
     {id:'mapa',icon:<Ico.map/>,label:'Mapa'},
     {id:'ocorrencias',icon:<Ico.alert/>,label:'Ocorrências'},
     {id:'denuncias',icon:<Ico.eye/>,label:'Denúncias'},
+    {id:'feedbacks',icon:<Ico.chat/>,label:'Feedbacks',badge:FBK.filter(f=>f.prioridade==='critico').length||null},
     {id:'sos',icon:<Ico.shield/>,label:'SOS Mulher',badge:sos>0?sos:null},
     {id:'relatorios',icon:<Ico.report/>,label:'Relatórios'},
   ];
@@ -1236,6 +1578,7 @@ function App(){
             {aba==='mapa'&&<Mapa/>}
             {aba==='ocorrencias'&&<Ocorrencias/>}
             {aba==='denuncias'&&<Denuncias/>}
+            {aba==='feedbacks'&&<Feedbacks/>}
             {aba==='sos'&&<SOSMulher/>}
             {aba==='relatorios'&&<Relatorios/>}
           </PageTransition>
