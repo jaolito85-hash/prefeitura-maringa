@@ -258,6 +258,56 @@ const SOS=[
   {id:1,telefone:'+5544999112233',codigo_usado:'SOCORRO',status:'active',sos_cadastros:{nome:'Maria Silva',endereco:'Rua das Hortênsias, 234 — Zona 5',agressor:'João da Silva (ex-marido)',contato_confianca_nome:'Ana Souza',contato_confianca_telefone:'+5544988776655'},lat:-23.4155,lng:-51.9380,created_at:new Date(Date.now()-1800000).toISOString()},
 ];
 
+/* ─── HOOK: BUSCA DADOS DA API (com fallback pro mock) ────────── */
+const POLL_INTERVAL=15000; // Atualiza a cada 15 segundos
+
+function useAPI(url, mockData, interval=POLL_INTERVAL){
+  const [data,setData]=useState(mockData);
+  const [live,setLive]=useState(false);
+  const [error,setError]=useState(null);
+  useEffect(()=>{
+    let active=true;
+    async function fetchData(){
+      try{
+        const res=await fetch(url);
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const json=await res.json();
+        if(active && json && json.length>=0){
+          setData(json.length>0 ? json : mockData);
+          setLive(true);
+          setError(null);
+        }
+      }catch(e){
+        if(active){setError(e.message);setLive(false);}
+      }
+    }
+    fetchData();
+    const timer=setInterval(fetchData,interval);
+    return()=>{active=false;clearInterval(timer);};
+  },[url,interval]);
+  return {data,live,error};
+}
+
+function useKPIs(){
+  const [kpis,setKpis]=useState({sos_ativos:1,denuncias_hoje:6,ocorrencias_abertas:5,tempo_medio_resposta:'12min'});
+  const [live,setLive]=useState(false);
+  useEffect(()=>{
+    let active=true;
+    async function fetchKpis(){
+      try{
+        const res=await fetch('/api/kpis');
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const json=await res.json();
+        if(active && json){setKpis(json);setLive(true);}
+      }catch(e){if(active)setLive(false);}
+    }
+    fetchKpis();
+    const timer=setInterval(fetchKpis,POLL_INTERVAL);
+    return()=>{active=false;clearInterval(timer);};
+  },[]);
+  return {kpis,live};
+}
+
 /* ─── BASES DE OPERAÇÃO ───────────────────────────────────────── */
 const BASES=[
   {id:'gcm',nome:'GCM Central',tipo:'gcm',icon:'🛡️',lat:-23.4236,lng:-51.9383,endereco:'Rua Fernão Dias, 688 — Zona 9',telefone:'(44) 3221-8696',cor:'#1DB954'},
@@ -718,6 +768,10 @@ function DonutChart({data,size=160}){
 
 /* ─── CENTRAL ─────────────────────────────────────────────────── */
 function Central({sos}){
+  const {data:ocData}=useAPI('/api/ocorrencias',OC);
+  const {data:denData}=useAPI('/api/denuncias',DEN);
+  const {data:sosData}=useAPI('/api/sos/alertas/ativos',SOS);
+  const {kpis}=useKPIs();
   const [routeData,setRouteData]=useState(null);
   const [routeBase,setRouteBase]=useState(null);
   const [routeIncident,setRouteIncident]=useState(null);
@@ -734,18 +788,18 @@ function Central({sos}){
   }
 
   const feed=[
-    ...OC.slice(0,4).map(o=>({...o,tipo:'oc'})),
-    ...DEN.slice(0,3).map(d=>({...d,tipo:'den'})),
-    ...SOS.map(s=>({...s,tipo:'sos'})),
+    ...ocData.slice(0,4).map(o=>({...o,tipo:'oc'})),
+    ...denData.slice(0,3).map(d=>({...d,tipo:'den'})),
+    ...sosData.map(s=>({...s,tipo:'sos'})),
   ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden',position:'relative'}}>
       <div className="kpi-grid">
         {[
-          {icon:'🚨',val:sos,lbl:'SOS Ativos',color:'#dc2626',bg:'rgba(220,38,38,.08)',border:sos?'rgba(220,38,38,.25)':''},
-          {icon:'⚠',val:OC.filter(o=>o.status!=='resolvido').length,lbl:'Ocorrências Abertas',color:'#fbbf24',bg:'rgba(251,191,36,.08)'},
-          {icon:'📋',val:DEN.length,lbl:'Denúncias Hoje',color:'#00D1FF',bg:'rgba(0,209,255,.08)'},
-          {icon:'⏱',val:'18min',lbl:'Tempo Médio',color:'#1DB954',bg:'rgba(29,185,84,.08)'},
+          {icon:'🚨',val:kpis.sos_ativos,lbl:'SOS Ativos',color:'#dc2626',bg:'rgba(220,38,38,.08)',border:kpis.sos_ativos?'rgba(220,38,38,.25)':''},
+          {icon:'⚠',val:kpis.ocorrencias_abertas,lbl:'Ocorrências Abertas',color:'#fbbf24',bg:'rgba(251,191,36,.08)'},
+          {icon:'📋',val:kpis.denuncias_hoje,lbl:'Denúncias Hoje',color:'#00D1FF',bg:'rgba(0,209,255,.08)'},
+          {icon:'⏱',val:kpis.tempo_medio_resposta,lbl:'Tempo Médio',color:'#1DB954',bg:'rgba(29,185,84,.08)'},
         ].map((k,i)=>(
           <div key={i} className="kpi anim-card" style={{borderColor:k.border||''}}>
             <div className="kpi-top">
@@ -760,7 +814,7 @@ function Central({sos}){
       </div>
       <div style={{flex:1,display:'flex',gap:16,padding:'0 20px 20px',overflow:'hidden',minHeight:0}}>
         <div style={{flex:1,minWidth:0,borderRadius:'var(--radius)',overflow:'hidden',position:'relative'}}>
-          <MapboxMap items={[...OC.filter(o=>o.status!=='resolvido'),...SOS.map(s=>({...s,severidade:'critica',titulo:'SOS: '+s.sos_cadastros?.nome}))]} showBases={true} route={routeData}/>
+          <MapboxMap items={[...ocData.filter(o=>o.status!=='resolvido'),...sosData.map(s=>({...s,severidade:'critica',titulo:'SOS: '+s.sos_cadastros?.nome}))]} showBases={true} route={routeData}/>
           {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
         </div>
         <div style={{width:340,flexShrink:0,display:'flex',flexDirection:'column'}}>
@@ -802,8 +856,9 @@ function Central({sos}){
 
 /* ─── MAPA ─────────────────────────────────────────────────────── */
 function Mapa(){
+  const {data:ocData}=useAPI('/api/ocorrencias',OC);
   const [f,setF]=useState('todos');
-  const items=OC.filter(o=>f==='todos'||o.status===f);
+  const items=ocData.filter(o=>f==='todos'||o.status===f);
   const btns=[['todos','Todos'],['aberto','Abertos'],['em_atendimento','Em atendimento'],['resolvido','Resolvidos']];
   return(
     <div style={{position:'relative',height:'100%'}}>
@@ -828,6 +883,7 @@ function Mapa(){
 
 /* ─── OCORRÊNCIAS ──────────────────────────────────────────────── */
 function Ocorrencias(){
+  const {data:ocData}=useAPI('/api/ocorrencias',OC);
   const [sel,setSel]=useState(null);
   const [f,setF]=useState('ativas');
   const [routeData,setRouteData]=useState(null);
@@ -844,7 +900,7 @@ function Ocorrencias(){
     setLoadingRoute(false);
   }
 
-  const lista=OC.filter(o=>f==='ativas'?o.status!=='resolvido':f==='resolvido'?o.status==='resolvido':true);
+  const lista=ocData.filter(o=>f==='ativas'?o.status!=='resolvido':f==='resolvido'?o.status==='resolvido':true);
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden',position:'relative'}}>
       <div style={{width:380,flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',background:'var(--surface)'}}>
@@ -931,13 +987,14 @@ function Ocorrencias(){
 
 /* ─── DENÚNCIAS ────────────────────────────────────────────────── */
 function Denuncias(){
+  const {data:denData}=useAPI('/api/denuncias',DEN);
   const [tab,setTab]=useState('lista');
   const [sel,setSel]=useState(null);
   const [fc,setFc]=useState('');
-  const lista=DEN.filter(d=>!fc||d.categoria===fc);
-  const pago=DEN.filter(d=>d.status==='recompensa_paga').reduce((a,d)=>a+(d.valor_recompensa||0),0);
-  const apagar=DEN.filter(d=>d.status==='procedente').reduce((a,d)=>a+(d.valor_recompensa||0),0);
-  const analise=DEN.filter(d=>d.status==='em_analise').reduce((a,d)=>a+(d.valor_recompensa||0),0);
+  const lista=denData.filter(d=>!fc||d.categoria===fc);
+  const pago=denData.filter(d=>d.status==='recompensa_paga').reduce((a,d)=>a+(d.valor_recompensa||0),0);
+  const apagar=denData.filter(d=>d.status==='procedente').reduce((a,d)=>a+(d.valor_recompensa||0),0);
+  const analise=denData.filter(d=>d.status==='em_analise').reduce((a,d)=>a+(d.valor_recompensa||0),0);
   const chartData=[{label:'Out',oc:34,den:12},{label:'Nov',oc:41,den:18},{label:'Dez',oc:29,den:9},{label:'Jan',oc:52,den:22},{label:'Fev',oc:38,den:15},{label:'Mar',oc:47,den:19}];
   const recompData=[{label:'Jan',pago:2400,apagar:800},{label:'Fev',pago:1800,apagar:600},{label:'Mar',pago:3200,apagar:1200}];
   const pieData=[{v:2,c:'#dc2626',n:'Tráfico'},{v:2,c:'#7c3aed',n:'Pichação'},{v:1,c:'#fbbf24',n:'Descarte'},{v:1,c:'#00D1FF',n:'Furto Fios'}];
@@ -950,8 +1007,8 @@ function Denuncias(){
           {num:`R$ ${apagar.toLocaleString('pt-BR')}`,lbl:'A Pagar',c:'#fbbf24'},
           {num:`R$ ${analise.toLocaleString('pt-BR')}`,lbl:'Em Análise',c:'#00D1FF'},
           {num:`R$ ${(pago+apagar+analise).toLocaleString('pt-BR')}`,lbl:'Total Geral',c:'#fff'},
-          {num:DEN.length,lbl:'Denúncias',c:'#00D1FF'},
-          {num:DEN.filter(d=>d.cidadania_ativa).length,lbl:'Cidadania Ativa',c:'#4ade80'},
+          {num:denData.length,lbl:'Denúncias',c:'#00D1FF'},
+          {num:denData.filter(d=>d.cidadania_ativa).length,lbl:'Cidadania Ativa',c:'#4ade80'},
         ].map((s,i)=>(
           <div key={i} className="stat-box anim-card">
             <div className="stat-num" style={{color:s.c}}>{s.num}</div>
@@ -1031,7 +1088,8 @@ function Denuncias(){
 
 /* ─── SOS MULHER ───────────────────────────────────────────────── */
 function SOSMulher(){
-  const [sel,setSel]=useState(SOS[0]);
+  const {data:sosData}=useAPI('/api/sos/alertas',SOS);
+  const [sel,setSel]=useState(null);
   const [routeData,setRouteData]=useState(null);
   const [routeBase,setRouteBase]=useState(null);
   const [routeIncident,setRouteIncident]=useState(null);
@@ -1053,10 +1111,10 @@ function SOSMulher(){
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
             <div style={{width:8,height:8,borderRadius:'50%',background:'#dc2626',animation:'pulse 1s infinite'}}/>
             <span style={{fontSize:12,fontWeight:600,color:'#dc2626',textTransform:'uppercase',letterSpacing:'1px'}}>Alertas Ativos</span>
-            <span className="nav-badge" style={{marginLeft:'auto'}}>{SOS.length}</span>
+            <span className="nav-badge" style={{marginLeft:'auto'}}>{sosData.length}</span>
           </div>
         </div>
-        {SOS.map(s=>(
+        {sosData.map(s=>(
           <div key={s.id} onClick={()=>setSel(s)} style={{margin:'0 10px 6px',padding:'14px 16px',borderRadius:8,background:sel?.id===s.id?'rgba(220,38,38,.08)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':'rgba(220,38,38,.12)'}`,cursor:'pointer'}}>
             <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
               <span style={{fontWeight:600,fontSize:14,color:'#fff'}}>{s.sos_cadastros?.nome||s.telefone}</span>
@@ -1168,7 +1226,8 @@ function App(){
   const [aba,setAba]=useState('central');
   const [hora,setHora]=useState(new Date());
   const [mutado,setMutado]=useState(false);
-  const sos=SOS.length;
+  const {data:sosGlobal}=useAPI('/api/sos/alertas/ativos',SOS);
+  const sos=sosGlobal.length;
   useEffect(()=>{const t=setInterval(()=>setHora(new Date()),1000);return()=>clearInterval(t);},[]);
 
   const ABAS=[
@@ -1204,7 +1263,7 @@ function App(){
           <span style={{fontSize:18}}>🚨</span>
           <div>
             <span className="sos-label">Alerta SOS Mulher Ativo</span>
-            <span className="sos-detail">{SOS[0]?.sos_cadastros?.nome} — {SOS[0]?.sos_cadastros?.endereco}</span>
+            <span className="sos-detail">{sosGlobal[0]?.sos_cadastros?.nome} — {sosGlobal[0]?.sos_cadastros?.endereco}</span>
           </div>
           <span style={{fontSize:12,opacity:.7}}>Clique para ver</span>
           <span className="sos-count">{sos} ativo{sos>1?'s':''}</span>
