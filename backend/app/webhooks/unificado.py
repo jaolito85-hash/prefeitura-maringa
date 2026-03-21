@@ -1,19 +1,18 @@
 """
-unificado.py — Webhook UNIFICADO para demo com numero unico.
-=============================================================
-Um unico endpoint recebe TODAS as mensagens do WhatsApp.
-A IA do Claude classifica e roteia pro canal correto.
+unificado.py — Webhook UNIFICADO com SESSAO de conversa.
+=========================================================
+Agora o webhook verifica se o cidadao JA TEM uma conversa ativa.
+Se tem → continua no mesmo protocolo (nao abre outro).
+Se nao tem → classifica e abre protocolo novo.
 
 Fluxo:
-  WhatsApp → Evolution API → /webhook/unificado → Redis fila → Worker processa
-
-COMO FUNCIONA:
-  1. Mensagem chega neste webhook
-  2. Extrai texto, midia, localizacao do payload da Evolution
-  3. Checa se e SOS rapido (< 2 segundos, sem IA)
-  4. Se nao e SOS, chama Claude API pra classificar
-  5. Coloca na fila Redis com a classificacao ja feita
-  6. Worker consome, salva no Supabase, responde via Evolution
+  1. Mensagem chega
+  2. Checa SOS rapido (< 2s)
+  3. Busca sessao ativa no Supabase pra esse telefone
+  4. Se tem sessao → marca como CONTINUACAO (mesmo protocolo)
+  5. Se nao tem → classifica com IA (protocolo novo)
+  6. Coloca na fila Redis
+  7. Worker processa, salva, responde
 """
 from __future__ import annotations
 
@@ -22,10 +21,11 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import settings
 from app.services.classificador import classificar_mensagem, detectar_sos_rapido
+from app.services.supabase_client import get_supabase
 from app.services.webhook_queue import enqueue_webhook, QueueUnavailableError
 from app.webhooks.common import require_evolution_apikey
 
@@ -35,11 +35,7 @@ router = APIRouter()
 
 
 def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
-    """
-    Extrai os dados relevantes do payload da Evolution API.
-    O payload da Evolution vem num formato especifico — essa funcao
-    'traduz' pra um formato mais limpo que o resto do sistema usa.
-    """
+    """Extrai dados relevantes do payload da Evolution API."""
     data = payload.get("data", {}) if isinstance(payload, dict) else {}
 
     if not isinstance(data, dict):
@@ -50,13 +46,11 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
     key = data.get("key", {})
     msg = data.get("message", {}) or {}
 
-    # Extrair telefone
     remote_jid = key.get("remoteJid", "desconhecido")
     phone = remote_jid.split("@")[0].split(":")[0]
     if not phone.startswith("+"):
         phone = "+" + phone
 
-    # Extrair texto
     texto = ""
     tipo_midia = None
 
@@ -80,7 +74,6 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
         texto = ""
         tipo_midia = "localizacao"
 
-    # Extrair localizacao (pode vir como locationMessage)
     tem_localizacao = False
     latitude = None
     longitude = None
@@ -103,35 +96,55 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
     }
 
 
+def _buscar_sessao_ativa(telefone: str) -> dict | None:
+    """Busca sessao ativa no Supabase pra esse telefone."""
+    try:
+        sb = get_supabase()
+        result = sb.table("sessoes_conversa").select("*").eq(
+            "telefone", telefone
+        ).gt("expira_em", datetime.now(timezone.utc).isoformat()).execute()
+
+        if result.data and len(result.data) > 0:
+            sessao = result.data[0]
+            # Sessao finalizada nao conta
+            if sessao.get("etapa") == "finalizado":
+                return None
+            return sessao
+        return None
+    except Exception as exc:
+        logger.error(f"Erro ao buscar sessao: {exc}")
+        return None
+
+
 @router.post("/unificado", status_code=status.HTTP_202_ACCEPTED)
 async def receber_webhook_unificado(
     payload: dict[str, Any],
     request: Request,
     _: str | None = Depends(require_evolution_apikey),
 ):
-    """
-    Endpoint UNICO que recebe todas as mensagens do WhatsApp.
-    Classifica com IA e roteia pro canal correto.
-    """
-    # 1. Extrair dados do payload da Evolution
     dados = _extrair_dados_evolution(payload)
 
-    # Ignorar mensagens enviadas pelo proprio bot
     if dados["from_me"]:
         return {"status": "ignored", "reason": "from_me"}
 
-    # Ignorar mensagens vazias (sem texto e sem midia)
     if not dados["texto"] and not dados["tem_midia"] and not dados["tem_localizacao"]:
         return {"status": "ignored", "reason": "empty"}
 
     telefone = dados["telefone"]
     texto = dados["texto"]
-    logger.info(f"Mensagem de {telefone}: {texto[:80]}")
+    logger.info(f"Mensagem de {telefone}: {texto[:80] if texto else '[midia/localizacao]'}")
 
-    # 2. Checagem RAPIDA de SOS (< 2 segundos, sem chamar IA)
+    # ── 1. SOS RAPIDO — prioridade absoluta, sem checar sessao ──
     if texto and detectar_sos_rapido(texto):
         logger.warning(f"🚨 SOS RAPIDO detectado de {telefone}!")
-        classificacao = {
+        # Limpa qualquer sessao ativa — SOS sempre ganha
+        try:
+            sb = get_supabase()
+            sb.table("sessoes_conversa").delete().eq("telefone", telefone).execute()
+        except Exception:
+            pass
+
+        event = _montar_evento(dados, request, classificacao={
             "canal": "sos_mulher",
             "categoria": "emergencia",
             "sentimento": "negativo",
@@ -140,18 +153,40 @@ async def receber_webhook_unificado(
             "resposta_whatsapp": "✓ Recebido. Se puder, envie sua localização: 📎 > Localização",
             "pedir_midia": False,
             "pedir_localizacao": True,
-        }
-    else:
-        # 3. Classificacao com Claude API (2-5 segundos)
-        classificacao = await classificar_mensagem(
-            texto=texto or "[Mídia sem legenda]",
-            telefone=telefone,
-            tem_midia=dados["tem_midia"],
-            tem_localizacao=dados["tem_localizacao"],
-            push_name=dados["push_name"],
-        )
+        }, is_continuacao=False)
+        return _enfileirar(event, "queue:sos")
 
-    # 4. Determinar a fila correta
+    # ── 2. CHECAR SESSAO ATIVA ──
+    sessao = _buscar_sessao_ativa(telefone)
+
+    if sessao:
+        # CONTINUACAO — mesmo protocolo, nao classifica de novo
+        logger.info(f"Sessao ativa encontrada: canal={sessao['canal']} etapa={sessao['etapa']}")
+
+        canal = sessao["canal"]
+        fila_map = {
+            "denuncia": "queue:denuncias",
+            "sos_mulher": "queue:sos",
+            "ocorrencia": "queue:ocorrencias",
+            "feedback": "queue:feedbacks",
+        }
+        fila = fila_map.get(canal, "queue:feedbacks")
+
+        event = _montar_evento(dados, request, classificacao={
+            "canal": canal,
+            "categoria": (sessao.get("contexto") or {}).get("categoria", ""),
+        }, is_continuacao=True, sessao=sessao)
+        return _enfileirar(event, fila)
+
+    # ── 3. MENSAGEM NOVA — classificar com IA ──
+    classificacao = await classificar_mensagem(
+        texto=texto or "[Mídia sem legenda]",
+        telefone=telefone,
+        tem_midia=dados["tem_midia"],
+        tem_localizacao=dados["tem_localizacao"],
+        push_name=dados["push_name"],
+    )
+
     canal = classificacao.get("canal", "feedback")
     fila_map = {
         "denuncia": "queue:denuncias",
@@ -161,16 +196,21 @@ async def receber_webhook_unificado(
     }
     fila = fila_map.get(canal, "queue:feedbacks")
 
-    # 5. Montar evento enriquecido (com classificacao) e colocar na fila
-    event = {
-        "channel": canal,
+    event = _montar_evento(dados, request, classificacao=classificacao, is_continuacao=False)
+    return _enfileirar(event, fila)
+
+
+def _montar_evento(dados: dict, request: Request, classificacao: dict,
+                   is_continuacao: bool, sessao: dict = None) -> dict:
+    """Monta o evento padrao pra colocar na fila."""
+    return {
+        "channel": classificacao.get("canal", "feedback"),
         "instance_name": settings.wa_instance_name,
         "received_at": datetime.now(timezone.utc).isoformat(),
         "client_ip": request.client.host if request.client else None,
-        "path": str(request.url.path),
-        "telefone": telefone,
+        "telefone": dados["telefone"],
         "push_name": dados["push_name"],
-        "texto": texto,
+        "texto": dados["texto"],
         "tem_midia": dados["tem_midia"],
         "tipo_midia": dados["tipo_midia"],
         "tem_localizacao": dados["tem_localizacao"],
@@ -178,27 +218,29 @@ async def receber_webhook_unificado(
         "longitude": dados.get("longitude"),
         "message_id": dados.get("message_id"),
         "classificacao": classificacao,
-        "payload_original": payload,
+        "is_continuacao": is_continuacao,
+        "sessao": sessao,
     }
 
+
+def _enfileirar(event: dict, fila: str) -> dict:
+    """Coloca o evento na fila Redis."""
     try:
         queue_depth = enqueue_webhook(fila, event)
     except QueueUnavailableError as exc:
-        from fastapi import HTTPException
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
 
-    logger.info(
-        f"Classificado: canal={canal} categoria={classificacao.get('categoria')} "
-        f"fila={fila} depth={queue_depth}"
-    )
+    canal = event.get("channel", "?")
+    cont = "CONTINUACAO" if event.get("is_continuacao") else "NOVO"
+    logger.info(f"[{cont}] canal={canal} fila={fila} depth={queue_depth}")
 
     return {
         "status": "accepted",
         "canal": canal,
-        "categoria": classificacao.get("categoria"),
+        "is_continuacao": event.get("is_continuacao", False),
         "queue": fila,
         "queue_depth": queue_depth,
     }
