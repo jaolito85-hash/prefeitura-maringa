@@ -9,106 +9,107 @@
 <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js" crossorigin></script>
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#121212;
-  --surface:#1a1a1a;
-  --card:#1a1a1a;
-  --card-hover:#212121;
-  --border:#2a2a2a;
-  --border-light:#333333;
+  --bg:#0b0e0d;
+  --surface:#111614;
+  --card:#141917;
+  --card-hover:#1a1f1d;
+  --border:#1e2624;
+  --border-light:#2a3330;
   --accent:#1DB954;
-  --accent-light:#1DB954;
-  --accent-bg:rgba(29,185,84,.08);
+  --accent-light:#22d35e;
+  --accent-bg:rgba(29,185,84,.06);
   --blue:#00D1FF;
   --cyan:#00D1FF;
-  --text:#f5f5f5;
-  --text-secondary:#9ca3af;
-  --text-muted:#6b7280;
+  --text:#e8ebe9;
+  --text-secondary:#a1a8a5;
+  --text-muted:#5f6b66;
   --danger:#dc2626;
   --danger-light:#ef4444;
   --warn:#fbbf24;
   --warn-light:#fbbf24;
   --success:#1DB954;
-  --success-light:#1DB954;
+  --success-light:#22d35e;
   --purple:#7c3aed;
-  --radius:12px;
+  --radius:14px;
 }
 html,body,#root{height:100%;background:var(--bg);color:var(--text);overflow:hidden}
-body{font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:14px;font-weight:400;-webkit-font-smoothing:antialiased}
-::-webkit-scrollbar{width:5px}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:15px;font-weight:400;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+::-webkit-scrollbar{width:7px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#333333;border-radius:4px}
+::-webkit-scrollbar-thumb{background:#2a3330;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#3a4540}
 .app{display:flex;flex-direction:column;height:100vh}
 
-/* HEADER */
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:60px;background:#1a1a1a;border-bottom:1px solid #2a2a2a;flex-shrink:0;position:relative;z-index:20}
-.logo{display:flex;align-items:center;gap:12px}
-.logo-mark{width:32px;height:32px}
-.logo-text{font-size:18px;font-weight:700;color:#fff;letter-spacing:-.2px}
-.logo-text span{font-weight:400;color:var(--accent-light);margin-left:1px}
-.logo-sep{width:1px;height:20px;background:var(--border-light);margin:0 16px}
-.logo-sub{font-size:13px;color:var(--text-secondary);font-weight:400}
-.hdr-right{display:flex;align-items:center;gap:20px}
-.status-badge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--success-light);padding:4px 10px;background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.2);border-radius:20px}
-.status-dot{width:6px;height:6px;border-radius:50%;background:var(--success-light);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+/* ─── HEADER ─────────────────────────────────────────────────── */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:72px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:20}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-mark{width:38px;height:38px}
+.logo-text{font-size:21px;font-weight:800;color:#fff;letter-spacing:-.3px}
+.logo-text span{font-weight:500;color:var(--accent-light);margin-left:2px}
+.logo-sep{width:1px;height:28px;background:var(--border-light);margin:0 20px}
+.logo-sub{font-size:14px;color:var(--text-secondary);font-weight:500;letter-spacing:-.01em}
+.hdr-right{display:flex;align-items:center;gap:24px}
+.status-badge{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--success-light);padding:6px 16px;background:rgba(29,185,84,.08);border:1px solid rgba(29,185,84,.2);border-radius:24px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--success-light);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .clock-area{text-align:right}
-.clock{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#fff;letter-spacing:.5px}
-.clock-date{font-size:11px;color:var(--text-muted);margin-top:1px;text-transform:capitalize}
-.hdr-btn{background:var(--card);border:1px solid var(--border);color:var(--text-secondary);width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.hdr-btn:hover{border-color:var(--border-light);color:var(--text)}
+.clock{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:700;color:#fff;letter-spacing:.5px}
+.clock-date{font-size:13px;color:var(--text-muted);margin-top:2px;text-transform:capitalize;font-weight:500}
+.hdr-btn{background:var(--card);border:1px solid var(--border);color:var(--text-secondary);width:42px;height:42px;border-radius:10px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.hdr-btn:hover{border-color:var(--border-light);color:var(--text);background:var(--card-hover)}
 
-/* SOS BANNER */
-.sos-banner{display:flex;align-items:center;gap:14px;padding:10px 24px;background:#991b1b;cursor:pointer;flex-shrink:0;transition:background .2s}
+/* ─── SOS BANNER ─────────────────────────────────────────────── */
+.sos-banner{display:flex;align-items:center;gap:16px;padding:14px 32px;background:#991b1b;cursor:pointer;flex-shrink:0;transition:background .2s}
 .sos-banner:hover{background:#b91c1c}
-.sos-label{font-weight:700;font-size:13px;letter-spacing:.5px;text-transform:uppercase}
-.sos-detail{font-size:13px;opacity:.9;margin-left:8px}
-.sos-count{margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:3px 14px;font-size:12px;font-weight:600}
+.sos-label{font-weight:800;font-size:14px;letter-spacing:.8px;text-transform:uppercase}
+.sos-detail{font-size:14px;opacity:.9;margin-left:8px;font-weight:500}
+.sos-count{margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:24px;padding:5px 18px;font-size:13px;font-weight:700}
 
-/* BODY */
+/* ─── BODY ───────────────────────────────────────────────────── */
 .body{display:flex;flex:1;overflow:hidden}
 
-/* SIDEBAR */
-.sidebar{width:260px;background:#1a1a1a;border-right:1px solid #2a2a2a;display:flex;flex-direction:column;padding:16px 12px;flex-shrink:0}
-.sidebar-section{font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:1.2px;text-transform:uppercase;padding:8px 12px 6px;margin-top:4px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius);cursor:pointer;color:var(--text-secondary);font-size:13.5px;font-weight:500;border:1px solid transparent;margin-bottom:2px;transition:all .15s;user-select:none;background:none}
-.nav-item:hover{background:#212121;color:var(--text)}
-.nav-item.active{background:#1DB954;color:#fff;border-color:#1DB954}
-.nav-icon{width:18px;height:18px;flex-shrink:0;opacity:.7}
+/* ─── SIDEBAR ────────────────────────────────────────────────── */
+.sidebar{width:280px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 14px;flex-shrink:0}
+.sidebar-section{font-size:11px;color:var(--text-muted);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:10px 14px 8px;margin-top:6px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:var(--radius);cursor:pointer;color:var(--text-secondary);font-size:15px;font-weight:600;border:1px solid transparent;margin-bottom:3px;transition:all .15s;-webkit-user-select:none;user-select:none;background:none}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700;box-shadow:0 4px 20px rgba(29,185,84,.25)}
+.nav-icon{width:20px;height:20px;flex-shrink:0;opacity:.65}
 .nav-item.active .nav-icon{opacity:1}
-.nav-badge{margin-left:auto;background:var(--danger);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600}
-.nav-divider{height:1px;background:var(--border);margin:12px 8px}
-.ws-row{display:flex;align-items:center;gap:8px;padding:4px 12px;font-size:12px;color:var(--text-muted)}
-.ws-dot{width:5px;height:5px;border-radius:50%;background:var(--success-light);flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:700}
+.nav-divider{height:1px;background:var(--border);margin:16px 10px}
+.ws-row{display:flex;align-items:center;gap:10px;padding:6px 14px;font-size:13px;color:var(--text-muted);font-weight:500}
+.ws-dot{width:6px;height:6px;border-radius:50%;background:var(--success-light);flex-shrink:0}
 
-/* CONTENT */
+/* ─── CONTENT ────────────────────────────────────────────────── */
 .content{flex:1;overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
 
-/* CARDS */
-.card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:var(--radius)}
+/* ─── CARDS ──────────────────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
 
-/* KPI */
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px;flex-shrink:0}
-.kpi{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:var(--radius);padding:20px;transition:all .15s}
-.kpi:hover{border-color:var(--border-light)}
-.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.kpi-label{font-size:12px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
-.kpi-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
-.kpi-value{font-family:'IBM Plex Mono',monospace;font-size:32px;font-weight:600;line-height:1;color:#fff}
-.kpi-sub{font-size:11px;color:var(--text-muted);margin-top:6px}
+/* ─── KPI ────────────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:24px;flex-shrink:0}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;transition:all .15s}
+.kpi:hover{border-color:var(--border-light);background:var(--card-hover)}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.kpi-label{font-size:13px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.kpi-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.kpi-value{font-family:'IBM Plex Mono',monospace;font-size:44px;font-weight:700;line-height:1;color:#fff}
+.kpi-sub{font-size:13px;color:var(--text-muted);margin-top:8px;font-weight:500}
 
-/* TABLES */
+/* ─── TABLES ─────────────────────────────────────────────────── */
 table{width:100%;border-collapse:collapse}
-th{text-align:left;padding:12px 16px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);border-bottom:1px solid var(--border);background:#1a1a1a}
-td{padding:14px 16px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13.5px;color:var(--text-secondary)}
+th{text-align:left;padding:16px 20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-bottom:1px solid var(--border);background:var(--surface)}
+td{padding:18px 20px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:15px;color:var(--text-secondary);font-weight:500}
 tr{transition:background .1s}
 tr:hover td{background:rgba(255,255,255,.02)}
 
-/* BADGES */
-.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:500}
+/* ─── BADGES ─────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:8px;font-size:13px;font-weight:700}
 .b-blue{background:rgba(0,209,255,.1);color:#00D1FF;border:1px solid rgba(0,209,255,.2)}
 .b-red{background:rgba(220,38,38,.1);color:#f87171;border:1px solid rgba(220,38,38,.2)}
 .b-warn{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.2)}
@@ -116,44 +117,44 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .b-purple{background:rgba(124,58,237,.1);color:#a78bfa;border:1px solid rgba(124,58,237,.2)}
 .b-gray{background:rgba(107,114,128,.1);color:var(--text-muted);border:1px solid var(--border)}
 
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:none;font-family:inherit}
-.btn-primary{background:#1DB954;color:#fff}.btn-primary:hover{background:rgba(29,185,84,.9)}
-.btn-primary:disabled{background:rgba(29,185,84,.5);cursor:not-allowed}
+/* ─── BUTTONS ────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;border:none;font-family:inherit;letter-spacing:-.01em}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:rgba(29,185,84,.85)}
+.btn-primary:disabled{background:rgba(29,185,84,.4);cursor:not-allowed}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-secondary)}.btn-outline:hover{border-color:var(--border-light);color:var(--text)}
 .btn-danger{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);color:#f87171}.btn-danger:hover{background:rgba(220,38,38,.15)}
 
-/* TABS */
-.tab-bar{display:flex;align-items:flex-end;gap:0;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
-.tab{padding:12px 18px;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+/* ─── TABS ───────────────────────────────────────────────────── */
+.tab-bar{display:flex;align-items:flex-end;gap:0;padding:0 24px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
+.tab{padding:16px 22px;font-size:14px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s}
 .tab:hover{color:var(--text)}
-.tab.active{color:#1DB954;border-bottom-color:#1DB954}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
 .tab-spacer{flex:1}
 
-/* MISC */
+/* ─── MISC ───────────────────────────────────────────────────── */
 .scrollable{overflow-y:auto}
 .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mono{font-family:'IBM Plex Mono',monospace}
 
-/* STAT ROW */
-.stat-row{display:flex;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
-.stat-box{background:#212121;border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;flex:1;text-align:center;transition:all .15s}
-.stat-box:hover{border-color:var(--border-light)}
-.stat-num{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;line-height:1;color:#fff}
-.stat-lbl{font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-top:5px}
+/* ─── STAT ROW ───────────────────────────────────────────────── */
+.stat-row{display:flex;gap:14px;padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;flex:1;text-align:center;transition:all .15s}
+.stat-box:hover{border-color:var(--border-light);background:var(--card-hover)}
+.stat-num{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:700;line-height:1;color:#fff}
+.stat-lbl{font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:8px}
 
-/* SELECT/INPUT */
-select,input,textarea{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:8px 12px;font-size:13px;font-family:inherit;outline:none;transition:border .15s}
+/* ─── SELECT/INPUT ───────────────────────────────────────────── */
+select,input,textarea{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:10px 14px;font-size:14px;font-weight:500;font-family:inherit;outline:none;transition:border .15s}
 select:focus,input:focus,textarea:focus{border-color:var(--accent)}
 textarea{resize:vertical}
 
-/* CHART */
-.chart-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:var(--radius);padding:20px;display:flex;flex-direction:column}
-.chart-title{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px}
-.chart-legend{display:flex;gap:18px;margin-top:14px;font-size:12px}
-.chart-legend-item{display:flex;align-items:center;gap:6px;color:var(--text-muted)}
+/* ─── CHART ──────────────────────────────────────────────────── */
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;display:flex;flex-direction:column}
+.chart-title{font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:20px}
+.chart-legend{display:flex;gap:22px;margin-top:18px;font-size:13px;font-weight:500}
+.chart-legend-item{display:flex;align-items:center;gap:8px;color:var(--text-muted)}
 
-/* MAP */
+/* ─── MAP ────────────────────────────────────────────────────── */
 .mapboxgl-map{font-family:'Inter',system-ui,-apple-system,sans-serif !important}
 .mapboxgl-ctrl-bottom-left,.mapboxgl-ctrl-bottom-right{display:none !important}
 .map-container{width:100%;height:100%;border-radius:var(--radius);overflow:hidden;position:relative}
@@ -161,27 +162,25 @@ textarea{resize:vertical}
 .mapboxgl-popup-content{background:transparent !important;box-shadow:none !important;padding:0 !important}
 .mapboxgl-popup-tip{display:none !important}
 
-/* ROUTE PANEL */
-.route-panel{position:absolute;bottom:20px;left:20px;right:20px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:20px;z-index:15;display:flex;gap:20px;align-items:flex-start;animation:fadeSlideUp .4s ease-out;box-shadow:0 8px 32px rgba(0,0,0,.5)}
-.route-panel-close{position:absolute;top:12px;right:12px;background:none;border:none;color:#6b7280;cursor:pointer;font-size:18px;padding:4px;line-height:1}
+/* ─── ROUTE PANEL ────────────────────────────────────────────── */
+.route-panel{position:absolute;bottom:24px;left:24px;right:24px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;z-index:15;display:flex;gap:24px;align-items:flex-start;animation:fadeSlideUp .4s ease-out;box-shadow:0 12px 48px rgba(0,0,0,.6)}
+.route-panel-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:20px;padding:4px;line-height:1}
 .route-panel-close:hover{color:#f5f5f5}
 .route-info{flex:1;min-width:0}
-.route-info h3{font-size:16px;font-weight:600;color:#fff;margin-bottom:8px}
-.route-info p{font-size:13px;color:#9ca3af;margin-bottom:4px}
-.route-stats{display:flex;gap:16px;margin-top:12px}
-.route-stat{background:#212121;border:1px solid #2a2a2a;border-radius:8px;padding:10px 16px;text-align:center}
-.route-stat .val{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:#fff}
-.route-stat .lbl{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
-.route-actions{display:flex;flex-direction:column;gap:8px;flex-shrink:0}
-.route-dispatch{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;border:1px solid #2a2a2a;background:#212121;color:#f5f5f5;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:all .15s;white-space:nowrap}
-.route-dispatch:hover{border-color:#333;background:#2a2a2a}
-.route-dispatch.primary{background:#1DB954;border-color:#1DB954;color:#fff}
+.route-info h3{font-size:18px;font-weight:700;color:#fff;margin-bottom:10px}
+.route-info p{font-size:14px;color:var(--text-secondary);margin-bottom:4px;font-weight:500}
+.route-stats{display:flex;gap:18px;margin-top:14px}
+.route-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 20px;text-align:center}
+.route-stat .val{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;color:#fff}
+.route-stat .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px;font-weight:600}
+.route-actions{display:flex;flex-direction:column;gap:10px;flex-shrink:0}
+.route-dispatch{display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;transition:all .15s;white-space:nowrap}
+.route-dispatch:hover{border-color:var(--border-light);background:var(--card-hover)}
+.route-dispatch.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .route-dispatch.primary:hover{background:rgba(29,185,84,.85)}
-.route-dispatch .emoji{font-size:16px}
+.route-dispatch .emoji{font-size:18px}
 
-/* (pulse handled by native Mapbox layers) */
-
-/* ─── ANIMATIONS ────────────────────────────────────────────────── */
+/* ─── ANIMATIONS ─────────────────────────────────────────────── */
 @keyframes fadeSlideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes scaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
@@ -196,6 +195,8 @@ textarea{resize:vertical}
 .anim-card:nth-child(4){animation-delay:.2s}
 .anim-card:nth-child(5){animation-delay:.25s}
 .anim-card:nth-child(6){animation-delay:.3s}
+.anim-card:nth-child(7){animation-delay:.35s}
+.anim-card:nth-child(8){animation-delay:.4s}
 .anim-fade{animation:fadeIn .6s ease-out both}
 .anim-scale{animation:scaleIn .4s ease-out both}
 .anim-bar{transform-origin:bottom;animation:growBar .8s cubic-bezier(.22,1,.36,1) both}
@@ -391,11 +392,11 @@ function Logo(){
   return(
     <svg className="logo-mark" viewBox="0 0 60 60" fill="none">
       <defs><linearGradient id="lg1" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#1DB954"/><stop offset="100%" stopColor="#00D1FF"/></linearGradient></defs>
-      <path d="M12 48 L24 32 L40 40 L52 12" stroke="url(#lg1)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="12" cy="48" r="5" fill="#1DB954"/>
-      <circle cx="24" cy="32" r="6" fill="#1DB954"/>
-      <circle cx="40" cy="40" r="4.5" fill="#00D1FF"/>
-      <circle cx="52" cy="12" r="4.5" fill="#00D1FF"/>
+      <path d="M12 48 L24 32 L40 40 L52 12" stroke="url(#lg1)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="12" cy="48" r="5.5" fill="#1DB954"/>
+      <circle cx="24" cy="32" r="6.5" fill="#1DB954"/>
+      <circle cx="40" cy="40" r="5" fill="#00D1FF"/>
+      <circle cx="52" cy="12" r="5" fill="#00D1FF"/>
     </svg>
   );
 }
@@ -443,7 +444,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // Terrain + 3D
       map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512});
       map.setTerrain({source:'mapbox-dem',exaggeration:1.5});
-      map.addLayer({id:'3d-buildings',source:'composite','source-layer':'building',filter:['==','extrude','true'],type:'fill-extrusion',minzoom:13,paint:{'fill-extrusion-color':'#0f1520','fill-extrusion-height':['get','height'],'fill-extrusion-base':['get','min_height'],'fill-extrusion-opacity':.5}});
+      map.addLayer({id:'3d-buildings',source:'composite','source-layer':'building',filter:['==','extrude','true'],type:'fill-extrusion',minzoom:13,paint:{'fill-extrusion-color':'#0d1210','fill-extrusion-height':['get','height'],'fill-extrusion-base':['get','min_height'],'fill-extrusion-opacity':.5}});
 
       // ── Route ──
       map.addSource('route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
@@ -510,7 +511,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // Base: círculo principal (fundo escuro + borda colorida)
       map.addLayer({id:'base-main',type:'circle',source:'bases',paint:{
         'circle-radius':10,
-        'circle-color':'#1a1a1a',
+        'circle-color':'#141917',
         'circle-opacity':0.95,
         'circle-stroke-width':2.5,
         'circle-stroke-color':['get','cor'],
@@ -554,7 +555,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       map.on('click','inc-main',(e)=>{
         const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
         popupRef.current.setLngLat(coords).setHTML(
-          `<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px;color:#f5f5f5;font-family:Inter,system-ui;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+          `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;color:#f5f5f5;font-family:Inter,system-ui;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
             <div style="font-weight:600;font-size:13px;margin-bottom:4px;line-height:1.3">${p.titulo}</div>
             <div style="font-size:12px;color:#9ca3af">${p.bairro}</div>
             <div style="margin-top:8px;display:flex;gap:6px;align-items:center">
@@ -567,7 +568,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       map.on('click','base-main',(e)=>{
         const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
         popupRef.current.setLngLat(coords).setHTML(
-          `<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px;color:#f5f5f5;font-family:Inter,system-ui;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+          `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;color:#f5f5f5;font-family:Inter,system-ui;box-shadow:0 8px 24px rgba(0,0,0,.5)">
             <div style="font-weight:600;font-size:13px;margin-bottom:2px">${p.nome}</div>
             <div style="font-size:11px;color:#9ca3af">${p.endereco}</div>
             <div style="font-size:12px;color:${p.cor};margin-top:6px;font-weight:500">${p.telefone}</div>
@@ -783,15 +784,15 @@ function Central({sos}){
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden',position:'relative'}}>
       <div className="kpi-grid">
         {[
-          {icon:'🚨',val:sos,lbl:'SOS Ativos',color:'#dc2626',bg:'rgba(220,38,38,.08)',border:sos?'rgba(220,38,38,.25)':''},
-          {icon:'⚠',val:OC.filter(o=>o.status!=='resolvido').length,lbl:'Ocorrências Abertas',color:'#fbbf24',bg:'rgba(251,191,36,.08)'},
-          {icon:'📋',val:DEN.length,lbl:'Denúncias Hoje',color:'#00D1FF',bg:'rgba(0,209,255,.08)'},
-          {icon:'⏱',val:'18min',lbl:'Tempo Médio',color:'#1DB954',bg:'rgba(29,185,84,.08)'},
+          {icon:'🚨',val:sos,lbl:'SOS Ativos',color:'#dc2626',bg:'rgba(220,38,38,.06)',border:sos?'rgba(220,38,38,.25)':''},
+          {icon:'⚠️',val:OC.filter(o=>o.status!=='resolvido').length,lbl:'Ocorrências Abertas',color:'#fbbf24',bg:'rgba(251,191,36,.06)'},
+          {icon:'📋',val:DEN.length,lbl:'Denúncias Hoje',color:'#00D1FF',bg:'rgba(0,209,255,.06)'},
+          {icon:'⏱️',val:'18min',lbl:'Tempo Médio',color:'var(--accent)',bg:'rgba(29,185,84,.06)'},
         ].map((k,i)=>(
           <div key={i} className="kpi anim-card" style={{borderColor:k.border||''}}>
             <div className="kpi-top">
               <span className="kpi-label">{k.lbl}</span>
-              <div className="kpi-icon" style={{background:k.bg}}><span style={{fontSize:16}}>{k.icon}</span></div>
+              <div className="kpi-icon" style={{background:k.bg}}><span style={{fontSize:22}}>{k.icon}</span></div>
             </div>
             <div className="kpi-value" style={{color:k.color}}>
               {typeof k.val==='number'?<AnimatedNumber value={k.val} duration={1000}/>:k.val}
@@ -799,15 +800,15 @@ function Central({sos}){
           </div>
         ))}
       </div>
-      <div style={{flex:1,display:'flex',gap:16,padding:'0 20px 20px',overflow:'hidden',minHeight:0}}>
+      <div style={{flex:1,display:'flex',gap:20,padding:'0 24px 24px',overflow:'hidden',minHeight:0}}>
         <div style={{flex:1,minWidth:0,borderRadius:'var(--radius)',overflow:'hidden',position:'relative'}}>
           <MapboxMap items={[...OC.filter(o=>o.status!=='resolvido'),...SOS.map(s=>({...s,severidade:'critica',titulo:'SOS: '+s.sos_cadastros?.nome}))]} showBases={true} route={routeData}/>
           {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
         </div>
-        <div style={{width:340,flexShrink:0,display:'flex',flexDirection:'column'}}>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-            <div style={{width:6,height:6,borderRadius:'50%',background:'var(--success-light)',animation:'pulse 2s infinite'}}/>
-            <span style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px'}}>Alertas de Prioridade</span>
+        <div style={{width:380,flexShrink:0,display:'flex',flexDirection:'column'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+            <div style={{width:8,height:8,borderRadius:'50%',background:'var(--success-light)',animation:'pulse 2s infinite'}}/>
+            <span style={{fontSize:13,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1.2px'}}>Alertas de Prioridade</span>
           </div>
           <div className="card scrollable" style={{flex:1,minHeight:0}}>
             {feed.map((item,i)=>{
@@ -815,17 +816,17 @@ function Central({sos}){
               const cat=isDen?CAT_DEN[item.categoria]:CAT_OC[item.categoria];
               const borderColor=isSOS?'#dc2626':isDen?'#7c3aed':'#00D1FF';
               return(
-                <div key={i} style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',borderLeft:`3px solid ${borderColor}`,cursor:'pointer',transition:'background .1s'}}
+                <div key={i} style={{padding:'18px 20px',borderBottom:'1px solid var(--border)',borderLeft:`4px solid ${borderColor}`,cursor:'pointer',transition:'background .1s'}}
                   onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.02)'}
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                    <span style={{fontSize:11,fontWeight:600,color:isSOS?'#f87171':isDen?'#a78bfa':'#00D1FF',textTransform:'uppercase',letterSpacing:'.5px'}}>{isSOS?'SOS MULHER':(cat?.label||item.categoria)}</span>
-                    <span style={{fontSize:11,color:'var(--text-muted)'}}>{ago(item.created_at)}</span>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                    <span style={{fontSize:12,fontWeight:700,color:isSOS?'#f87171':isDen?'#a78bfa':'#00D1FF',textTransform:'uppercase',letterSpacing:'.8px'}}>{isSOS?'SOS MULHER':(cat?.label||item.categoria)}</span>
+                    <span style={{fontSize:12,color:'var(--text-muted)',fontWeight:500}}>{ago(item.created_at)}</span>
                   </div>
-                  <div className="truncate" style={{fontSize:13.5,color:'var(--text)',fontWeight:500,marginBottom:3}}>{item.titulo||item.mensagem||item.sos_cadastros?.nome}</div>
-                  <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>{item.bairro||'—'}</div>
-                  <div style={{display:'flex',gap:6,marginTop:6}}>
-                    <button className="btn btn-primary" style={{fontSize:11,padding:'4px 10px'}}
+                  <div className="truncate" style={{fontSize:15,color:'var(--text)',fontWeight:600,marginBottom:4}}>{item.titulo||item.mensagem||item.sos_cadastros?.nome}</div>
+                  <div style={{fontSize:13,color:'var(--text-muted)',marginBottom:10,fontWeight:500}}>{item.bairro||'—'}</div>
+                  <div style={{display:'flex',gap:8,marginTop:6}}>
+                    <button className="btn btn-primary" style={{fontSize:12,padding:'6px 14px',fontWeight:700}}
                       onClick={(e)=>{e.stopPropagation();handleTraceRoute(item);}}
                       disabled={loadingRoute}>
                       {loadingRoute?'Calculando...':'🗺️ Traçar Rota'}
@@ -858,9 +859,9 @@ function Mapa(){
           }}>{l}</button>
         ))}
       </div>
-      <div style={{position:'absolute',top:16,right:16,zIndex:10,background:'rgba(18,18,18,0.9)',backdropFilter:'blur(12px)',border:'1px solid var(--border)',borderRadius:8,padding:'14px 20px',textAlign:'center'}}>
-        <div className="mono" style={{fontSize:28,fontWeight:600,color:'#fff'}}>{items.length}</div>
-        <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px',marginTop:3}}>Ocorrências</div>
+      <div style={{position:'absolute',top:20,right:20,zIndex:10,background:'rgba(11,14,13,0.92)',backdropFilter:'blur(16px)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 24px',textAlign:'center'}}>
+        <div className="mono" style={{fontSize:36,fontWeight:700,color:'#fff'}}>{items.length}</div>
+        <div style={{fontSize:12,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1.2px',marginTop:5,fontWeight:700}}>Ocorrências</div>
       </div>
       <MapboxMap items={items} fullscreen={true}/>
     </div>
@@ -888,11 +889,11 @@ function Ocorrencias(){
   const lista=OC.filter(o=>f==='ativas'?o.status!=='resolvido':f==='resolvido'?o.status==='resolvido':true);
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden',position:'relative'}}>
-      <div style={{width:380,flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',background:'var(--surface)'}}>
-        <div style={{padding:'16px',borderBottom:'1px solid var(--border)'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-            <span style={{fontWeight:600,fontSize:16,color:'#fff'}}>Ocorrências</span>
-            <span style={{fontSize:13,color:'var(--text-muted)'}}>{lista.length} {f==='ativas'?'ativas':'total'}</span>
+      <div style={{width:400,flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',background:'var(--surface)'}}>
+        <div style={{padding:'20px',borderBottom:'1px solid var(--border)'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+            <span style={{fontWeight:800,fontSize:20,color:'#fff',letterSpacing:'-.3px'}}>Ocorrências</span>
+            <span style={{fontSize:14,color:'var(--text-muted)',fontWeight:600}}>{lista.length} {f==='ativas'?'ativas':'total'}</span>
           </div>
           <select value={f} onChange={e=>setF(e.target.value)} style={{width:'100%'}}>
             <option value="ativas">Ativas</option>
@@ -907,26 +908,26 @@ function Ocorrencias(){
             const sta=S_OC[o.status]||{label:o.status,badge:'b-gray'};
             const isSel=sel?.id===o.id;
             return(
-              <div key={o.id} onClick={()=>setSel(isSel?null:o)} style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',cursor:'pointer',background:isSel?'rgba(29,185,84,.06)':'transparent',borderLeft:`3px solid ${isSel?'var(--accent)':'transparent'}`,transition:'all .12s'}}>
-                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:8}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
-                    <div style={{width:36,height:36,borderRadius:8,background:cat.c+'15',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>{cat.icon}</div>
+              <div key={o.id} onClick={()=>setSel(isSel?null:o)} style={{padding:'18px 20px',borderBottom:'1px solid var(--border)',cursor:'pointer',background:isSel?'rgba(29,185,84,.05)':'transparent',borderLeft:`4px solid ${isSel?'var(--accent)':'transparent'}`,transition:'all .12s'}}>
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:10}}>
+                  <div style={{display:'flex',alignItems:'center',gap:12,flex:1,minWidth:0}}>
+                    <div style={{width:44,height:44,borderRadius:12,background:cat.c+'12',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>{cat.icon}</div>
                     <div style={{minWidth:0}}>
-                      <div className="truncate" style={{fontSize:14,fontWeight:600,color:'var(--text)',lineHeight:1.3}}>{o.titulo}</div>
-                      <div style={{display:'flex',alignItems:'center',gap:4,marginTop:3,color:'var(--text-muted)',fontSize:12}}><Ico.pin/>{o.bairro}</div>
+                      <div className="truncate" style={{fontSize:15,fontWeight:700,color:'var(--text)',lineHeight:1.3}}>{o.titulo}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:5,marginTop:4,color:'var(--text-muted)',fontSize:13,fontWeight:500}}><Ico.pin/>{o.bairro}</div>
                     </div>
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:4,flexShrink:0}}>
-                    <div style={{width:6,height:6,borderRadius:'50%',background:sev.dot}}/>
-                    <span style={{fontSize:11,color:sev.c,fontWeight:500}}>{sev.label}</span>
+                  <div style={{display:'flex',alignItems:'center',gap:5,flexShrink:0}}>
+                    <div style={{width:8,height:8,borderRadius:'50%',background:sev.dot}}/>
+                    <span style={{fontSize:12,color:sev.c,fontWeight:700}}>{sev.label}</span>
                   </div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                   <span className={`badge ${sta.badge}`}>{sta.label}</span>
-                  <span style={{fontSize:11,color:'var(--text-muted)'}}>{ago(o.created_at)}</span>
+                  <span style={{fontSize:12,color:'var(--text-muted)',fontWeight:500}}>{ago(o.created_at)}</span>
                 </div>
                 {o.total_relatos>1&&(
-                  <div style={{marginTop:8,background:'rgba(29,185,84,.06)',border:'1px solid rgba(29,185,84,.15)',borderRadius:6,padding:'5px 10px',fontSize:12,color:'#4ade80'}}>
+                  <div style={{marginTop:10,background:'rgba(29,185,84,.05)',border:'1px solid rgba(29,185,84,.15)',borderRadius:8,padding:'7px 12px',fontSize:13,color:'#4ade80',fontWeight:600}}>
                     👥 {o.total_relatos} cidadãos reportaram
                   </div>
                 )}
@@ -941,26 +942,26 @@ function Ocorrencias(){
           {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
         </div>
         {sel&&(
-          <div className="card" style={{margin:16,padding:18,borderColor:'rgba(29,185,84,.25)',background:'rgba(29,185,84,.03)'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
+          <div className="card" style={{margin:20,padding:24,borderColor:'rgba(29,185,84,.2)',background:'rgba(29,185,84,.03)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
               <div>
-                <div style={{fontWeight:600,fontSize:16,color:'#fff'}}>{sel.titulo}</div>
-                <div className="mono" style={{fontSize:12,color:'var(--text-muted)',marginTop:3}}>{sel.protocolo}</div>
+                <div style={{fontWeight:800,fontSize:20,color:'#fff',letterSpacing:'-.3px'}}>{sel.titulo}</div>
+                <div className="mono" style={{fontSize:13,color:'var(--text-muted)',marginTop:5,fontWeight:500}}>{sel.protocolo}</div>
               </div>
-              <div style={{display:'flex',gap:8}}>
+              <div style={{display:'flex',gap:10}}>
                 <button className="btn btn-outline">Em andamento</button>
                 <button className="btn btn-primary">Resolver ✓</button>
-                <button className="btn" style={{background:'#00D1FF',color:'#fff',border:'none'}}
+                <button className="btn" style={{background:'#00D1FF',color:'#fff',border:'none',fontWeight:700}}
                   onClick={()=>handleTraceRoute(sel)}
                   disabled={loadingRoute}>
                   {loadingRoute?'Calculando...':'🗺️ Traçar Rota'}
                 </button>
-                <button onClick={()=>setSel(null)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:18,padding:4}}>✕</button>
+                <button onClick={()=>setSel(null)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:20,padding:4}}>✕</button>
               </div>
             </div>
-            <div style={{display:'flex',gap:12,alignItems:'center'}}>
+            <div style={{display:'flex',gap:14,alignItems:'center'}}>
               <span className="badge b-green">{sel.total_relatos} cidadãos</span>
-              <span style={{fontSize:13,color:'var(--text-muted)'}}>{sel.bairro}</span>
+              <span style={{fontSize:14,color:'var(--text-muted)',fontWeight:600}}>{sel.bairro}</span>
               <span className={`badge ${SEV[sel.severidade]?'b-warn':'b-gray'}`}>{SEV[sel.severidade]?.label}</span>
             </div>
           </div>
@@ -1022,13 +1023,13 @@ function Denuncias(){
                   const sta=S_DEN[d.status]||{label:d.status,badge:'b-gray'};
                   return(
                     <tr key={d.id} onClick={()=>setSel(d===sel?null:d)} style={{cursor:'pointer',background:sel?.id===d.id?'rgba(29,185,84,.04)':''}}>
-                      <td><span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{d.protocolo}</span></td>
+                      <td><span className="mono" style={{fontSize:13,color:'var(--text-muted)',fontWeight:500}}>{d.protocolo}</span></td>
                       <td><span className={`badge ${cat.badge}`}>{cat.icon} {cat.label}</span></td>
-                      <td style={{maxWidth:280}}><span className="truncate" style={{display:'block',maxWidth:280}}>{d.mensagem}</span></td>
-                      <td>{d.bairro}</td>
+                      <td style={{maxWidth:320}}><span className="truncate" style={{display:'block',maxWidth:320,fontWeight:500}}>{d.mensagem}</span></td>
+                      <td style={{fontWeight:600}}>{d.bairro}</td>
                       <td><span className={`badge ${sta.badge}`}>{sta.label}</span></td>
-                      <td>{d.valor_recompensa?<span className="mono" style={{fontWeight:600,color:'#4ade80'}}>R$ {d.valor_recompensa.toLocaleString('pt-BR')}</span>:<span style={{color:'var(--text-muted)'}}>—</span>}</td>
-                      <td style={{color:'var(--text-muted)',fontSize:12}}>{ago(d.created_at)}</td>
+                      <td>{d.valor_recompensa?<span className="mono" style={{fontWeight:700,color:'#4ade80',fontSize:15}}>R$ {d.valor_recompensa.toLocaleString('pt-BR')}</span>:<span style={{color:'var(--text-muted)'}}>—</span>}</td>
+                      <td style={{color:'var(--text-muted)',fontSize:13,fontWeight:500}}>{ago(d.created_at)}</td>
                     </tr>
                   );
                 })}
@@ -1036,19 +1037,19 @@ function Denuncias(){
             </table>
           </div>
           {sel&&(
-            <div style={{width:320,flexShrink:0,borderLeft:'1px solid var(--border)',padding:20,overflowY:'auto',background:'var(--surface)'}}>
-              <div style={{display:'flex',justifyContent:'space-between',marginBottom:16}}>
-                <span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{sel.protocolo}</span>
-                <button onClick={()=>setSel(null)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:16}}>✕</button>
+            <div style={{width:360,flexShrink:0,borderLeft:'1px solid var(--border)',padding:24,overflowY:'auto',background:'var(--surface)'}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:20}}>
+                <span className="mono" style={{fontSize:13,color:'var(--text-muted)',fontWeight:500}}>{sel.protocolo}</span>
+                <button onClick={()=>setSel(null)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:20}}>✕</button>
               </div>
-              <div style={{marginBottom:14}}><span className={`badge ${CAT_DEN[sel.categoria]?.badge||'b-gray'}`} style={{fontSize:13}}>{CAT_DEN[sel.categoria]?.icon} {CAT_DEN[sel.categoria]?.label}</span></div>
-              <p style={{fontSize:14,lineHeight:1.6,marginBottom:18,color:'var(--text)'}}>{sel.mensagem}</p>
-              <div style={{display:'grid',gap:12,fontSize:13,marginBottom:20}}>
-                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)'}}>Bairro</span><span>{sel.bairro}</span></div>
-                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)'}}>Cidadania Ativa</span><span style={{color:sel.cidadania_ativa?'#4ade80':'var(--text-muted)'}}>{sel.cidadania_ativa?'Sim':'Não'}</span></div>
-                {sel.valor_recompensa&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)'}}>Recompensa</span><span className="mono" style={{fontWeight:600,color:'#4ade80'}}>R$ {sel.valor_recompensa.toLocaleString('pt-BR')}</span></div>}
+              <div style={{marginBottom:16}}><span className={`badge ${CAT_DEN[sel.categoria]?.badge||'b-gray'}`}>{CAT_DEN[sel.categoria]?.icon} {CAT_DEN[sel.categoria]?.label}</span></div>
+              <p style={{fontSize:15,lineHeight:1.7,marginBottom:22,color:'var(--text)',fontWeight:500}}>{sel.mensagem}</p>
+              <div style={{display:'grid',gap:14,fontSize:14,marginBottom:24}}>
+                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)',fontWeight:600}}>Bairro</span><span style={{fontWeight:600}}>{sel.bairro}</span></div>
+                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)',fontWeight:600}}>Cidadania Ativa</span><span style={{color:sel.cidadania_ativa?'#4ade80':'var(--text-muted)',fontWeight:700}}>{sel.cidadania_ativa?'Sim':'Não'}</span></div>
+                {sel.valor_recompensa&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)',fontWeight:600}}>Recompensa</span><span className="mono" style={{fontWeight:700,color:'#4ade80',fontSize:16}}>R$ {sel.valor_recompensa.toLocaleString('pt-BR')}</span></div>}
               </div>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              <div style={{display:'flex',flexDirection:'column',gap:10}}>
                 <button className="btn btn-primary" style={{justifyContent:'center',width:'100%'}}>Marcar Procedente</button>
                 <button className="btn btn-outline" style={{justifyContent:'center',width:'100%'}}>Encaminhar</button>
                 <button className="btn btn-danger" style={{justifyContent:'center',width:'100%'}}>Improcedente</button>
@@ -1062,7 +1063,7 @@ function Denuncias(){
             <div className="chart-card anim-card"><div className="chart-title">Ocorrências × Denúncias · 6 meses</div><AreaChart data={chartData} keys={['oc','den']} colors={['#00D1FF','#1DB954']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#00D1FF'}}/>Ocorrências</div><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#1DB954'}}/>Denúncias</div></div></div>
             <div className="chart-card anim-card"><div className="chart-title">Distribuição por Categoria</div><div style={{display:'flex',alignItems:'center',gap:28,flex:1,justifyContent:'center'}}><DonutChart data={pieData} size={170}/><div style={{display:'flex',flexDirection:'column',gap:12}}>{pieData.map((d,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:10,fontSize:13}}><div style={{width:10,height:10,borderRadius:3,background:d.c}}/><span style={{color:'var(--text-muted)',minWidth:70}}>{d.n}</span><span className="mono" style={{fontWeight:600,color:'#fff'}}>{d.v}</span></div>))}</div></div></div>
             <div className="chart-card anim-card"><div className="chart-title">Recompensas Pagas × A Pagar</div><BarChart data={recompData} keys={['pago','apagar']} colors={['#1DB954','#fbbf24']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#1DB954'}}/>Pago</div><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#fbbf24'}}/>A Pagar</div></div></div>
-            <div className="chart-card anim-card"><div className="chart-title">Resumo Financeiro</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,flex:1,alignContent:'center'}}>{[['Pago','R$ '+pago.toLocaleString('pt-BR'),'#4ade80'],['A Pagar','R$ '+apagar.toLocaleString('pt-BR'),'#fbbf24'],['Em Análise','R$ '+analise.toLocaleString('pt-BR'),'#00D1FF'],['Total','R$ '+(pago+apagar+analise).toLocaleString('pt-BR'),'#fff']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:'16px 18px'}}><div className="mono" style={{fontSize:20,fontWeight:600,color:c}}>{v}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginTop:5}}>{l}</div></div>))}</div></div>
+            <div className="chart-card anim-card"><div className="chart-title">Resumo Financeiro</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,flex:1,alignContent:'center'}}>{[['Pago','R$ '+pago.toLocaleString('pt-BR'),'#4ade80'],['A Pagar','R$ '+apagar.toLocaleString('pt-BR'),'#fbbf24'],['Em Análise','R$ '+analise.toLocaleString('pt-BR'),'#00D1FF'],['Total','R$ '+(pago+apagar+analise).toLocaleString('pt-BR'),'#fff']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:12,padding:'20px 22px'}}><div className="mono" style={{fontSize:26,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:11,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px',marginTop:6,fontWeight:700}}>{l}</div></div>))}</div></div>
           </div>
         </div>
       )}
@@ -1089,86 +1090,86 @@ function SOSMulher(){
 
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden',position:'relative'}}>
-      <div style={{width:340,flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',background:'var(--surface)'}}>
-        <div style={{padding:'16px 16px 10px'}}>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-            <div style={{width:8,height:8,borderRadius:'50%',background:'#dc2626',animation:'pulse 1s infinite'}}/>
-            <span style={{fontSize:12,fontWeight:600,color:'#dc2626',textTransform:'uppercase',letterSpacing:'1px'}}>Alertas Ativos</span>
+      <div style={{width:370,flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',background:'var(--surface)'}}>
+        <div style={{padding:'20px 20px 12px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+            <div style={{width:10,height:10,borderRadius:'50%',background:'#dc2626',animation:'pulse 1s infinite'}}/>
+            <span style={{fontSize:13,fontWeight:800,color:'#dc2626',textTransform:'uppercase',letterSpacing:'1.2px'}}>Alertas Ativos</span>
             <span className="nav-badge" style={{marginLeft:'auto'}}>{SOS.length}</span>
           </div>
         </div>
         {SOS.map(s=>(
-          <div key={s.id} onClick={()=>setSel(s)} style={{margin:'0 10px 6px',padding:'14px 16px',borderRadius:8,background:sel?.id===s.id?'rgba(220,38,38,.08)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':'rgba(220,38,38,.12)'}`,cursor:'pointer'}}>
-            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-              <span style={{fontWeight:600,fontSize:14,color:'#fff'}}>{s.sos_cadastros?.nome||s.telefone}</span>
-              <span style={{fontSize:12,color:'#f87171'}}>{ago(s.created_at)}</span>
+          <div key={s.id} onClick={()=>setSel(s)} style={{margin:'0 12px 8px',padding:'18px 20px',borderRadius:12,background:sel?.id===s.id?'rgba(220,38,38,.07)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':'rgba(220,38,38,.12)'}`,cursor:'pointer',transition:'all .15s'}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+              <span style={{fontWeight:700,fontSize:16,color:'#fff'}}>{s.sos_cadastros?.nome||s.telefone}</span>
+              <span style={{fontSize:13,color:'#f87171',fontWeight:600}}>{ago(s.created_at)}</span>
             </div>
-            <div style={{fontSize:13,color:'#9ca3af'}}>{s.sos_cadastros?.endereco}</div>
+            <div style={{fontSize:14,color:'var(--text-secondary)',fontWeight:500}}>{s.sos_cadastros?.endereco}</div>
           </div>
         ))}
-        <div style={{height:1,background:'var(--border)',margin:'14px 14px 10px'}}/>
-        <div style={{padding:'0 16px 6px',fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px'}}>Histórico</div>
+        <div style={{height:1,background:'var(--border)',margin:'18px 16px 12px'}}/>
+        <div style={{padding:'0 20px 8px',fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1.2px'}}>Histórico</div>
         {[{nome:'Joana Ferreira',tempo:'2 dias'}].map((h,i)=>(
-          <div key={i} style={{padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
+          <div key={i} style={{padding:'14px 20px',borderBottom:'1px solid var(--border)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span style={{fontSize:13,color:'var(--text-secondary)'}}>{h.nome}</span>
+              <span style={{fontSize:14,color:'var(--text-secondary)',fontWeight:600}}>{h.nome}</span>
               <span className="badge b-green">Resolvido</span>
             </div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:3}}>há {h.tempo}</div>
+            <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4,fontWeight:500}}>há {h.tempo}</div>
           </div>
         ))}
       </div>
       {sel?(
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}}>
-          <div style={{flex:1,padding:28,overflowY:'auto'}}>
-            <div style={{maxWidth:700}}>
-              <div style={{background:'rgba(220,38,38,.04)',border:'1px solid rgba(220,38,38,.18)',borderRadius:10,padding:24,marginBottom:20}}>
-                <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:20}}>
-                  <div style={{width:50,height:50,borderRadius:12,background:'rgba(220,38,38,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🛡️</div>
+          <div style={{flex:1,padding:32,overflowY:'auto'}}>
+            <div style={{maxWidth:760}}>
+              <div style={{background:'rgba(220,38,38,.03)',border:'1px solid rgba(220,38,38,.15)',borderRadius:16,padding:28,marginBottom:24}}>
+                <div style={{display:'flex',alignItems:'center',gap:20,marginBottom:24}}>
+                  <div style={{width:60,height:60,borderRadius:16,background:'rgba(220,38,38,.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28}}>🛡️</div>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:20,fontWeight:700,color:'#fff'}}>{sel.sos_cadastros?.nome||'Não identificada'}</div>
-                    <div style={{fontSize:13,color:'#9ca3af',marginTop:3}}>Alerta ativo · {ago(sel.created_at)}</div>
+                    <div style={{fontSize:24,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>{sel.sos_cadastros?.nome||'Não identificada'}</div>
+                    <div style={{fontSize:14,color:'var(--text-secondary)',marginTop:4,fontWeight:500}}>Alerta ativo · {ago(sel.created_at)}</div>
                   </div>
-                  <div style={{display:'flex',gap:8}}>
+                  <div style={{display:'flex',gap:10}}>
                     <button className="btn btn-primary">📞 Ligar</button>
                     <button className="btn btn-danger">Resolver</button>
-                    <button className="btn" style={{background:'#00D1FF',color:'#fff',border:'none'}}
+                    <button className="btn" style={{background:'#00D1FF',color:'#fff',border:'none',fontWeight:700}}
                       onClick={()=>handleTraceRoute(sel)}
                       disabled={loadingRoute}>
                       {loadingRoute?'Calculando...':'🗺️ Rota'}
                     </button>
                   </div>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,fontSize:14}}>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,fontSize:15}}>
                   {[['Telefone',sel.telefone],['Código',sel.codigo_usado],['Endereço',sel.sos_cadastros?.endereco],['Agressor',sel.sos_cadastros?.agressor||'Não informado']].map(([l,v])=>(
-                    <div key={l}><div style={{color:'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:'.5px',marginBottom:4,textTransform:'uppercase'}}>{l}</div><div style={{color:'var(--text)',fontWeight:500}}>{v}</div></div>
+                    <div key={l}><div style={{color:'var(--text-muted)',fontSize:12,fontWeight:700,letterSpacing:'.8px',marginBottom:6,textTransform:'uppercase'}}>{l}</div><div style={{color:'var(--text)',fontWeight:600}}>{v}</div></div>
                   ))}
                 </div>
               </div>
               {sel.sos_cadastros?.contato_confianca_nome&&(
-                <div className="card" style={{padding:18,marginBottom:16}}>
-                  <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:12}}>Contato de Confiança</div>
+                <div className="card" style={{padding:22,marginBottom:20}}>
+                  <div style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:14}}>Contato de Confiança</div>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div><div style={{fontWeight:600,fontSize:14,color:'#fff'}}>{sel.sos_cadastros.contato_confianca_nome}</div><div style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>{sel.sos_cadastros.contato_confianca_telefone}</div></div>
+                    <div><div style={{fontWeight:700,fontSize:16,color:'#fff'}}>{sel.sos_cadastros.contato_confianca_nome}</div><div style={{fontSize:14,color:'var(--text-muted)',marginTop:4,fontWeight:500}}>{sel.sos_cadastros.contato_confianca_telefone}</div></div>
                     <button className="btn btn-outline">📞 Notificar</button>
                   </div>
                 </div>
               )}
-              <div className="card" style={{padding:18}}>
-                <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:12}}>Notas do Operador</div>
-                <textarea placeholder="Adicionar nota sobre o atendimento..." style={{width:'100%',minHeight:100,fontSize:14,lineHeight:1.6}}/>
+              <div className="card" style={{padding:22}}>
+                <div style={{fontSize:12,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px',marginBottom:14}}>Notas do Operador</div>
+                <textarea placeholder="Adicionar nota sobre o atendimento..." style={{width:'100%',minHeight:120,fontSize:15,lineHeight:1.7}}/>
               </div>
             </div>
           </div>
-          <div style={{borderRadius:12,overflow:'hidden',height:280,marginBottom:16,position:'absolute',bottom:0,left:0,right:0}}>
+          <div style={{borderRadius:14,overflow:'hidden',height:300,marginBottom:20,position:'absolute',bottom:0,left:0,right:0}}>
             <MapboxMap items={[{...sel,severidade:'critica',titulo:'SOS: '+sel.sos_cadastros?.nome}]} showBases={true} route={routeData}/>
             {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
           </div>
         </div>
       ):(
-        <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12}}>
-          <div style={{fontSize:48,opacity:.5}}>🛡️</div>
-          <div style={{fontSize:14,color:'var(--text-muted)'}}>Nenhum alerta selecionado</div>
+        <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16}}>
+          <div style={{fontSize:56,opacity:.4}}>🛡️</div>
+          <div style={{fontSize:16,color:'var(--text-muted)',fontWeight:600}}>Nenhum alerta selecionado</div>
         </div>
       )}
     </div>
@@ -1205,55 +1206,55 @@ function Feedbacks(){
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden'}}>
       {/* ── Sidebar filtros ── */}
-      <div style={{width:220,flexShrink:0,display:'flex',flexDirection:'column',background:'var(--surface)',borderRight:'1px solid var(--border)',padding:16,gap:20}}>
+      <div style={{width:240,flexShrink:0,display:'flex',flexDirection:'column',background:'var(--surface)',borderRight:'1px solid var(--border)',padding:20,gap:24}}>
         <div>
-          <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.2px',color:'var(--text-muted)',marginBottom:10}}>Filtros</div>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            <select value={filtSta} onChange={e=>setFiltSta(e.target.value)} style={{width:'100%',fontSize:12,padding:'7px 10px'}}>
+          <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.5px',color:'var(--text-muted)',marginBottom:12}}>Filtros</div>
+          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+            <select value={filtSta} onChange={e=>setFiltSta(e.target.value)} style={{width:'100%'}}>
               <option value="ativos">Cards Ativos</option>
               <option value="resolvido">Resolvidos</option>
               <option value="todos">Todos</option>
             </select>
-            <select value={filtCat} onChange={e=>setFiltCat(e.target.value)} style={{width:'100%',fontSize:12,padding:'7px 10px'}}>
+            <select value={filtCat} onChange={e=>setFiltCat(e.target.value)} style={{width:'100%'}}>
               <option value="">Todas Categorias</option>
               {Object.entries(CAT_FBK).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
             </select>
-            <select value={filtPri} onChange={e=>setFiltPri(e.target.value)} style={{width:'100%',fontSize:12,padding:'7px 10px'}}>
+            <select value={filtPri} onChange={e=>setFiltPri(e.target.value)} style={{width:'100%'}}>
               <option value="">Todas Prioridades</option>
               {Object.entries(PRI_FBK).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
         </div>
 
-        <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.2px',color:'var(--text-muted)',marginBottom:2}}>Resumo</div>
-          <div style={{background:'rgba(255,255,255,.03)',border:'1px solid var(--border)',borderRadius:12,padding:12}}>
-            <div className="mono" style={{fontSize:24,fontWeight:700,color:'#fff'}}>{lista.length}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)'}}>mensagens</div>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.5px',color:'var(--text-muted)',marginBottom:2}}>Resumo</div>
+          <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:14,padding:16}}>
+            <div className="mono" style={{fontSize:32,fontWeight:700,color:'#fff'}}>{lista.length}</div>
+            <div style={{fontSize:12,color:'var(--text-muted)',fontWeight:600}}>mensagens</div>
           </div>
           {criticos>0&&(
-            <div style={{background:'rgba(220,38,38,.06)',border:'1px solid rgba(220,38,38,.2)',borderRadius:12,padding:12}}>
-              <div className="mono" style={{fontSize:24,fontWeight:700,color:'#f87171',animation:'pulse 2s infinite'}}>{criticos}</div>
-              <div style={{fontSize:11,color:'#f87171'}}>críticos</div>
+            <div style={{background:'rgba(220,38,38,.05)',border:'1px solid rgba(220,38,38,.18)',borderRadius:14,padding:16}}>
+              <div className="mono" style={{fontSize:32,fontWeight:700,color:'#f87171',animation:'pulse 2s infinite'}}>{criticos}</div>
+              <div style={{fontSize:12,color:'#f87171',fontWeight:600}}>críticos</div>
             </div>
           )}
           {urgentes>0&&(
-            <div style={{background:'rgba(249,115,22,.05)',border:'1px solid rgba(249,115,22,.2)',borderRadius:12,padding:12}}>
-              <div className="mono" style={{fontSize:24,fontWeight:700,color:'#fb923c'}}>{urgentes}</div>
-              <div style={{fontSize:11,color:'#fb923c'}}>urgentes</div>
+            <div style={{background:'rgba(249,115,22,.04)',border:'1px solid rgba(249,115,22,.18)',borderRadius:14,padding:16}}>
+              <div className="mono" style={{fontSize:32,fontWeight:700,color:'#fb923c'}}>{urgentes}</div>
+              <div style={{fontSize:12,color:'#fb923c',fontWeight:600}}>urgentes</div>
             </div>
           )}
         </div>
 
-        <div style={{marginTop:'auto',display:'flex',flexDirection:'column',gap:4}}>
-          <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.2px',color:'var(--text-muted)',marginBottom:6}}>Por Categoria</div>
+        <div style={{marginTop:'auto',display:'flex',flexDirection:'column',gap:5}}>
+          <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.5px',color:'var(--text-muted)',marginBottom:8}}>Por Categoria</div>
           {Object.entries(CAT_FBK).map(([k,v])=>{
             const n=lista.filter(f=>f.categoria===k).length;
             if(n===0)return null;
             return(
               <button key={k} onClick={()=>setFiltCat(filtCat===k?'':k)}
-                style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 8px',borderRadius:8,fontSize:12,cursor:'pointer',border:'none',
-                  background:filtCat===k?'rgba(255,255,255,.08)':'transparent',color:filtCat===k?'#fff':'var(--text-muted)',fontFamily:'inherit',transition:'all .15s'}}>
+                style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 10px',borderRadius:10,fontSize:13,cursor:'pointer',border:'none',
+                  background:filtCat===k?'rgba(255,255,255,.06)':'transparent',color:filtCat===k?'#fff':'var(--text-muted)',fontFamily:'inherit',fontWeight:600,transition:'all .15s'}}>
                 <span>{v.emoji} {v.label.split(' ')[0]}</span>
                 <span className="mono" style={{fontWeight:700}}>{n}</span>
               </button>
@@ -1261,21 +1262,21 @@ function Feedbacks(){
           })}
         </div>
 
-        <div style={{fontSize:10,color:'#ca8a04',textAlign:'center'}}>⚠ dados de demonstração</div>
+        <div style={{fontSize:11,color:'#ca8a04',textAlign:'center',fontWeight:600}}>⚠ dados de demonstração</div>
       </div>
 
       {/* ── Grid de cards ── */}
       <div style={{flex:1,overflow:'hidden',display:sel?'none':'flex',flexDirection:'column'}}>
-        <div style={{padding:'16px 24px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'var(--surface)'}}>
+        <div style={{padding:'20px 28px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'var(--surface)'}}>
           <div>
-            <div style={{fontSize:18,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>Feedbacks</div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Mensagens dos cidadãos via WhatsApp · IA categoriza e responde</div>
+            <div style={{fontSize:22,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>Feedbacks</div>
+            <div style={{fontSize:13,color:'var(--text-muted)',marginTop:3,fontWeight:500}}>Mensagens dos cidadãos via WhatsApp · IA categoriza e responde</div>
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <span style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:'var(--text-muted)'}}>
-              <span style={{width:6,height:6,borderRadius:'50%',background:'var(--success)',animation:'pulse 2s infinite',display:'inline-block'}}/>Tempo real
+          <div style={{display:'flex',alignItems:'center',gap:14}}>
+            <span style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--text-muted)',fontWeight:600}}>
+              <span style={{width:8,height:8,borderRadius:'50%',background:'var(--success)',animation:'pulse 2s infinite',display:'inline-block'}}/>Tempo real
             </span>
-            <span className="mono" style={{fontSize:12,fontWeight:700,color:'var(--text-secondary)',background:'var(--card)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 14px'}}>{lista.length} mensagem{lista.length!==1?'s':''}</span>
+            <span className="mono" style={{fontSize:13,fontWeight:700,color:'var(--text-secondary)',background:'var(--card)',border:'1px solid var(--border)',borderRadius:24,padding:'5px 18px'}}>{lista.length} mensagem{lista.length!==1?'s':''}</span>
           </div>
         </div>
 
@@ -1286,7 +1287,7 @@ function Feedbacks(){
           </div>
         ):(
           <div className="scrollable" style={{flex:1,padding:20}}>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(380px,1fr))',gap:16}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(400px,1fr))',gap:18}}>
               {lista.map((f,i)=>{
                 const cat=CAT_FBK[f.categoria]||{label:f.categoria||'N/A',emoji:'📌',color:'#6b7280'};
                 const pri=PRI_FBK[f.prioridade]||PRI_FBK.normal;
@@ -1295,50 +1296,50 @@ function Feedbacks(){
 
                 return(
                   <div key={f.id} className="anim-card" onClick={()=>selecionar(f)}
-                    style={{background:'var(--card)',border:'1px solid var(--border)',borderLeft:`4px solid ${cat.color}`,borderRadius:16,cursor:'pointer',overflow:'hidden',transition:'all .2s',
-                      boxShadow:isCritico?`0 0 12px rgba(220,38,38,.15)`:'none'}}>
+                    style={{background:'var(--card)',border:'1px solid var(--border)',borderLeft:`4px solid ${cat.color}`,borderRadius:'var(--radius)',cursor:'pointer',overflow:'hidden',transition:'all .2s',
+                      boxShadow:isCritico?`0 0 16px rgba(220,38,38,.12)`:'none'}}>
                     {/* Topo */}
-                    <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',padding:'16px 16px 8px',gap:8}}>
+                    <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',padding:'20px 20px 10px',gap:10}}>
                       <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-                        <span style={{display:'inline-flex',alignItems:'center',gap:5,fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:8,background:`${cat.color}20`,color:cat.color,border:`1px solid ${cat.color}40`,textTransform:'uppercase',letterSpacing:'.5px'}}>
+                        <span style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12,fontWeight:700,padding:'5px 12px',borderRadius:10,background:`${cat.color}15`,color:cat.color,border:`1px solid ${cat.color}30`,textTransform:'uppercase',letterSpacing:'.6px'}}>
                           {cat.emoji} {cat.label}
                         </span>
-                        <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:11,fontWeight:800,padding:'4px 10px',borderRadius:8,background:pri.color,color:'#fff',animation:pri.pulse?'pulse 2s infinite':'none'}}>
+                        <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:12,fontWeight:800,padding:'5px 12px',borderRadius:10,background:pri.color,color:'#fff',animation:pri.pulse?'pulse 2s infinite':'none'}}>
                           ● {pri.label}
                         </span>
                       </div>
-                      <span style={{fontSize:11,color:'var(--text-muted)',whiteSpace:'nowrap',flexShrink:0,marginTop:2}}>{ago(f.created_at)}</span>
+                      <span style={{fontSize:12,color:'var(--text-muted)',whiteSpace:'nowrap',flexShrink:0,marginTop:3,fontWeight:500}}>{ago(f.created_at)}</span>
                     </div>
 
                     {/* Endereço */}
-                    <div style={{padding:'0 16px 4px'}}>
+                    <div style={{padding:'0 20px 6px'}}>
                       {(f.endereco||f.bairro)?(
-                        <span style={{fontSize:11,color:'var(--text-muted)',display:'flex',alignItems:'center',gap:4}}>📍 {f.endereco||f.bairro}</span>
+                        <span style={{fontSize:13,color:'var(--text-muted)',display:'flex',alignItems:'center',gap:5,fontWeight:500}}>📍 {f.endereco||f.bairro}</span>
                       ):(
-                        <span style={{fontSize:11,color:'#4b5563',fontStyle:'italic'}}>Sem endereço</span>
+                        <span style={{fontSize:12,color:'var(--text-muted)',fontStyle:'italic'}}>Sem endereço</span>
                       )}
                     </div>
 
                     {/* Mensagem */}
-                    <div style={{padding:'10px 16px'}}>
-                      <p style={{fontSize:13.5,lineHeight:1.6,color:'var(--text-secondary)',display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
+                    <div style={{padding:'12px 20px'}}>
+                      <p style={{fontSize:15,lineHeight:1.65,color:'var(--text-secondary)',fontWeight:500,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
                         "{f.mensagem}"
                       </p>
                     </div>
 
                     {/* Rodapé */}
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 16px',borderTop:'1px solid var(--border)',gap:8}}>
-                      <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <span style={{fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:8,background:sta.bg,border:`1px solid ${sta.border}`,color:sta.color}}>{sta.label}</span>
-                        {f.protocolo&&<span className="mono" style={{fontSize:10,color:'var(--text-muted)'}}>{f.protocolo}</span>}
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderTop:'1px solid var(--border)',gap:10}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <span style={{fontSize:12,fontWeight:700,padding:'5px 12px',borderRadius:10,background:sta.bg,border:`1px solid ${sta.border}`,color:sta.color}}>{sta.label}</span>
+                        {f.protocolo&&<span className="mono" style={{fontSize:11,color:'var(--text-muted)',fontWeight:500}}>{f.protocolo}</span>}
                       </div>
-                      <div style={{display:'flex',alignItems:'center',gap:8}} onClick={e=>e.stopPropagation()}>
+                      <div style={{display:'flex',alignItems:'center',gap:10}} onClick={e=>e.stopPropagation()}>
                         <select value={f.status} onChange={e=>mudarStatus(f.id,e.target.value)}
-                          style={{fontSize:11,padding:'4px 8px',borderRadius:8}}>
+                          style={{fontSize:12,padding:'5px 10px',borderRadius:10}}>
                           {Object.entries(STA_FBK).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
                         </select>
                         <button className="btn" onClick={e=>{e.stopPropagation();selecionar(f);}}
-                          style={{fontSize:11,fontWeight:700,padding:'4px 12px',borderRadius:8,background:'rgba(29,185,84,.1)',border:'1px solid rgba(29,185,84,.3)',color:'#4ade80',cursor:'pointer'}}>
+                          style={{fontSize:12,fontWeight:700,padding:'6px 14px',borderRadius:10,background:'rgba(29,185,84,.08)',border:'1px solid rgba(29,185,84,.25)',color:'#4ade80',cursor:'pointer'}}>
                           Ver conversa
                         </button>
                       </div>
@@ -1391,31 +1392,31 @@ function Feedbacks(){
 
       {/* ── Painel de detalhe: conversa WhatsApp ── */}
       {sel&&(
-        <div style={{width:420,flexShrink:0,display:'flex',flexDirection:'column',background:'var(--surface)',borderLeft:'1px solid var(--border)'}}>
+        <div style={{width:440,flexShrink:0,display:'flex',flexDirection:'column',background:'var(--surface)',borderLeft:'1px solid var(--border)'}}>
           {/* Header */}
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'20px 24px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
             <div style={{flex:1,minWidth:0}}>
               {(()=>{
                 const cat=CAT_FBK[sel.categoria]||{emoji:'📌',label:sel.categoria};
                 const pri=PRI_FBK[sel.prioridade]||PRI_FBK.normal;
                 return(
                   <div>
-                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-                      <span style={{fontSize:18}}>{cat.emoji}</span>
-                      <span style={{fontSize:14,fontWeight:700,color:'#fff'}}>{cat.label}</span>
-                      <span style={{fontSize:10,fontWeight:800,padding:'2px 8px',borderRadius:6,background:pri.color,color:'#fff'}}>{pri.label}</span>
+                    <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                      <span style={{fontSize:22}}>{cat.emoji}</span>
+                      <span style={{fontSize:16,fontWeight:800,color:'#fff'}}>{cat.label}</span>
+                      <span style={{fontSize:11,fontWeight:800,padding:'3px 10px',borderRadius:8,background:pri.color,color:'#fff'}}>{pri.label}</span>
                     </div>
-                    <span className="mono" style={{fontSize:11,color:'var(--text-muted)'}}>{sel.protocolo}</span>
+                    <span className="mono" style={{fontSize:12,color:'var(--text-muted)',fontWeight:500}}>{sel.protocolo}</span>
                   </div>
                 );
               })()}
             </div>
-            <button onClick={()=>{setSel(null);setMsgs([]);}} style={{marginLeft:12,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',cursor:'pointer',borderRadius:8,border:'none',background:'none',fontSize:16,fontFamily:'inherit'}}>✕</button>
+            <button onClick={()=>{setSel(null);setMsgs([]);}} style={{marginLeft:14,width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',cursor:'pointer',borderRadius:10,border:'none',background:'none',fontSize:18,fontFamily:'inherit'}}>✕</button>
           </div>
 
           {/* Info cidadão */}
-          <div style={{padding:'12px 20px',borderBottom:'1px solid var(--border)',background:'rgba(255,255,255,.02)',flexShrink:0}}>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px 16px',fontSize:13}}>
+          <div style={{padding:'16px 24px',borderBottom:'1px solid var(--border)',background:'rgba(255,255,255,.02)',flexShrink:0}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px 20px',fontSize:14}}>
               {sel.nome&&(
                 <div><div style={{color:'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:'.5px',marginBottom:3,textTransform:'uppercase'}}>Cidadão</div><div style={{color:'#fff',fontWeight:600}}>{sel.nome}</div></div>
               )}
@@ -1436,8 +1437,8 @@ function Feedbacks(){
           </div>
 
           {/* Thread conversa */}
-          <div className="scrollable" style={{flex:1,padding:16}}>
-            <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.2px',color:'var(--text-muted)',textAlign:'center',marginBottom:16}}>Conversa via WhatsApp</div>
+          <div className="scrollable" style={{flex:1,padding:20}}>
+            <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.5px',color:'var(--text-muted)',textAlign:'center',marginBottom:20}}>Conversa via WhatsApp</div>
 
             {msgs.length===0?(
               <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:120,gap:8}}>
@@ -1455,8 +1456,8 @@ function Feedbacks(){
                         border:`1px solid ${deCidadao?'var(--border)':'rgba(59,130,246,.3)'}`,
                         borderTopLeftRadius:deCidadao?4:16,borderTopRightRadius:deCidadao?16:4}}>
                         {!deCidadao&&<div style={{fontSize:10,fontWeight:700,color:'#60a5fa',marginBottom:4}}>🤖 IA Prefeitura</div>}
-                        <div style={{fontSize:13.5,color:'var(--text-secondary)',lineHeight:1.6}}>{m.mensagem}</div>
-                        <div style={{fontSize:10,color:'var(--text-muted)',marginTop:6,textAlign:'right'}}>{ago(m.created_at)}</div>
+                        <div style={{fontSize:14,color:'var(--text-secondary)',lineHeight:1.65,fontWeight:500}}>{m.mensagem}</div>
+                        <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6,textAlign:'right',fontWeight:500}}>{ago(m.created_at)}</div>
                       </div>
                     </div>
                   );
@@ -1483,7 +1484,7 @@ function Relatorios(){
   const pie=[{v:18,c:'#00D1FF',n:'Vias'},{v:14,c:'#1DB954',n:'Arborização'},{v:9,c:'#00D1FF',n:'Drenagem'},{v:6,c:'#fbbf24',n:'Iluminação'}];
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-      <div style={{padding:'14px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:12,flexShrink:0,background:'var(--surface)'}}>
+      <div style={{padding:'18px 24px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:14,flexShrink:0,background:'var(--surface)'}}>
         <select value={periodo} onChange={e=>setPeriodo(e.target.value)}>
           <option value="semana">Esta semana</option><option value="mes">Este mês</option><option value="trimestre">Trimestre</option><option value="ano">Este ano</option>
         </select>
@@ -1492,12 +1493,12 @@ function Relatorios(){
         <button className="btn btn-outline">📄 Exportar PDF</button>
         <button className="btn btn-primary">📧 Enviar por Email</button>
       </div>
-      <div className="scrollable" style={{flex:1,padding:20}}>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-          <div className="chart-card anim-card"><div className="chart-title">Ocorrências × Denúncias · 6 meses</div><AreaChart data={monthly} keys={['oc','den']} colors={['#00D1FF','#1DB954']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#00D1FF'}}/>Ocorrências</div><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#1DB954'}}/>Denúncias</div></div></div>
-          <div className="chart-card anim-card"><div className="chart-title">Ocorrências por Categoria</div><div style={{display:'flex',alignItems:'center',gap:28,flex:1,justifyContent:'center'}}><DonutChart data={pie} size={170}/><div style={{display:'flex',flexDirection:'column',gap:12,flex:1}}>{pie.map((d,i)=>(<div key={i}><div style={{display:'flex',justifyContent:'space-between',marginBottom:5,fontSize:13}}><div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:8,height:8,borderRadius:3,background:d.c}}/><span style={{color:'var(--text-muted)'}}>{d.n}</span></div><span className="mono" style={{fontWeight:600,color:'#fff'}}>{d.v}</span></div><div style={{height:3,borderRadius:2,background:'rgba(255,255,255,.05)'}}><div style={{height:'100%',borderRadius:2,background:d.c,width:`${(d.v/47)*100}%`,opacity:.8}}/></div></div>))}</div></div></div>
-          <div className="chart-card anim-card"><div className="chart-title">Recompensas · Mês a Mês</div><BarChart data={reward} keys={['pago','apagar']} colors={['#1DB954','#fbbf24']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#1DB954'}}/>Pago</div><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#fbbf24'}}/>A Pagar</div></div></div>
-          <div className="chart-card anim-card"><div className="chart-title">SOS Mulher · Resumo</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,flex:1,alignContent:'center'}}>{[['Total Alertas','1','#f87171'],['Resolvidos','1','#4ade80'],['Cadastros Ativos','3','#00D1FF'],['Tempo Médio','12min','#fbbf24']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:'18px 20px'}}><div className="mono" style={{fontSize:26,fontWeight:600,color:c}}>{v}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginTop:5}}>{l}</div></div>))}</div></div>
+      <div className="scrollable" style={{flex:1,padding:24}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+          <div className="chart-card anim-card"><div className="chart-title">Ocorrências × Denúncias · 6 meses</div><AreaChart data={monthly} keys={['oc','den']} colors={['#00D1FF','#1DB954']} height={260}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:12,height:3,borderRadius:2,background:'#00D1FF'}}/>Ocorrências</div><div className="chart-legend-item"><div style={{width:12,height:3,borderRadius:2,background:'#1DB954'}}/>Denúncias</div></div></div>
+          <div className="chart-card anim-card"><div className="chart-title">Ocorrências por Categoria</div><div style={{display:'flex',alignItems:'center',gap:32,flex:1,justifyContent:'center'}}><DonutChart data={pie} size={190}/><div style={{display:'flex',flexDirection:'column',gap:14,flex:1}}>{pie.map((d,i)=>(<div key={i}><div style={{display:'flex',justifyContent:'space-between',marginBottom:6,fontSize:14}}><div style={{display:'flex',alignItems:'center',gap:10}}><div style={{width:10,height:10,borderRadius:4,background:d.c}}/><span style={{color:'var(--text-muted)',fontWeight:500}}>{d.n}</span></div><span className="mono" style={{fontWeight:700,color:'#fff'}}>{d.v}</span></div><div style={{height:4,borderRadius:2,background:'rgba(255,255,255,.04)'}}><div style={{height:'100%',borderRadius:2,background:d.c,width:`${(d.v/47)*100}%`,opacity:.8}}/></div></div>))}</div></div></div>
+          <div className="chart-card anim-card"><div className="chart-title">Recompensas · Mês a Mês</div><BarChart data={reward} keys={['pago','apagar']} colors={['#1DB954','#fbbf24']} height={260}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:12,height:12,borderRadius:4,background:'#1DB954'}}/>Pago</div><div className="chart-legend-item"><div style={{width:12,height:12,borderRadius:4,background:'#fbbf24'}}/>A Pagar</div></div></div>
+          <div className="chart-card anim-card"><div className="chart-title">SOS Mulher · Resumo</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,flex:1,alignContent:'center'}}>{[['Total Alertas','1','#f87171'],['Resolvidos','1','#4ade80'],['Cadastros Ativos','3','#00D1FF'],['Tempo Médio','12min','#fbbf24']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:12,padding:'22px 24px'}}><div className="mono" style={{fontSize:32,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:12,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px',marginTop:6,fontWeight:700}}>{l}</div></div>))}</div></div>
         </div>
       </div>
     </div>
