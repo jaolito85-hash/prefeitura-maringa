@@ -13,20 +13,20 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0b0e0d;
-  --surface:#111614;
-  --card:#141917;
-  --card-hover:#1a1f1d;
-  --border:#1e2624;
-  --border-light:#2a3330;
+  --bg:#050706;
+  --surface:#0a0d0b;
+  --card:#0f1311;
+  --card-hover:#151a17;
+  --border:#151c18;
+  --border-light:#1e2622;
   --accent:#1DB954;
   --accent-light:#22d35e;
-  --accent-bg:rgba(29,185,84,.06);
+  --accent-bg:rgba(29,185,84,.04);
   --blue:#00D1FF;
   --cyan:#00D1FF;
-  --text:#e8ebe9;
-  --text-secondary:#a1a8a5;
-  --text-muted:#5f6b66;
+  --text:#edf0ee;
+  --text-secondary:#8a9490;
+  --text-muted:#4a5652;
   --danger:#dc2626;
   --danger-light:#ef4444;
   --warn:#fbbf24;
@@ -34,82 +34,84 @@
   --success:#1DB954;
   --success-light:#22d35e;
   --purple:#7c3aed;
-  --radius:14px;
+  --radius:16px;
+  --shadow-card:0 2px 12px rgba(0,0,0,.4);
+  --shadow-glow:0 0 30px rgba(29,185,84,.08);
 }
 html,body,#root{height:100%;background:var(--bg);color:var(--text);overflow:hidden}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:15px;font-weight:400;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
-::-webkit-scrollbar{width:7px}
+::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#2a3330;border-radius:4px}
-::-webkit-scrollbar-thumb:hover{background:#3a4540}
+::-webkit-scrollbar-thumb{background:#1e2622;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#2a3330}
 .app{display:flex;flex-direction:column;height:100vh}
 
 /* ─── HEADER ─────────────────────────────────────────────────── */
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:72px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:20}
-.logo{display:flex;align-items:center;gap:14px}
-.logo-mark{width:38px;height:38px}
-.logo-text{font-size:21px;font-weight:800;color:#fff;letter-spacing:-.3px}
-.logo-text span{font-weight:500;color:var(--accent-light);margin-left:2px}
-.logo-sep{width:1px;height:28px;background:var(--border-light);margin:0 20px}
-.logo-sub{font-size:14px;color:var(--text-secondary);font-weight:500;letter-spacing:-.01em}
-.hdr-right{display:flex;align-items:center;gap:24px}
-.status-badge{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--success-light);padding:6px 16px;background:rgba(29,185,84,.08);border:1px solid rgba(29,185,84,.2);border-radius:24px}
-.status-dot{width:8px;height:8px;border-radius:50%;background:var(--success-light);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:84px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:20}
+.logo{display:flex;align-items:center;gap:16px}
+.logo-mark{width:44px;height:44px}
+.logo-text{font-size:26px;font-weight:900;color:#fff;letter-spacing:-.5px}
+.logo-text span{font-weight:600;color:var(--accent-light);margin-left:2px}
+.logo-sep{width:1px;height:32px;background:var(--border-light);margin:0 24px}
+.logo-sub{font-size:15px;color:var(--text-secondary);font-weight:600;letter-spacing:-.01em}
+.hdr-right{display:flex;align-items:center;gap:28px}
+.status-badge{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--success-light);padding:8px 20px;background:rgba(29,185,84,.05);border:1px solid rgba(29,185,84,.12);border-radius:24px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--success-light);box-shadow:0 0 10px rgba(29,185,84,.5);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .clock-area{text-align:right}
-.clock{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:700;color:#fff;letter-spacing:.5px}
-.clock-date{font-size:13px;color:var(--text-muted);margin-top:2px;text-transform:capitalize;font-weight:500}
-.hdr-btn{background:var(--card);border:1px solid var(--border);color:var(--text-secondary);width:42px;height:42px;border-radius:10px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.clock{font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:700;color:#fff;letter-spacing:.5px}
+.clock-date{font-size:12px;color:var(--text-muted);margin-top:3px;text-transform:capitalize;font-weight:600;letter-spacing:.3px}
+.hdr-btn{background:var(--card);border:1px solid var(--border);color:var(--text-secondary);width:44px;height:44px;border-radius:12px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .hdr-btn:hover{border-color:var(--border-light);color:var(--text);background:var(--card-hover)}
 
 /* ─── SOS BANNER ─────────────────────────────────────────────── */
-.sos-banner{display:flex;align-items:center;gap:16px;padding:14px 32px;background:#991b1b;cursor:pointer;flex-shrink:0;transition:background .2s}
-.sos-banner:hover{background:#b91c1c}
-.sos-label{font-weight:800;font-size:14px;letter-spacing:.8px;text-transform:uppercase}
-.sos-detail{font-size:14px;opacity:.9;margin-left:8px;font-weight:500}
-.sos-count{margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:24px;padding:5px 18px;font-size:13px;font-weight:700}
+.sos-banner{display:flex;align-items:center;gap:18px;padding:16px 40px;background:#7f1d1d;cursor:pointer;flex-shrink:0;transition:background .2s;border-bottom:1px solid rgba(220,38,38,.3)}
+.sos-banner:hover{background:#991b1b}
+.sos-label{font-weight:900;font-size:15px;letter-spacing:1.2px;text-transform:uppercase}
+.sos-detail{font-size:15px;opacity:.9;margin-left:8px;font-weight:600}
+.sos-count{margin-left:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:24px;padding:6px 20px;font-size:13px;font-weight:800}
 
 /* ─── BODY ───────────────────────────────────────────────────── */
 .body{display:flex;flex:1;overflow:hidden}
 
 /* ─── SIDEBAR ────────────────────────────────────────────────── */
-.sidebar{width:280px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 14px;flex-shrink:0}
-.sidebar-section{font-size:11px;color:var(--text-muted);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:10px 14px 8px;margin-top:6px}
-.nav-item{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:var(--radius);cursor:pointer;color:var(--text-secondary);font-size:15px;font-weight:600;border:1px solid transparent;margin-bottom:3px;transition:all .15s;-webkit-user-select:none;user-select:none;background:none}
+.sidebar{width:300px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 16px;flex-shrink:0}
+.sidebar-section{font-size:10px;color:var(--text-muted);font-weight:800;letter-spacing:2.5px;text-transform:uppercase;padding:14px 18px 10px;margin-top:8px}
+.nav-item{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:var(--radius);cursor:pointer;color:var(--text-secondary);font-size:16px;font-weight:600;border:1px solid transparent;margin-bottom:4px;transition:all .2s;-webkit-user-select:none;user-select:none;background:none}
 .nav-item:hover{background:rgba(255,255,255,.04);color:var(--text)}
-.nav-item.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700;box-shadow:0 4px 20px rgba(29,185,84,.25)}
-.nav-icon{width:20px;height:20px;flex-shrink:0;opacity:.65}
+.nav-item.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:800;box-shadow:0 6px 32px rgba(29,185,84,.35),0 2px 10px rgba(29,185,84,.2)}
+.nav-icon{width:22px;height:22px;flex-shrink:0;opacity:.55}
 .nav-item.active .nav-icon{opacity:1}
-.nav-badge{margin-left:auto;background:var(--danger);color:#fff;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:700}
-.nav-divider{height:1px;background:var(--border);margin:16px 10px}
-.ws-row{display:flex;align-items:center;gap:10px;padding:6px 14px;font-size:13px;color:var(--text-muted);font-weight:500}
-.ws-dot{width:6px;height:6px;border-radius:50%;background:var(--success-light);flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;border-radius:12px;padding:3px 12px;font-size:12px;font-weight:800;box-shadow:0 2px 8px rgba(220,38,38,.3)}
+.nav-divider{height:1px;background:var(--border);margin:20px 12px}
+.ws-row{display:flex;align-items:center;gap:10px;padding:7px 18px;font-size:13px;color:var(--text-muted);font-weight:600}
+.ws-dot{width:6px;height:6px;border-radius:50%;background:var(--success-light);flex-shrink:0;box-shadow:0 0 6px rgba(29,185,84,.4)}
 
 /* ─── CONTENT ────────────────────────────────────────────────── */
 .content{flex:1;overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
 
 /* ─── CARDS ──────────────────────────────────────────────────── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-card)}
 
 /* ─── KPI ────────────────────────────────────────────────────── */
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:24px;flex-shrink:0}
-.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;transition:all .15s}
-.kpi:hover{border-color:var(--border-light);background:var(--card-hover)}
-.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.kpi-label{font-size:13px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px}
-.kpi-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
-.kpi-value{font-family:'IBM Plex Mono',monospace;font-size:44px;font-weight:700;line-height:1;color:#fff}
-.kpi-sub{font-size:13px;color:var(--text-muted);margin-top:8px;font-weight:500}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:28px 36px;flex-shrink:0}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:36px 32px;transition:all .25s;box-shadow:var(--shadow-card)}
+.kpi:hover{border-color:var(--border-light);background:var(--card-hover);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.kpi-label{font-size:11px;color:var(--text-muted);font-weight:800;text-transform:uppercase;letter-spacing:1.5px}
+.kpi-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.kpi-value{font-family:'IBM Plex Mono',monospace;font-size:56px;font-weight:700;line-height:1;color:#fff;letter-spacing:-2px}
+.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:12px;font-weight:600;letter-spacing:.3px}
 
 /* ─── TABLES ─────────────────────────────────────────────────── */
 table{width:100%;border-collapse:collapse}
-th{text-align:left;padding:16px 20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-bottom:1px solid var(--border);background:var(--surface)}
-td{padding:18px 20px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:15px;color:var(--text-secondary);font-weight:500}
-tr{transition:background .1s}
+th{text-align:left;padding:20px 24px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);border-bottom:1px solid var(--border);background:var(--surface)}
+td{padding:20px 24px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:15px;color:var(--text-secondary);font-weight:500}
+tr{transition:background .15s}
 tr:hover td{background:rgba(255,255,255,.02)}
 
 /* ─── BADGES ─────────────────────────────────────────────────── */
-.badge{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:8px;font-size:13px;font-weight:700}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:10px;font-size:13px;font-weight:700}
 .b-blue{background:rgba(0,209,255,.1);color:#00D1FF;border:1px solid rgba(0,209,255,.2)}
 .b-red{background:rgba(220,38,38,.1);color:#f87171;border:1px solid rgba(220,38,38,.2)}
 .b-warn{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.2)}
@@ -118,7 +120,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .b-gray{background:rgba(107,114,128,.1);color:var(--text-muted);border:1px solid var(--border)}
 
 /* ─── BUTTONS ────────────────────────────────────────────────── */
-.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;border:none;font-family:inherit;letter-spacing:-.01em}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;border:none;font-family:inherit;letter-spacing:-.01em}
 .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:rgba(29,185,84,.85)}
 .btn-primary:disabled{background:rgba(29,185,84,.4);cursor:not-allowed}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-secondary)}.btn-outline:hover{border-color:var(--border-light);color:var(--text)}
@@ -126,9 +128,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
 /* ─── TABS ───────────────────────────────────────────────────── */
 .tab-bar{display:flex;align-items:flex-end;gap:0;padding:0 24px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
-.tab{padding:16px 22px;font-size:14px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s}
+.tab{padding:18px 26px;font-size:14px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .15s}
 .tab:hover{color:var(--text)}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:800}
 .tab-spacer{flex:1}
 
 /* ─── MISC ───────────────────────────────────────────────────── */
@@ -137,20 +139,20 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .mono{font-family:'IBM Plex Mono',monospace}
 
 /* ─── STAT ROW ───────────────────────────────────────────────── */
-.stat-row{display:flex;gap:14px;padding:20px 24px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
-.stat-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;flex:1;text-align:center;transition:all .15s}
-.stat-box:hover{border-color:var(--border-light);background:var(--card-hover)}
-.stat-num{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:700;line-height:1;color:#fff}
-.stat-lbl{font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:8px}
+.stat-row{display:flex;gap:16px;padding:24px 36px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px 28px;flex:1;text-align:center;transition:all .2s;box-shadow:var(--shadow-card)}
+.stat-box:hover{border-color:var(--border-light);background:var(--card-hover);transform:translateY(-1px)}
+.stat-num{font-family:'IBM Plex Mono',monospace;font-size:36px;font-weight:700;line-height:1;color:#fff;letter-spacing:-.5px}
+.stat-lbl{font-size:10px;color:var(--text-muted);font-weight:800;text-transform:uppercase;letter-spacing:2px;margin-top:10px}
 
 /* ─── SELECT/INPUT ───────────────────────────────────────────── */
-select,input,textarea{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:10px 14px;font-size:14px;font-weight:500;font-family:inherit;outline:none;transition:border .15s}
+select,input,textarea{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:var(--radius);padding:12px 16px;font-size:14px;font-weight:600;font-family:inherit;outline:none;transition:border .2s}
 select:focus,input:focus,textarea:focus{border-color:var(--accent)}
 textarea{resize:vertical}
 
 /* ─── CHART ──────────────────────────────────────────────────── */
-.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;display:flex;flex-direction:column}
-.chart-title{font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:20px}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;display:flex;flex-direction:column;box-shadow:var(--shadow-card)}
+.chart-title{font-size:11px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:24px}
 .chart-legend{display:flex;gap:22px;margin-top:18px;font-size:13px;font-weight:500}
 .chart-legend-item{display:flex;align-items:center;gap:8px;color:var(--text-muted)}
 
@@ -163,16 +165,16 @@ textarea{resize:vertical}
 .mapboxgl-popup-tip{display:none !important}
 
 /* ─── ROUTE PANEL ────────────────────────────────────────────── */
-.route-panel{position:absolute;bottom:24px;left:24px;right:24px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;z-index:15;display:flex;gap:24px;align-items:flex-start;animation:fadeSlideUp .4s ease-out;box-shadow:0 12px 48px rgba(0,0,0,.6)}
+.route-panel{position:absolute;bottom:28px;left:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;z-index:15;display:flex;gap:28px;align-items:flex-start;animation:fadeSlideUp .4s ease-out;box-shadow:0 16px 56px rgba(0,0,0,.7)}
 .route-panel-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:20px;padding:4px;line-height:1}
 .route-panel-close:hover{color:#f5f5f5}
 .route-info{flex:1;min-width:0}
-.route-info h3{font-size:18px;font-weight:700;color:#fff;margin-bottom:10px}
-.route-info p{font-size:14px;color:var(--text-secondary);margin-bottom:4px;font-weight:500}
+.route-info h3{font-size:20px;font-weight:800;color:#fff;margin-bottom:12px;letter-spacing:-.3px}
+.route-info p{font-size:14px;color:var(--text-secondary);margin-bottom:4px;font-weight:600}
 .route-stats{display:flex;gap:18px;margin-top:14px}
 .route-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 20px;text-align:center}
-.route-stat .val{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;color:#fff}
-.route-stat .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px;font-weight:600}
+.route-stat .val{font-family:'IBM Plex Mono',monospace;font-size:32px;font-weight:700;color:#fff;letter-spacing:-.5px}
+.route-stat .lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:6px;font-weight:800}
 .route-actions{display:flex;flex-direction:column;gap:10px;flex-shrink:0}
 .route-dispatch{display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;transition:all .15s;white-space:nowrap}
 .route-dispatch:hover{border-color:var(--border-light);background:var(--card-hover)}
@@ -198,6 +200,12 @@ textarea{resize:vertical}
 .anim-card:nth-child(7){animation-delay:.35s}
 .anim-card:nth-child(8){animation-delay:.4s}
 .anim-fade{animation:fadeIn .6s ease-out both}
+/* Premium glow on KPI values */
+.kpi-value{text-shadow:0 0 40px rgba(255,255,255,.06)}
+.kpi:hover .kpi-value{text-shadow:0 0 40px rgba(255,255,255,.1)}
+/* Card subtle inner glow */
+.card,.kpi,.stat-box,.chart-card{position:relative}
+.kpi::after{content:'';position:absolute;inset:0;border-radius:var(--radius);background:linear-gradient(135deg,rgba(255,255,255,.01) 0%,transparent 50%);pointer-events:none}
 .anim-scale{animation:scaleIn .4s ease-out both}
 .anim-bar{transform-origin:bottom;animation:growBar .8s cubic-bezier(.22,1,.36,1) both}
 .anim-line{animation:drawLine 1.2s ease-out both}
@@ -392,11 +400,11 @@ function Logo(){
   return(
     <svg className="logo-mark" viewBox="0 0 60 60" fill="none">
       <defs><linearGradient id="lg1" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#1DB954"/><stop offset="100%" stopColor="#00D1FF"/></linearGradient></defs>
-      <path d="M12 48 L24 32 L40 40 L52 12" stroke="url(#lg1)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="12" cy="48" r="5.5" fill="#1DB954"/>
-      <circle cx="24" cy="32" r="6.5" fill="#1DB954"/>
-      <circle cx="40" cy="40" r="5" fill="#00D1FF"/>
-      <circle cx="52" cy="12" r="5" fill="#00D1FF"/>
+      <path d="M12 48 L24 32 L40 40 L52 12" stroke="url(#lg1)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="12" cy="48" r="6" fill="#1DB954"/>
+      <circle cx="24" cy="32" r="7" fill="#1DB954"/>
+      <circle cx="40" cy="40" r="5.5" fill="#00D1FF"/>
+      <circle cx="52" cy="12" r="5.5" fill="#00D1FF"/>
     </svg>
   );
 }
@@ -444,7 +452,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // Terrain + 3D
       map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512});
       map.setTerrain({source:'mapbox-dem',exaggeration:1.5});
-      map.addLayer({id:'3d-buildings',source:'composite','source-layer':'building',filter:['==','extrude','true'],type:'fill-extrusion',minzoom:13,paint:{'fill-extrusion-color':'#0d1210','fill-extrusion-height':['get','height'],'fill-extrusion-base':['get','min_height'],'fill-extrusion-opacity':.5}});
+      map.addLayer({id:'3d-buildings',source:'composite','source-layer':'building',filter:['==','extrude','true'],type:'fill-extrusion',minzoom:13,paint:{'fill-extrusion-color':'#080a09','fill-extrusion-height':['get','height'],'fill-extrusion-base':['get','min_height'],'fill-extrusion-opacity':.5}});
 
       // ── Route ──
       map.addSource('route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
@@ -511,7 +519,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // Base: círculo principal (fundo escuro + borda colorida)
       map.addLayer({id:'base-main',type:'circle',source:'bases',paint:{
         'circle-radius':10,
-        'circle-color':'#141917',
+        'circle-color':'#0f1311',
         'circle-opacity':0.95,
         'circle-stroke-width':2.5,
         'circle-stroke-color':['get','cor'],
@@ -800,15 +808,15 @@ function Central({sos}){
           </div>
         ))}
       </div>
-      <div style={{flex:1,display:'flex',gap:20,padding:'0 24px 24px',overflow:'hidden',minHeight:0}}>
+      <div style={{flex:1,display:'flex',gap:20,padding:'0 36px 28px',overflow:'hidden',minHeight:0}}>
         <div style={{flex:1,minWidth:0,borderRadius:'var(--radius)',overflow:'hidden',position:'relative'}}>
           <MapboxMap items={[...OC.filter(o=>o.status!=='resolvido'),...SOS.map(s=>({...s,severidade:'critica',titulo:'SOS: '+s.sos_cadastros?.nome}))]} showBases={true} route={routeData}/>
           {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
         </div>
-        <div style={{width:380,flexShrink:0,display:'flex',flexDirection:'column'}}>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
-            <div style={{width:8,height:8,borderRadius:'50%',background:'var(--success-light)',animation:'pulse 2s infinite'}}/>
-            <span style={{fontSize:13,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1.2px'}}>Alertas de Prioridade</span>
+        <div style={{width:400,flexShrink:0,display:'flex',flexDirection:'column'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:18}}>
+            <div style={{width:8,height:8,borderRadius:'50%',background:'var(--success-light)',boxShadow:'0 0 8px rgba(29,185,84,.4)',animation:'pulse 2s infinite'}}/>
+            <span style={{fontSize:11,fontWeight:800,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'2px'}}>Alertas de Prioridade</span>
           </div>
           <div className="card scrollable" style={{flex:1,minHeight:0}}>
             {feed.map((item,i)=>{
@@ -859,9 +867,9 @@ function Mapa(){
           }}>{l}</button>
         ))}
       </div>
-      <div style={{position:'absolute',top:20,right:20,zIndex:10,background:'rgba(11,14,13,0.92)',backdropFilter:'blur(16px)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 24px',textAlign:'center'}}>
-        <div className="mono" style={{fontSize:36,fontWeight:700,color:'#fff'}}>{items.length}</div>
-        <div style={{fontSize:12,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1.2px',marginTop:5,fontWeight:700}}>Ocorrências</div>
+      <div style={{position:'absolute',top:24,right:24,zIndex:10,background:'rgba(5,7,6,0.94)',backdropFilter:'blur(20px)',border:'1px solid var(--border)',borderRadius:16,padding:'24px 36px',textAlign:'center',boxShadow:'0 8px 32px rgba(0,0,0,.5)'}}>
+        <div className="mono" style={{fontSize:52,fontWeight:700,color:'#fff',letterSpacing:'-2px'}}>{items.length}</div>
+        <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'2px',marginTop:8,fontWeight:800}}>Ocorrências</div>
       </div>
       <MapboxMap items={items} fullscreen={true}/>
     </div>
@@ -892,8 +900,8 @@ function Ocorrencias(){
       <div style={{width:400,flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',background:'var(--surface)'}}>
         <div style={{padding:'20px',borderBottom:'1px solid var(--border)'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-            <span style={{fontWeight:800,fontSize:20,color:'#fff',letterSpacing:'-.3px'}}>Ocorrências</span>
-            <span style={{fontSize:14,color:'var(--text-muted)',fontWeight:600}}>{lista.length} {f==='ativas'?'ativas':'total'}</span>
+            <span style={{fontWeight:900,fontSize:24,color:'#fff',letterSpacing:'-.5px'}}>Ocorrências</span>
+            <span style={{fontSize:14,color:'var(--text-muted)',fontWeight:700}}>{lista.length} {f==='ativas'?'ativas':'total'}</span>
           </div>
           <select value={f} onChange={e=>setF(e.target.value)} style={{width:'100%'}}>
             <option value="ativas">Ativas</option>
@@ -911,7 +919,7 @@ function Ocorrencias(){
               <div key={o.id} onClick={()=>setSel(isSel?null:o)} style={{padding:'18px 20px',borderBottom:'1px solid var(--border)',cursor:'pointer',background:isSel?'rgba(29,185,84,.05)':'transparent',borderLeft:`4px solid ${isSel?'var(--accent)':'transparent'}`,transition:'all .12s'}}>
                 <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:10}}>
                   <div style={{display:'flex',alignItems:'center',gap:12,flex:1,minWidth:0}}>
-                    <div style={{width:44,height:44,borderRadius:12,background:cat.c+'12',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>{cat.icon}</div>
+                    <div style={{width:50,height:50,borderRadius:14,background:cat.c+'10',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0,border:'1px solid '+cat.c+'18'}}>{cat.icon}</div>
                     <div style={{minWidth:0}}>
                       <div className="truncate" style={{fontSize:15,fontWeight:700,color:'var(--text)',lineHeight:1.3}}>{o.titulo}</div>
                       <div style={{display:'flex',alignItems:'center',gap:5,marginTop:4,color:'var(--text-muted)',fontSize:13,fontWeight:500}}><Ico.pin/>{o.bairro}</div>
@@ -945,7 +953,7 @@ function Ocorrencias(){
           <div className="card" style={{margin:20,padding:24,borderColor:'rgba(29,185,84,.2)',background:'rgba(29,185,84,.03)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
               <div>
-                <div style={{fontWeight:800,fontSize:20,color:'#fff',letterSpacing:'-.3px'}}>{sel.titulo}</div>
+                <div style={{fontWeight:900,fontSize:22,color:'#fff',letterSpacing:'-.4px'}}>{sel.titulo}</div>
                 <div className="mono" style={{fontSize:13,color:'var(--text-muted)',marginTop:5,fontWeight:500}}>{sel.protocolo}</div>
               </div>
               <div style={{display:'flex',gap:10}}>
@@ -1063,7 +1071,7 @@ function Denuncias(){
             <div className="chart-card anim-card"><div className="chart-title">Ocorrências × Denúncias · 6 meses</div><AreaChart data={chartData} keys={['oc','den']} colors={['#00D1FF','#1DB954']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#00D1FF'}}/>Ocorrências</div><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#1DB954'}}/>Denúncias</div></div></div>
             <div className="chart-card anim-card"><div className="chart-title">Distribuição por Categoria</div><div style={{display:'flex',alignItems:'center',gap:28,flex:1,justifyContent:'center'}}><DonutChart data={pieData} size={170}/><div style={{display:'flex',flexDirection:'column',gap:12}}>{pieData.map((d,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:10,fontSize:13}}><div style={{width:10,height:10,borderRadius:3,background:d.c}}/><span style={{color:'var(--text-muted)',minWidth:70}}>{d.n}</span><span className="mono" style={{fontWeight:600,color:'#fff'}}>{d.v}</span></div>))}</div></div></div>
             <div className="chart-card anim-card"><div className="chart-title">Recompensas Pagas × A Pagar</div><BarChart data={recompData} keys={['pago','apagar']} colors={['#1DB954','#fbbf24']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#1DB954'}}/>Pago</div><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#fbbf24'}}/>A Pagar</div></div></div>
-            <div className="chart-card anim-card"><div className="chart-title">Resumo Financeiro</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,flex:1,alignContent:'center'}}>{[['Pago','R$ '+pago.toLocaleString('pt-BR'),'#4ade80'],['A Pagar','R$ '+apagar.toLocaleString('pt-BR'),'#fbbf24'],['Em Análise','R$ '+analise.toLocaleString('pt-BR'),'#00D1FF'],['Total','R$ '+(pago+apagar+analise).toLocaleString('pt-BR'),'#fff']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:12,padding:'20px 22px'}}><div className="mono" style={{fontSize:26,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:11,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px',marginTop:6,fontWeight:700}}>{l}</div></div>))}</div></div>
+            <div className="chart-card anim-card"><div className="chart-title">Resumo Financeiro</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,flex:1,alignContent:'center'}}>{[['Pago','R$ '+pago.toLocaleString('pt-BR'),'#4ade80'],['A Pagar','R$ '+apagar.toLocaleString('pt-BR'),'#fbbf24'],['Em Análise','R$ '+analise.toLocaleString('pt-BR'),'#00D1FF'],['Total','R$ '+(pago+apagar+analise).toLocaleString('pt-BR'),'#fff']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:14,padding:'24px 26px'}}><div className="mono" style={{fontSize:32,fontWeight:700,color:c,letterSpacing:'-.5px'}}>{v}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'2px',marginTop:8,fontWeight:800}}>{l}</div></div>))}</div></div>
           </div>
         </div>
       )}
@@ -1125,9 +1133,9 @@ function SOSMulher(){
             <div style={{maxWidth:760}}>
               <div style={{background:'rgba(220,38,38,.03)',border:'1px solid rgba(220,38,38,.15)',borderRadius:16,padding:28,marginBottom:24}}>
                 <div style={{display:'flex',alignItems:'center',gap:20,marginBottom:24}}>
-                  <div style={{width:60,height:60,borderRadius:16,background:'rgba(220,38,38,.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28}}>🛡️</div>
+                  <div style={{width:68,height:68,borderRadius:18,background:'rgba(220,38,38,.06)',border:'1px solid rgba(220,38,38,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:32}}>🛡️</div>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:24,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>{sel.sos_cadastros?.nome||'Não identificada'}</div>
+                    <div style={{fontSize:28,fontWeight:900,color:'#fff',letterSpacing:'-.5px'}}>{sel.sos_cadastros?.nome||'Não identificada'}</div>
                     <div style={{fontSize:14,color:'var(--text-secondary)',marginTop:4,fontWeight:500}}>Alerta ativo · {ago(sel.created_at)}</div>
                   </div>
                   <div style={{display:'flex',gap:10}}>
@@ -1229,19 +1237,19 @@ function Feedbacks(){
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.5px',color:'var(--text-muted)',marginBottom:2}}>Resumo</div>
           <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:14,padding:16}}>
-            <div className="mono" style={{fontSize:32,fontWeight:700,color:'#fff'}}>{lista.length}</div>
-            <div style={{fontSize:12,color:'var(--text-muted)',fontWeight:600}}>mensagens</div>
+            <div className="mono" style={{fontSize:40,fontWeight:700,color:'#fff',letterSpacing:'-1px'}}>{lista.length}</div>
+            <div style={{fontSize:10,color:'var(--text-muted)',fontWeight:800,textTransform:'uppercase',letterSpacing:'1.5px'}}>mensagens</div>
           </div>
           {criticos>0&&(
-            <div style={{background:'rgba(220,38,38,.05)',border:'1px solid rgba(220,38,38,.18)',borderRadius:14,padding:16}}>
-              <div className="mono" style={{fontSize:32,fontWeight:700,color:'#f87171',animation:'pulse 2s infinite'}}>{criticos}</div>
-              <div style={{fontSize:12,color:'#f87171',fontWeight:600}}>críticos</div>
+            <div style={{background:'rgba(220,38,38,.04)',border:'1px solid rgba(220,38,38,.15)',borderRadius:14,padding:18}}>
+              <div className="mono" style={{fontSize:40,fontWeight:700,color:'#f87171',letterSpacing:'-1px',animation:'pulse 2s infinite'}}>{criticos}</div>
+              <div style={{fontSize:10,color:'#f87171',fontWeight:800,textTransform:'uppercase',letterSpacing:'1.5px'}}>críticos</div>
             </div>
           )}
           {urgentes>0&&(
-            <div style={{background:'rgba(249,115,22,.04)',border:'1px solid rgba(249,115,22,.18)',borderRadius:14,padding:16}}>
-              <div className="mono" style={{fontSize:32,fontWeight:700,color:'#fb923c'}}>{urgentes}</div>
-              <div style={{fontSize:12,color:'#fb923c',fontWeight:600}}>urgentes</div>
+            <div style={{background:'rgba(249,115,22,.03)',border:'1px solid rgba(249,115,22,.15)',borderRadius:14,padding:18}}>
+              <div className="mono" style={{fontSize:40,fontWeight:700,color:'#fb923c',letterSpacing:'-1px'}}>{urgentes}</div>
+              <div style={{fontSize:10,color:'#fb923c',fontWeight:800,textTransform:'uppercase',letterSpacing:'1.5px'}}>urgentes</div>
             </div>
           )}
         </div>
@@ -1269,8 +1277,8 @@ function Feedbacks(){
       <div style={{flex:1,overflow:'hidden',display:sel?'none':'flex',flexDirection:'column'}}>
         <div style={{padding:'20px 28px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'var(--surface)'}}>
           <div>
-            <div style={{fontSize:22,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>Feedbacks</div>
-            <div style={{fontSize:13,color:'var(--text-muted)',marginTop:3,fontWeight:500}}>Mensagens dos cidadãos via WhatsApp · IA categoriza e responde</div>
+            <div style={{fontSize:26,fontWeight:900,color:'#fff',letterSpacing:'-.5px'}}>Feedbacks</div>
+            <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4,fontWeight:600}}>Mensagens dos cidadãos via WhatsApp · IA categoriza e responde</div>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:14}}>
             <span style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--text-muted)',fontWeight:600}}>
@@ -1357,7 +1365,7 @@ function Feedbacks(){
         <div className="scrollable" style={{flex:1,overflow:'hidden',display:'flex',flexDirection:'column'}}>
           <div style={{padding:'16px 24px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,background:'var(--surface)'}}>
             <div>
-              <div style={{fontSize:18,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>Feedbacks</div>
+              <div style={{fontSize:20,fontWeight:900,color:'#fff',letterSpacing:'-.4px'}}>Feedbacks</div>
               <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Mensagens dos cidadãos via WhatsApp</div>
             </div>
             <span className="mono" style={{fontSize:12,fontWeight:700,color:'var(--text-secondary)',background:'var(--card)',border:'1px solid var(--border)',borderRadius:20,padding:'3px 14px'}}>{lista.length}</span>
@@ -1498,7 +1506,7 @@ function Relatorios(){
           <div className="chart-card anim-card"><div className="chart-title">Ocorrências × Denúncias · 6 meses</div><AreaChart data={monthly} keys={['oc','den']} colors={['#00D1FF','#1DB954']} height={260}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:12,height:3,borderRadius:2,background:'#00D1FF'}}/>Ocorrências</div><div className="chart-legend-item"><div style={{width:12,height:3,borderRadius:2,background:'#1DB954'}}/>Denúncias</div></div></div>
           <div className="chart-card anim-card"><div className="chart-title">Ocorrências por Categoria</div><div style={{display:'flex',alignItems:'center',gap:32,flex:1,justifyContent:'center'}}><DonutChart data={pie} size={190}/><div style={{display:'flex',flexDirection:'column',gap:14,flex:1}}>{pie.map((d,i)=>(<div key={i}><div style={{display:'flex',justifyContent:'space-between',marginBottom:6,fontSize:14}}><div style={{display:'flex',alignItems:'center',gap:10}}><div style={{width:10,height:10,borderRadius:4,background:d.c}}/><span style={{color:'var(--text-muted)',fontWeight:500}}>{d.n}</span></div><span className="mono" style={{fontWeight:700,color:'#fff'}}>{d.v}</span></div><div style={{height:4,borderRadius:2,background:'rgba(255,255,255,.04)'}}><div style={{height:'100%',borderRadius:2,background:d.c,width:`${(d.v/47)*100}%`,opacity:.8}}/></div></div>))}</div></div></div>
           <div className="chart-card anim-card"><div className="chart-title">Recompensas · Mês a Mês</div><BarChart data={reward} keys={['pago','apagar']} colors={['#1DB954','#fbbf24']} height={260}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:12,height:12,borderRadius:4,background:'#1DB954'}}/>Pago</div><div className="chart-legend-item"><div style={{width:12,height:12,borderRadius:4,background:'#fbbf24'}}/>A Pagar</div></div></div>
-          <div className="chart-card anim-card"><div className="chart-title">SOS Mulher · Resumo</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,flex:1,alignContent:'center'}}>{[['Total Alertas','1','#f87171'],['Resolvidos','1','#4ade80'],['Cadastros Ativos','3','#00D1FF'],['Tempo Médio','12min','#fbbf24']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:12,padding:'22px 24px'}}><div className="mono" style={{fontSize:32,fontWeight:700,color:c}}>{v}</div><div style={{fontSize:12,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px',marginTop:6,fontWeight:700}}>{l}</div></div>))}</div></div>
+          <div className="chart-card anim-card"><div className="chart-title">SOS Mulher · Resumo</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,flex:1,alignContent:'center'}}>{[['Total Alertas','1','#f87171'],['Resolvidos','1','#4ade80'],['Cadastros Ativos','3','#00D1FF'],['Tempo Médio','12min','#fbbf24']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:14,padding:'28px 28px'}}><div className="mono" style={{fontSize:42,fontWeight:700,color:c,letterSpacing:'-1px'}}>{v}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'2px',marginTop:10,fontWeight:800}}>{l}</div></div>))}</div></div>
         </div>
       </div>
     </div>
