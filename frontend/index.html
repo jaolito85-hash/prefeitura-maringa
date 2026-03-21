@@ -9,42 +9,42 @@
 <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js" crossorigin></script>
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#121212;
-  --surface:#1a1a1a;
-  --card:#1a1a1a;
-  --card-hover:#212121;
-  --border:#2a2a2a;
-  --border-light:#333333;
-  --accent:#1DB954;
-  --accent-light:#1DB954;
-  --accent-bg:rgba(29,185,84,.08);
-  --blue:#00D1FF;
-  --cyan:#00D1FF;
-  --text:#f5f5f5;
-  --text-secondary:#9ca3af;
-  --text-muted:#6b7280;
-  --danger:#dc2626;
-  --danger-light:#ef4444;
-  --warn:#fbbf24;
-  --warn-light:#fbbf24;
-  --success:#1DB954;
-  --success-light:#1DB954;
-  --purple:#7c3aed;
+  --bg:#050507;
+  --surface:#0b0c10;
+  --card:#111217;
+  --card-hover:#1c1e26;
+  --border:#23252e;
+  --border-light:#2d3039;
+  --accent:#059669;
+  --accent-light:#34d399;
+  --accent-bg:rgba(5,150,105,.08);
+  --blue:#3b82f6;
+  --cyan:#3b82f6;
+  --text:#ffffff;
+  --text-secondary:#d1d5db;
+  --text-muted:#8b949e;
+  --danger:#ef4444;
+  --danger-light:#fca5a5;
+  --warn:#f59e0b;
+  --warn-light:#fcd34d;
+  --success:#22c55e;
+  --success-light:#34d399;
+  --purple:#a855f7;
   --radius:12px;
 }
 html,body,#root{height:100%;background:var(--bg);color:var(--text);overflow:hidden}
-body{font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:14px;font-weight:400;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',sans-serif;font-size:14px;font-weight:400;-webkit-font-smoothing:antialiased}
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#333333;border-radius:4px}
+::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:4px}
 .app{display:flex;flex-direction:column;height:100vh}
 
 /* HEADER */
-.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:60px;background:#1a1a1a;border-bottom:1px solid #2a2a2a;flex-shrink:0;position:relative;z-index:20}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:20}
 .logo{display:flex;align-items:center;gap:12px}
 .logo-mark{width:32px;height:32px}
 .logo-text{font-size:18px;font-weight:700;color:#fff;letter-spacing:-.2px}
@@ -52,7 +52,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:14px;font-
 .logo-sep{width:1px;height:20px;background:var(--border-light);margin:0 16px}
 .logo-sub{font-size:13px;color:var(--text-secondary);font-weight:400}
 .hdr-right{display:flex;align-items:center;gap:20px}
-.status-badge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--success-light);padding:4px 10px;background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.2);border-radius:20px}
+.status-badge{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--success-light);padding:4px 10px;background:rgba(5,150,105,.1);border:1px solid rgba(5,150,105,.2);border-radius:20px}
 .status-dot{width:6px;height:6px;border-radius:50%;background:var(--success-light);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .clock-area{text-align:right}
@@ -72,11 +72,11 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:14px;font-
 .body{display:flex;flex:1;overflow:hidden}
 
 /* SIDEBAR */
-.sidebar{width:260px;background:#1a1a1a;border-right:1px solid #2a2a2a;display:flex;flex-direction:column;padding:16px 12px;flex-shrink:0}
+.sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 12px;flex-shrink:0}
 .sidebar-section{font-size:10px;color:var(--text-muted);font-weight:600;letter-spacing:1.2px;text-transform:uppercase;padding:8px 12px 6px;margin-top:4px}
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius);cursor:pointer;color:var(--text-secondary);font-size:13.5px;font-weight:500;border:1px solid transparent;margin-bottom:2px;transition:all .15s;user-select:none;background:none}
-.nav-item:hover{background:#212121;color:var(--text)}
-.nav-item.active{background:#1DB954;color:#fff;border-color:#1DB954}
+.nav-item:hover{background:var(--card-hover);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .nav-icon{width:18px;height:18px;flex-shrink:0;opacity:.7}
 .nav-item.active .nav-icon{opacity:1}
 .nav-badge{margin-left:auto;background:var(--danger);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600}
@@ -88,12 +88,12 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:14px;font-
 .content{flex:1;overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
 
 /* CARDS */
-.card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:var(--radius)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
 
 /* KPI */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px;flex-shrink:0}
-.kpi{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:var(--radius);padding:20px;transition:all .15s}
-.kpi:hover{border-color:var(--border-light)}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;transition:.2s}
+.kpi:hover{border-color:rgba(5,150,105,.3)}
 .kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .kpi-label{font-size:12px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
 .kpi-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
@@ -102,24 +102,24 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;font-size:14px;font-
 
 /* TABLES */
 table{width:100%;border-collapse:collapse}
-th{text-align:left;padding:12px 16px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);border-bottom:1px solid var(--border);background:#1a1a1a}
+th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);border-bottom:1px solid var(--border);background:var(--card)}
 td{padding:14px 16px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13.5px;color:var(--text-secondary)}
 tr{transition:background .1s}
 tr:hover td{background:rgba(255,255,255,.02)}
 
 /* BADGES */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:500}
-.b-blue{background:rgba(0,209,255,.1);color:#00D1FF;border:1px solid rgba(0,209,255,.2)}
+.b-blue{background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
 .b-red{background:rgba(220,38,38,.1);color:#f87171;border:1px solid rgba(220,38,38,.2)}
 .b-warn{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.2)}
-.b-green{background:rgba(29,185,84,.1);color:#4ade80;border:1px solid rgba(29,185,84,.2)}
+.b-green{background:rgba(5,150,105,.1);color:#4ade80;border:1px solid rgba(5,150,105,.2)}
 .b-purple{background:rgba(124,58,237,.1);color:#a78bfa;border:1px solid rgba(124,58,237,.2)}
 .b-gray{background:rgba(107,114,128,.1);color:var(--text-muted);border:1px solid var(--border)}
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:none;font-family:inherit}
-.btn-primary{background:#1DB954;color:#fff}.btn-primary:hover{background:rgba(29,185,84,.9)}
-.btn-primary:disabled{background:rgba(29,185,84,.5);cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#047857}
+.btn-primary:disabled{background:rgba(5,150,105,.5);cursor:not-allowed}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-secondary)}.btn-outline:hover{border-color:var(--border-light);color:var(--text)}
 .btn-danger{background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);color:#f87171}.btn-danger:hover{background:rgba(220,38,38,.15)}
 
@@ -127,7 +127,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .tab-bar{display:flex;align-items:flex-end;gap:0;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
 .tab{padding:12px 18px;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
 .tab:hover{color:var(--text)}
-.tab.active{color:#1DB954;border-bottom-color:#1DB954}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .tab-spacer{flex:1}
 
 /* MISC */
@@ -137,7 +137,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
 /* STAT ROW */
 .stat-row{display:flex;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
-.stat-box{background:#212121;border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;flex:1;text-align:center;transition:all .15s}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;text-align:center;transition:.2s}
 .stat-box:hover{border-color:var(--border-light)}
 .stat-num{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;line-height:1;color:#fff}
 .stat-lbl{font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-top:5px}
@@ -148,7 +148,7 @@ select:focus,input:focus,textarea:focus{border-color:var(--accent)}
 textarea{resize:vertical}
 
 /* CHART */
-.chart-card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:var(--radius);padding:20px;display:flex;flex-direction:column}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column}
 .chart-title{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px}
 .chart-legend{display:flex;gap:18px;margin-top:14px;font-size:12px}
 .chart-legend-item{display:flex;align-items:center;gap:6px;color:var(--text-muted)}
@@ -162,21 +162,21 @@ textarea{resize:vertical}
 .mapboxgl-popup-tip{display:none !important}
 
 /* ROUTE PANEL */
-.route-panel{position:absolute;bottom:20px;left:20px;right:20px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:12px;padding:20px;z-index:15;display:flex;gap:20px;align-items:flex-start;animation:fadeSlideUp .4s ease-out;box-shadow:0 8px 32px rgba(0,0,0,.5)}
-.route-panel-close{position:absolute;top:12px;right:12px;background:none;border:none;color:#6b7280;cursor:pointer;font-size:18px;padding:4px;line-height:1}
-.route-panel-close:hover{color:#f5f5f5}
+.route-panel{position:absolute;bottom:16px;left:16px;right:16px;background:rgba(17,18,23,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:12px;padding:14px 18px;z-index:15;display:flex;gap:16px;align-items:flex-start;animation:fadeSlideUp .4s ease-out;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.route-panel-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:4px;line-height:1}
+.route-panel-close:hover{color:var(--text)}
 .route-info{flex:1;min-width:0}
-.route-info h3{font-size:16px;font-weight:600;color:#fff;margin-bottom:8px}
-.route-info p{font-size:13px;color:#9ca3af;margin-bottom:4px}
+.route-info h3{font-size:14px;font-weight:600;color:#fff;margin-bottom:6px}
+.route-info p{font-size:12px;color:var(--text-secondary);margin-bottom:3px}
 .route-stats{display:flex;gap:16px;margin-top:12px}
-.route-stat{background:#212121;border:1px solid #2a2a2a;border-radius:8px;padding:10px 16px;text-align:center}
-.route-stat .val{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:#fff}
-.route-stat .lbl{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+.route-stat{background:var(--card-hover);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center}
+.route-stat .val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#fff}
+.route-stat .lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
 .route-actions{display:flex;flex-direction:column;gap:8px;flex-shrink:0}
-.route-dispatch{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;border:1px solid #2a2a2a;background:#212121;color:#f5f5f5;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:all .15s;white-space:nowrap}
-.route-dispatch:hover{border-color:#333;background:#2a2a2a}
-.route-dispatch.primary{background:#1DB954;border-color:#1DB954;color:#fff}
-.route-dispatch.primary:hover{background:rgba(29,185,84,.85)}
+.route-dispatch{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card-hover);color:var(--text);cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:all .15s;white-space:nowrap}
+.route-dispatch:hover{border-color:var(--border-light);background:var(--border)}
+.route-dispatch.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.route-dispatch.primary:hover{background:rgba(5,150,105,.85)}
 .route-dispatch .emoji{font-size:16px}
 
 /* (pulse handled by native Mapbox layers) */
@@ -201,6 +201,32 @@ textarea{resize:vertical}
 .anim-bar{transform-origin:bottom;animation:growBar .8s cubic-bezier(.22,1,.36,1) both}
 .anim-line{animation:drawLine 1.2s ease-out both}
 .anim-dot{animation:scaleIn .3s ease-out both}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease-out}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;width:94%;max-width:640px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;animation:scaleIn .25s ease-out;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+
+/* CHAT BUBBLES */
+.chat-bubble{border-radius:18px;padding:14px 16px;border:1px solid var(--border)}
+.chat-bubble.client{background:#111827;border-color:rgba(75,85,99,.55);border-bottom-left-radius:6px}
+.chat-bubble.agent{background:linear-gradient(135deg,rgba(5,150,105,.22),rgba(6,95,70,.3));border-color:rgba(52,211,153,.3);border-bottom-right-radius:6px}
+
+/* FEEDBACK CARD */
+.fb-card{background:var(--card);padding:20px;border-radius:var(--radius);border:1px solid var(--border);cursor:pointer;transition:.2s}
+.fb-card:hover{border-color:var(--accent);box-shadow:0 4px 24px rgba(5,150,105,.12);transform:translateY(-1px)}
+
+/* SOS BANNER */
+.sos-banner{box-shadow:0 2px 20px rgba(220,38,38,.25);animation:pulse 2s infinite}
+
+/* STAT BOX HOVER */
+.stat-box:hover{border-color:rgba(5,150,105,.3)}
+
+/* SELECT STYLING */
+select{-webkit-appearance:none;appearance:none}
+
+/* TABLE ROW */
+tr{transition:.1s}
+tr:hover td{background:var(--card-hover)}
 </style>
 </head>
 <body>
@@ -237,81 +263,82 @@ function PageTransition({children,pageKey}){
   return <div style={{opacity:show?1:0,transform:show?'translateY(0)':'translateY(8px)',transition:'opacity .35s ease, transform .35s ease',height:'100%'}}>{children}</div>;
 }
 
-/* ─── DATA ─────────────────────────────────────────────────────── */
-const OC=[
-  {id:1,protocolo:'MGA-2026-00042',categoria:'arborizacao',titulo:'Árvore caída bloqueando via',bairro:'Centro',severidade:'alta',status:'em_atendimento',total_relatos:7,lat:-23.4205,lng:-51.9332,created_at:new Date(Date.now()-7200000).toISOString()},
-  {id:2,protocolo:'MGA-2026-00041',categoria:'drenagem',titulo:'Alagamento na Av. Colombo',bairro:'Zona 5',severidade:'critica',status:'equipe_caminho',total_relatos:12,lat:-23.4055,lng:-51.9451,created_at:new Date(Date.now()-18000000).toISOString()},
-  {id:3,protocolo:'MGA-2026-00039',categoria:'conservacao_de_vias',titulo:'Buraco profundo na Av. Brasil',bairro:'Zona 7',severidade:'media',status:'aberto',total_relatos:3,lat:-23.4312,lng:-51.9283,created_at:new Date(Date.now()-28800000).toISOString()},
-  {id:4,protocolo:'MGA-2026-00037',categoria:'iluminacao_publica',titulo:'Poste apagado há 3 dias',bairro:'Jd. Alvorada',severidade:'baixa',status:'aberto',total_relatos:2,lat:-23.4108,lng:-51.9175,created_at:new Date(Date.now()-43200000).toISOString()},
-  {id:5,protocolo:'MGA-2026-00035',categoria:'drenagem',titulo:'Bueiro entupido na Rua Néo Alves',bairro:'Zona 2',severidade:'media',status:'resolvido',total_relatos:4,lat:-23.4180,lng:-51.9390,created_at:new Date(Date.now()-86400000).toISOString()},
-  {id:6,protocolo:'MGA-2026-00033',categoria:'arborizacao',titulo:'Galho ameaçando queda sobre calçada',bairro:'Ney Braga',severidade:'alta',status:'em_atendimento',total_relatos:5,lat:-23.3980,lng:-51.9520,created_at:new Date(Date.now()-108000000).toISOString()},
-];
-const DEN=[
-  {id:1,protocolo:'MGA-2026-D0021',categoria:'trafico_drogas',mensagem:'Ponto de venda na esquina da Rua Pioneiro com Av. Mandacaru',bairro:'Jd. Alvorada',status:'em_analise',cidadania_ativa:true,valor_recompensa:500,lat:-23.4122,lng:-51.9201,created_at:new Date(Date.now()-3600000).toISOString()},
-  {id:2,protocolo:'MGA-2026-D0020',categoria:'pichacao',mensagem:'Pichação no muro da escola estadual na Rua das Flores',bairro:'Zona 3',status:'procedente',cidadania_ativa:true,valor_recompensa:200,lat:-23.4251,lng:-51.9350,created_at:new Date(Date.now()-10800000).toISOString()},
-  {id:3,protocolo:'MGA-2026-D0019',categoria:'descarte_irregular',mensagem:'Descarte de entulho no fundo de vale, próximo ao córrego',bairro:'Zona 8',status:'novo',cidadania_ativa:false,valor_recompensa:null,lat:-23.4350,lng:-51.9150,created_at:new Date(Date.now()-21600000).toISOString()},
-  {id:4,protocolo:'MGA-2026-D0018',categoria:'furto_fios',mensagem:'Fios elétricos sendo furtados na Rua Pioneiro',bairro:'Centro',status:'encaminhado',cidadania_ativa:true,valor_recompensa:800,lat:-23.4195,lng:-51.9345,created_at:new Date(Date.now()-36000000).toISOString()},
-  {id:5,protocolo:'MGA-2026-D0017',categoria:'trafico_drogas',mensagem:'Venda de drogas dentro de bar na Av. Colombo, próximo ao Terminal',bairro:'Zona 5',status:'recompensa_paga',cidadania_ativa:true,valor_recompensa:1200,lat:-23.4070,lng:-51.9420,created_at:new Date(Date.now()-86400000).toISOString()},
-  {id:6,protocolo:'MGA-2026-D0016',categoria:'pichacao',mensagem:'Grafite no muro da ponte sobre o Ribeirão Maringá',bairro:'Zona 1',status:'procedente',cidadania_ativa:true,valor_recompensa:200,lat:-23.4290,lng:-51.9480,created_at:new Date(Date.now()-129600000).toISOString()},
-];
-const SOS=[
-  {id:1,telefone:'+5544999112233',codigo_usado:'SOCORRO',status:'active',sos_cadastros:{nome:'Maria Silva',endereco:'Rua das Hortênsias, 234 — Zona 5',agressor:'João da Silva (ex-marido)',contato_confianca_nome:'Ana Souza',contato_confianca_telefone:'+5544988776655'},lat:-23.4155,lng:-51.9380,created_at:new Date(Date.now()-1800000).toISOString()},
-];
+/* ─── API CONFIG ────────────────────────────────────────────────── */
+const API_URL='';
+let OC=[],DEN=[],SOS=[],FBK=[],KPIS={};
+const FBK_MSGS={};
 
-/* ─── HOOK: BUSCA DADOS DA API (com fallback pro mock) ────────── */
-const POLL_INTERVAL=15000; // Atualiza a cada 15 segundos
-
-function useAPI(url, mockData, interval=POLL_INTERVAL){
-  const [data,setData]=useState(mockData);
-  const [live,setLive]=useState(false);
-  const [error,setError]=useState(null);
+/* Busca dados da API a cada 5 segundos — faz o dashboard atualizar sozinho */
+function useApiPolling(){
+  const [tick,setTick]=useState(0);
   useEffect(()=>{
-    let active=true;
-    async function fetchData(){
+    async function poll(){
       try{
-        const res=await fetch(url);
-        if(!res.ok) throw new Error('HTTP '+res.status);
-        const json=await res.json();
-        if(active && json && json.length>=0){
-          setData(json.length>0 ? json : mockData);
-          setLive(true);
-          setError(null);
-        }
-      }catch(e){
-        if(active){setError(e.message);setLive(false);}
-      }
+        const [oc,den,sos,fb,kpis]=await Promise.all([
+          fetch(API_URL+'/api/ocorrencias/').then(r=>r.ok?r.json():[]).catch(()=>[]),
+          fetch(API_URL+'/api/denuncias/').then(r=>r.ok?r.json():[]).catch(()=>[]),
+          fetch(API_URL+'/api/sos/alertas/ativos').then(r=>r.ok?r.json():[]).catch(()=>[]),
+          fetch(API_URL+'/api/feedbacks/').then(r=>r.ok?r.json():[]).catch(()=>[]),
+          fetch(API_URL+'/api/kpis').then(r=>r.ok?r.json():{}).catch(()=>({})),
+        ]);
+        OC=oc.map(o=>({...o,lat:o.latitude,lng:o.longitude}));
+        DEN=den.map(d=>({...d,lat:d.latitude,lng:d.longitude}));
+        SOS=sos.map(s=>({...s,lat:s.latitude,lng:s.longitude}));
+        FBK=fb.map(f=>{
+          const priMap={alta:'critico',normal:'urgente',baixa:'normal'};
+          const catMap={transporte:'transporte',saude:'saude_atendimento',educacao:'educacao_escolas',
+            seguranca:'seguranca_publica',infraestrutura:'infraestrutura_obras',
+            meio_ambiente:'limpeza_urbana',cultura_lazer:'transporte',
+            atendimento_publico:'saude_atendimento',outros:'infraestrutura_obras'};
+          return{...f,lat:f.latitude,lng:f.longitude,
+            prioridade:priMap[f.urgencia]||'normal',
+            categoria:catMap[f.categoria]||f.categoria,
+            status:f.status==='novo'?'aberto':f.status};
+        });
+        KPIS=kpis;
+        setTick(t=>t+1);
+      }catch(e){console.error('API poll error:',e);}
     }
-    fetchData();
-    const timer=setInterval(fetchData,interval);
-    return()=>{active=false;clearInterval(timer);};
-  },[url,interval]);
-  return {data,live,error};
-}
-
-function useKPIs(){
-  const [kpis,setKpis]=useState({sos_ativos:1,denuncias_hoje:6,ocorrencias_abertas:5,tempo_medio_resposta:'12min'});
-  const [live,setLive]=useState(false);
-  useEffect(()=>{
-    let active=true;
-    async function fetchKpis(){
-      try{
-        const res=await fetch('/api/kpis');
-        if(!res.ok) throw new Error('HTTP '+res.status);
-        const json=await res.json();
-        if(active && json){setKpis(json);setLive(true);}
-      }catch(e){if(active)setLive(false);}
-    }
-    fetchKpis();
-    const timer=setInterval(fetchKpis,POLL_INTERVAL);
-    return()=>{active=false;clearInterval(timer);};
+    poll();
+    const i=setInterval(poll,5000);
+    return()=>clearInterval(i);
   },[]);
-  return {kpis,live};
+  return tick;
 }
+
+/* ─── FEEDBACKS LOOKUPS ───────────────────────────────────────── */
+const CAT_FBK={
+  infraestrutura_obras:{label:'Infraestrutura & Obras',emoji:'🏗️',color:'#f59e0b'},
+  seguranca_publica:{label:'Segurança Pública',emoji:'🛡️',color:'#dc2626'},
+  limpeza_urbana:{label:'Limpeza Urbana',emoji:'♻️',color:'#10b981'},
+  educacao_escolas:{label:'Educação & Escolas',emoji:'📚',color:'#3b82f6'},
+  saude_atendimento:{label:'Saúde & Atendimento',emoji:'🏥',color:'#7c3aed'},
+  transporte:{label:'Transporte',emoji:'🚌',color:'#3b82f6'},
+  descarte_irregular:{label:'Descarte Irregular',emoji:'🗑️',color:'#f59e0b'},
+  trafico_drogas:{label:'Tráfico de Drogas',emoji:'💊',color:'#dc2626'},
+  outros:{label:'Outros',emoji:'📝',color:'#8b949e'},
+};
+const PRI_FBK={
+  critico:{label:'Crítico',color:'#dc2626',pulse:true},
+  urgente:{label:'Urgente',color:'#f97316',pulse:false},
+  normal:{label:'Normal',color:'#8b949e',pulse:false},
+  baixa:{label:'Baixa',color:'#4b5563',pulse:false},
+};
+const STA_FBK={
+  aberto:{label:'Aberto',color:'#fbbf24',bg:'rgba(251,191,36,.1)',border:'rgba(251,191,36,.3)'},
+  em_atendimento:{label:'Em Atendimento',color:'#3b82f6',bg:'rgba(59,130,246,.1)',border:'rgba(59,130,246,.3)'},
+  em_analise:{label:'Em Análise',color:'#3b82f6',bg:'rgba(59,130,246,.1)',border:'rgba(59,130,246,.3)'},
+  encaminhado:{label:'Encaminhado',color:'#a78bfa',bg:'rgba(167,139,250,.1)',border:'rgba(167,139,250,.3)'},
+  resolvido:{label:'Resolvido',color:'#4ade80',bg:'rgba(74,222,128,.1)',border:'rgba(74,222,128,.3)'},
+  respondido:{label:'Respondido',color:'#4ade80',bg:'rgba(74,222,128,.1)',border:'rgba(74,222,128,.3)'},
+  novo:{label:'Novo',color:'#fbbf24',bg:'rgba(251,191,36,.1)',border:'rgba(251,191,36,.3)'},
+  arquivado:{label:'Arquivado',color:'#4b5563',bg:'rgba(75,85,99,.1)',border:'rgba(75,85,99,.3)'},
+};
 
 /* ─── BASES DE OPERAÇÃO ───────────────────────────────────────── */
 const BASES=[
-  {id:'gcm',nome:'GCM Central',tipo:'gcm',icon:'🛡️',lat:-23.4236,lng:-51.9383,endereco:'Rua Fernão Dias, 688 — Zona 9',telefone:'(44) 3221-8696',cor:'#1DB954'},
-  {id:'samu',nome:'SAMU 192',tipo:'samu',icon:'🚑',lat:-23.4010,lng:-51.9560,endereco:'Av. Dr. Vladimir Babkov — Parque Industrial',telefone:'192',cor:'#00D1FF'},
+  {id:'gcm',nome:'GCM Central',tipo:'gcm',icon:'🛡️',lat:-23.4236,lng:-51.9383,endereco:'Rua Fernão Dias, 688 — Zona 9',telefone:'(44) 3221-8696',cor:'#059669'},
+  {id:'samu',nome:'SAMU 192',tipo:'samu',icon:'🚑',lat:-23.4010,lng:-51.9560,endereco:'Av. Dr. Vladimir Babkov — Parque Industrial',telefone:'192',cor:'#3b82f6'},
   {id:'bombeiros',nome:'5º BBM — Bombeiros',tipo:'bombeiros',icon:'🚒',lat:-23.4180,lng:-51.9250,endereco:'Rua Marquês de Abrantes, 78 — Zona 7',telefone:'193',cor:'#ef4444'},
   {id:'pm',nome:'PM — 4º BPM',tipo:'pm',icon:'🚔',lat:-23.4195,lng:-51.9340,endereco:'Av. Carneiro Leão — Centro',telefone:'190',cor:'#fbbf24'},
 ];
@@ -349,20 +376,33 @@ async function fetchRoute(fromLng,fromLat,toLng,toLat){
 }
 
 const CAT_OC={
-  arborizacao:{label:'Arborização',icon:'🌳',c:'#1DB954'},
-  drenagem:{label:'Drenagem',icon:'🌊',c:'#00D1FF'},
+  arborizacao:{label:'Arborização',icon:'🌳',c:'#059669'},
+  queda_arvore:{label:'Queda de Árvore',icon:'🌳',c:'#059669'},
+  drenagem:{label:'Drenagem',icon:'🌊',c:'#3b82f6'},
+  enchente_alagamento:{label:'Enchente',icon:'🌊',c:'#3b82f6'},
   conservacao_de_vias:{label:'Vias',icon:'🚧',c:'#fbbf24'},
+  buraco_via:{label:'Buraco na Via',icon:'🕳️',c:'#fbbf24'},
   iluminacao_publica:{label:'Iluminação',icon:'💡',c:'#eab308'},
-  geral:{label:'Geral',icon:'📌',c:'#6b7280'},
+  incendio:{label:'Incêndio',icon:'🔥',c:'#ef4444'},
+  vendaval:{label:'Vendaval',icon:'🌪️',c:'#8b5cf6'},
+  acidente:{label:'Acidente',icon:'🚗',c:'#ef4444'},
+  outros_urbanos:{label:'Outros',icon:'📌',c:'#8b949e'},
+  geral:{label:'Geral',icon:'📌',c:'#8b949e'},
 };
 const CAT_DEN={
   trafico_drogas:{label:'Tráfico de Drogas',icon:'💊',badge:'b-red'},
   pichacao:{label:'Pichação',icon:'🖊️',badge:'b-purple'},
   descarte_irregular:{label:'Descarte Irregular',icon:'🗑️',badge:'b-warn'},
   furto_fios:{label:'Furto de Fios',icon:'⚡',badge:'b-blue'},
+  vandalismo:{label:'Vandalismo',icon:'💥',badge:'b-red'},
+  depredacao:{label:'Depredação',icon:'🔨',badge:'b-warn'},
+  roubo_furto:{label:'Roubo/Furto',icon:'🚨',badge:'b-red'},
+  perturbacao_sossego:{label:'Perturbação',icon:'🔊',badge:'b-purple'},
+  outros_crimes:{label:'Outros',icon:'📌',badge:'b-gray'},
+  outros:{label:'Outros',icon:'📌',badge:'b-gray'},
 };
 const SEV={
-  baixa:{label:'Baixa',c:'#4ade80',dot:'#1DB954'},
+  baixa:{label:'Baixa',c:'#4ade80',dot:'#059669'},
   media:{label:'Média',c:'#fbbf24',dot:'#fbbf24'},
   alta:{label:'Alta',c:'#f87171',dot:'#dc2626'},
   critica:{label:'Crítica',c:'#f87171',dot:'#dc2626'},
@@ -391,6 +431,7 @@ const Ico={
   alert:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
   shield:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
   report:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  chat:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
   eye:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
   pin:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
 };
@@ -399,12 +440,12 @@ const Ico={
 function Logo(){
   return(
     <svg className="logo-mark" viewBox="0 0 60 60" fill="none">
-      <defs><linearGradient id="lg1" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#1DB954"/><stop offset="100%" stopColor="#00D1FF"/></linearGradient></defs>
+      <defs><linearGradient id="lg1" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stopColor="#059669"/><stop offset="100%" stopColor="#3b82f6"/></linearGradient></defs>
       <path d="M12 48 L24 32 L40 40 L52 12" stroke="url(#lg1)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="12" cy="48" r="5" fill="#1DB954"/>
-      <circle cx="24" cy="32" r="6" fill="#1DB954"/>
-      <circle cx="40" cy="40" r="4.5" fill="#00D1FF"/>
-      <circle cx="52" cy="12" r="4.5" fill="#00D1FF"/>
+      <circle cx="12" cy="48" r="5" fill="#059669"/>
+      <circle cx="24" cy="32" r="6" fill="#059669"/>
+      <circle cx="40" cy="40" r="4.5" fill="#3b82f6"/>
+      <circle cx="52" cy="12" r="4.5" fill="#3b82f6"/>
     </svg>
   );
 }
@@ -417,7 +458,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
   const readyRef=useRef(false);
   const pulseRef=useRef(null);
 
-  const sevStops=['critica','#dc2626','alta','#ef4444','media','#d97706','baixa','#1DB954'];
+  const sevStops=['critica','#dc2626','alta','#ef4444','media','#d97706','baixa','#059669'];
 
   function itemsToGeoJSON(list){
     return{type:'FeatureCollection',features:list.filter(i=>i.lat&&i.lng).map((item,idx)=>{
@@ -457,8 +498,8 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // ── Route ──
       map.addSource('route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
       map.addLayer({id:'route-line-shadow',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#000','line-width':8,'line-opacity':0.3,'line-blur':4}});
-      map.addLayer({id:'route-line',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#00D1FF','line-width':4,'line-opacity':0.9}});
-      map.addLayer({id:'route-line-glow',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#00D1FF','line-width':10,'line-opacity':0.15,'line-blur':6}});
+      map.addLayer({id:'route-line',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#3b82f6','line-width':4,'line-opacity':0.9}});
+      map.addLayer({id:'route-line-glow',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#3b82f6','line-width':10,'line-opacity':0.15,'line-blur':6}});
 
       // ── Incidents source ──
       map.addSource('incidents',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
@@ -466,16 +507,16 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // Pulse ring 1 — onda externa (animada via JS)
       map.addLayer({id:'inc-pulse1',type:'circle',source:'incidents',paint:{
         'circle-radius':16,
-        'circle-color':['match',['get','severidade'],...sevStops,'#6b7280'],
+        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
         'circle-opacity':0.25,
         'circle-stroke-width':1.5,
-        'circle-stroke-color':['match',['get','severidade'],...sevStops,'#6b7280'],
+        'circle-stroke-color':['match',['get','severidade'],...sevStops,'#8b949e'],
         'circle-stroke-opacity':0.3,
       }});
       // Pulse ring 2 — onda interna (fase invertida)
       map.addLayer({id:'inc-pulse2',type:'circle',source:'incidents',paint:{
         'circle-radius':12,
-        'circle-color':['match',['get','severidade'],...sevStops,'#6b7280'],
+        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
         'circle-opacity':0.18,
         'circle-stroke-width':0,
       }});
@@ -483,7 +524,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // Halo estático suave
       map.addLayer({id:'inc-glow',type:'circle',source:'incidents',paint:{
         'circle-radius':15,
-        'circle-color':['match',['get','severidade'],...sevStops,'#6b7280'],
+        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
         'circle-opacity':0.1,
         'circle-blur':1,
       }});
@@ -491,7 +532,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // Círculo principal do incidente (sólido + borda branca)
       map.addLayer({id:'inc-main',type:'circle',source:'incidents',paint:{
         'circle-radius':9,
-        'circle-color':['match',['get','severidade'],...sevStops,'#6b7280'],
+        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
         'circle-opacity':0.95,
         'circle-stroke-width':2.5,
         'circle-stroke-color':'rgba(255,255,255,0.6)',
@@ -519,7 +560,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // Base: círculo principal (fundo escuro + borda colorida)
       map.addLayer({id:'base-main',type:'circle',source:'bases',paint:{
         'circle-radius':10,
-        'circle-color':'#1a1a1a',
+        'circle-color':'#111217',
         'circle-opacity':0.95,
         'circle-stroke-width':2.5,
         'circle-stroke-color':['get','cor'],
@@ -563,9 +604,9 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       map.on('click','inc-main',(e)=>{
         const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
         popupRef.current.setLngLat(coords).setHTML(
-          `<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px;color:#f5f5f5;font-family:Inter,system-ui;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+          `<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:12px 14px;color:#fff;font-family:Inter,system-ui;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
             <div style="font-weight:600;font-size:13px;margin-bottom:4px;line-height:1.3">${p.titulo}</div>
-            <div style="font-size:12px;color:#9ca3af">${p.bairro}</div>
+            <div style="font-size:12px;color:#d1d5db">${p.bairro}</div>
             <div style="margin-top:8px;display:flex;gap:6px;align-items:center">
               <span style="width:8px;height:8px;border-radius:50%;background:${p.dotColor};box-shadow:0 0 6px ${p.dotColor}"></span>
               <span style="font-size:11px;color:${p.sevColor};font-weight:500">${p.sevLabel}</span>
@@ -576,9 +617,9 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       map.on('click','base-main',(e)=>{
         const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
         popupRef.current.setLngLat(coords).setHTML(
-          `<div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 14px;color:#f5f5f5;font-family:Inter,system-ui;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+          `<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:12px 14px;color:#fff;font-family:Inter,system-ui;box-shadow:0 8px 24px rgba(0,0,0,.5)">
             <div style="font-weight:600;font-size:13px;margin-bottom:2px">${p.nome}</div>
-            <div style="font-size:11px;color:#9ca3af">${p.endereco}</div>
+            <div style="font-size:11px;color:#d1d5db">${p.endereco}</div>
             <div style="font-size:12px;color:${p.cor};margin-top:6px;font-weight:500">${p.telefone}</div>
           </div>`
         ).addTo(map);
@@ -652,7 +693,7 @@ function RoutePanel({route,base,incident,onClose}){
         <h3>{base.icon} {base.nome} → {incident.titulo||incident.mensagem||'Alerta'}</h3>
         <p>{base.endereco} → {incident.bairro||'—'}</p>
         <div className="route-stats">
-          <div className="route-stat"><div className="val" style={{color:'#00D1FF'}}>{durMin}<span style={{fontSize:12,fontWeight:400}}>min</span></div><div className="lbl">Tempo Est.</div></div>
+          <div className="route-stat"><div className="val" style={{color:'#3b82f6'}}>{durMin}<span style={{fontSize:12,fontWeight:400}}>min</span></div><div className="lbl">Tempo Est.</div></div>
           <div className="route-stat"><div className="val">{distKm}<span style={{fontSize:12,fontWeight:400}}>km</span></div><div className="lbl">Distância</div></div>
           <div className="route-stat"><div className="val" style={{color:SEV[incident.severidade]?.c||'#fbbf24'}}>{SEV[incident.severidade]?.label||'—'}</div><div className="lbl">Severidade</div></div>
         </div>
@@ -679,7 +720,7 @@ function BarChart({data,keys,colors,height=220}){
     <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:'auto'}}>
       {[0,.25,.5,.75,1].map(p=>{
         const y=PAD.t+cH*(1-p);
-        return(<g key={p}><line x1={PAD.l} y1={y} x2={W-PAD.r} y2={y} stroke="#2a2a2a" strokeWidth="1"/><text x={PAD.l-8} y={y+4} textAnchor="end" fontSize="10" fill="#6b7280" fontFamily="IBM Plex Mono">{Math.round(max*p)}</text></g>);
+        return(<g key={p}><line x1={PAD.l} y1={y} x2={W-PAD.r} y2={y} stroke="#23252e" strokeWidth="1"/><text x={PAD.l-8} y={y+4} textAnchor="end" fontSize="10" fill="#8b949e" fontFamily="IBM Plex Mono">{Math.round(max*p)}</text></g>);
       })}
       {data.map((d,di)=>{
         const cx=PAD.l+di*gw+gw/2;
@@ -691,11 +732,11 @@ function BarChart({data,keys,colors,height=220}){
             return(<g key={k}>
               <rect x={x} y={y} width={bw} height={bh} fill={colors[ki]} rx="3" opacity=".85"
                 className="anim-bar" style={{animationDelay:`${delay}s`}}/>
-              {val>0&&<text x={x+bw/2} y={y-4} textAnchor="middle" fontSize="10" fill="#9ca3af" fontFamily="IBM Plex Mono"
+              {val>0&&<text x={x+bw/2} y={y-4} textAnchor="middle" fontSize="10" fill="#d1d5db" fontFamily="IBM Plex Mono"
                 className="anim-fade" style={{animationDelay:`${delay+0.4}s`}}>{val}</text>}
             </g>);
           })}
-          <text x={cx} y={H-PAD.b+18} textAnchor="middle" fontSize="11" fill="#6b7280" fontFamily="Inter">{d.label}</text>
+          <text x={cx} y={H-PAD.b+18} textAnchor="middle" fontSize="11" fill="#8b949e" fontFamily="Inter">{d.label}</text>
         </g>);
       })}
     </svg>
@@ -717,7 +758,7 @@ function AreaChart({data,keys,colors,height=220}){
       <defs>{keys.map((k,ki)=><linearGradient key={k} id={`ag${ki}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={colors[ki]} stopOpacity=".2"/><stop offset="100%" stopColor={colors[ki]} stopOpacity=".01"/></linearGradient>)}</defs>
       {[0,.25,.5,.75,1].map(p=>{
         const y=PAD.t+cH*(1-p);
-        return(<g key={p}><line x1={PAD.l} y1={y} x2={W-PAD.r} y2={y} stroke="#2a2a2a" strokeWidth="1"/><text x={PAD.l-8} y={y+4} textAnchor="end" fontSize="10" fill="#6b7280" fontFamily="IBM Plex Mono">{Math.round(max*p)}</text></g>);
+        return(<g key={p}><line x1={PAD.l} y1={y} x2={W-PAD.r} y2={y} stroke="#23252e" strokeWidth="1"/><text x={PAD.l-8} y={y+4} textAnchor="end" fontSize="10" fill="#8b949e" fontFamily="IBM Plex Mono">{Math.round(max*p)}</text></g>);
       })}
       {keys.map((k,ki)=>{
         const p=pts(k);
@@ -727,11 +768,11 @@ function AreaChart({data,keys,colors,height=220}){
           <path ref={el=>{if(el&&!lineRef.current[ki]){const len=el.getTotalLength();el.style.strokeDasharray=len;el.style.strokeDashoffset=len;el.style.setProperty('--dash-len',len);lineRef.current[ki]=true;}}}
             d={pathD} fill="none" stroke={colors[ki]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
             className={ready?'anim-line':''} style={{animationDelay:`${ki*0.2}s`}}/>
-          {p.map((pt,i)=><circle key={i} cx={pt[0]} cy={pt[1]} r="4" fill="#121212" stroke={colors[ki]} strokeWidth="2.5"
+          {p.map((pt,i)=><circle key={i} cx={pt[0]} cy={pt[1]} r="4" fill="#0b0c10" stroke={colors[ki]} strokeWidth="2.5"
             className="anim-dot" style={{animationDelay:`${0.15*i+ki*0.2+0.3}s`}}/>)}
         </g>);
       })}
-      {data.map((d,i)=>{const x=PAD.l+i*cW/(data.length-1);return <text key={i} x={x} y={H-PAD.b+18} textAnchor="middle" fontSize="11" fill="#6b7280" fontFamily="Inter">{d.label}</text>;})}
+      {data.map((d,i)=>{const x=PAD.l+i*cW/(data.length-1);return <text key={i} x={x} y={H-PAD.b+18} textAnchor="middle" fontSize="11" fill="#8b949e" fontFamily="Inter">{d.label}</text>;})}
     </svg>
   );
 }
@@ -750,7 +791,7 @@ function DonutChart({data,size=160}){
     return{...d,dashLen,gap,offset,delay:i*0.15};
   });
   return(<svg viewBox="0 0 100 100" style={{width:size,height:size,flexShrink:0}}>
-    <circle cx={cx} cy={cy} r={r} fill="none" stroke="#2a2a2a" strokeWidth={strokeW}/>
+    <circle cx={cx} cy={cy} r={r} fill="none" stroke="#23252e" strokeWidth={strokeW}/>
     {segments.map((s,i)=>(
       <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.c} strokeWidth={strokeW}
         strokeDasharray={`${s.dashLen} ${s.gap}`}
@@ -761,17 +802,13 @@ function DonutChart({data,size=160}){
     ))}
     <AnimatedNumber value={total} prefix="" suffix="" duration={1000}
       className="" style={{}} />
-    <text x="50" y="48" textAnchor="middle" fontSize="14" fill="#f5f5f5" fontFamily="IBM Plex Mono" fontWeight="600">{total}</text>
-    <text x="50" y="58" textAnchor="middle" fontSize="6.5" fill="#6b7280" fontFamily="Inter" fontWeight="500">TOTAL</text>
+    <text x="50" y="48" textAnchor="middle" fontSize="14" fill="#ffffff" fontFamily="IBM Plex Mono" fontWeight="600">{total}</text>
+    <text x="50" y="58" textAnchor="middle" fontSize="6.5" fill="#8b949e" fontFamily="Inter" fontWeight="500">TOTAL</text>
   </svg>);
 }
 
 /* ─── CENTRAL ─────────────────────────────────────────────────── */
 function Central({sos}){
-  const {data:ocData}=useAPI('/api/ocorrencias',OC);
-  const {data:denData}=useAPI('/api/denuncias',DEN);
-  const {data:sosData}=useAPI('/api/sos/alertas/ativos',SOS);
-  const {kpis}=useKPIs();
   const [routeData,setRouteData]=useState(null);
   const [routeBase,setRouteBase]=useState(null);
   const [routeIncident,setRouteIncident]=useState(null);
@@ -788,20 +825,20 @@ function Central({sos}){
   }
 
   const feed=[
-    ...ocData.slice(0,4).map(o=>({...o,tipo:'oc'})),
-    ...denData.slice(0,3).map(d=>({...d,tipo:'den'})),
-    ...sosData.map(s=>({...s,tipo:'sos'})),
+    ...OC.slice(0,4).map(o=>({...o,tipo:'oc'})),
+    ...DEN.slice(0,3).map(d=>({...d,tipo:'den'})),
+    ...SOS.map(s=>({...s,tipo:'sos'})),
   ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden',position:'relative'}}>
       <div className="kpi-grid">
         {[
-          {icon:'🚨',val:kpis.sos_ativos,lbl:'SOS Ativos',color:'#dc2626',bg:'rgba(220,38,38,.08)',border:kpis.sos_ativos?'rgba(220,38,38,.25)':''},
-          {icon:'⚠',val:kpis.ocorrencias_abertas,lbl:'Ocorrências Abertas',color:'#fbbf24',bg:'rgba(251,191,36,.08)'},
-          {icon:'📋',val:kpis.denuncias_hoje,lbl:'Denúncias Hoje',color:'#00D1FF',bg:'rgba(0,209,255,.08)'},
-          {icon:'⏱',val:kpis.tempo_medio_resposta,lbl:'Tempo Médio',color:'#1DB954',bg:'rgba(29,185,84,.08)'},
+          {icon:'🚨',val:sos,lbl:'SOS Ativos',color:'#dc2626',bg:'rgba(220,38,38,.08)',border:sos?'rgba(220,38,38,.25)':''},
+          {icon:'⚠',val:OC.filter(o=>o.status!=='resolvido').length,lbl:'Ocorrências Abertas',color:'#fbbf24',bg:'rgba(251,191,36,.08)'},
+          {icon:'📋',val:DEN.length,lbl:'Denúncias Hoje',color:'#3b82f6',bg:'rgba(59,130,246,.08)'},
+          {icon:'⏱',val:'18min',lbl:'Tempo Médio',color:'#059669',bg:'rgba(5,150,105,.08)'},
         ].map((k,i)=>(
-          <div key={i} className="kpi anim-card" style={{borderColor:k.border||''}}>
+          <div key={i} className="kpi anim-card" style={{borderColor:k.border||'var(--border)',borderLeft:`3px solid ${k.color}`}}>
             <div className="kpi-top">
               <span className="kpi-label">{k.lbl}</span>
               <div className="kpi-icon" style={{background:k.bg}}><span style={{fontSize:16}}>{k.icon}</span></div>
@@ -814,7 +851,7 @@ function Central({sos}){
       </div>
       <div style={{flex:1,display:'flex',gap:16,padding:'0 20px 20px',overflow:'hidden',minHeight:0}}>
         <div style={{flex:1,minWidth:0,borderRadius:'var(--radius)',overflow:'hidden',position:'relative'}}>
-          <MapboxMap items={[...ocData.filter(o=>o.status!=='resolvido'),...sosData.map(s=>({...s,severidade:'critica',titulo:'SOS: '+s.sos_cadastros?.nome}))]} showBases={true} route={routeData}/>
+          <MapboxMap items={[...OC.filter(o=>o.status!=='resolvido'),...SOS.map(s=>({...s,severidade:'critica',titulo:'SOS: '+s.sos_cadastros?.nome}))]} showBases={true} route={routeData}/>
           {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
         </div>
         <div style={{width:340,flexShrink:0,display:'flex',flexDirection:'column'}}>
@@ -826,13 +863,13 @@ function Central({sos}){
             {feed.map((item,i)=>{
               const isSOS=item.tipo==='sos';const isDen=item.tipo==='den';
               const cat=isDen?CAT_DEN[item.categoria]:CAT_OC[item.categoria];
-              const borderColor=isSOS?'#dc2626':isDen?'#7c3aed':'#00D1FF';
+              const borderColor=isSOS?'#dc2626':isDen?'#7c3aed':'#3b82f6';
               return(
                 <div key={i} style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',borderLeft:`3px solid ${borderColor}`,cursor:'pointer',transition:'background .1s'}}
                   onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.02)'}
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                    <span style={{fontSize:11,fontWeight:600,color:isSOS?'#f87171':isDen?'#a78bfa':'#00D1FF',textTransform:'uppercase',letterSpacing:'.5px'}}>{isSOS?'SOS MULHER':(cat?.label||item.categoria)}</span>
+                    <span style={{fontSize:11,fontWeight:600,color:isSOS?'#f87171':isDen?'#a78bfa':'#3b82f6',textTransform:'uppercase',letterSpacing:'.5px'}}>{isSOS?'SOS MULHER':(cat?.label||item.categoria)}</span>
                     <span style={{fontSize:11,color:'var(--text-muted)'}}>{ago(item.created_at)}</span>
                   </div>
                   <div className="truncate" style={{fontSize:13.5,color:'var(--text)',fontWeight:500,marginBottom:3}}>{item.titulo||item.mensagem||item.sos_cadastros?.nome}</div>
@@ -856,9 +893,8 @@ function Central({sos}){
 
 /* ─── MAPA ─────────────────────────────────────────────────────── */
 function Mapa(){
-  const {data:ocData}=useAPI('/api/ocorrencias',OC);
   const [f,setF]=useState('todos');
-  const items=ocData.filter(o=>f==='todos'||o.status===f);
+  const items=OC.filter(o=>f==='todos'||o.status===f);
   const btns=[['todos','Todos'],['aberto','Abertos'],['em_atendimento','Em atendimento'],['resolvido','Resolvidos']];
   return(
     <div style={{position:'relative',height:'100%'}}>
@@ -883,7 +919,6 @@ function Mapa(){
 
 /* ─── OCORRÊNCIAS ──────────────────────────────────────────────── */
 function Ocorrencias(){
-  const {data:ocData}=useAPI('/api/ocorrencias',OC);
   const [sel,setSel]=useState(null);
   const [f,setF]=useState('ativas');
   const [routeData,setRouteData]=useState(null);
@@ -900,7 +935,7 @@ function Ocorrencias(){
     setLoadingRoute(false);
   }
 
-  const lista=ocData.filter(o=>f==='ativas'?o.status!=='resolvido':f==='resolvido'?o.status==='resolvido':true);
+  const lista=OC.filter(o=>f==='ativas'?o.status!=='resolvido':f==='resolvido'?o.status==='resolvido':true);
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden',position:'relative'}}>
       <div style={{width:380,flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',background:'var(--surface)'}}>
@@ -917,12 +952,12 @@ function Ocorrencias(){
         </div>
         <div className="scrollable" style={{flex:1}}>
           {lista.map(o=>{
-            const cat=CAT_OC[o.categoria]||{label:o.categoria,icon:'📌',c:'#6b7280'};
+            const cat=CAT_OC[o.categoria]||{label:o.categoria,icon:'📌',c:'#8b949e'};
             const sev=SEV[o.severidade]||SEV.baixa;
             const sta=S_OC[o.status]||{label:o.status,badge:'b-gray'};
             const isSel=sel?.id===o.id;
             return(
-              <div key={o.id} onClick={()=>setSel(isSel?null:o)} style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',cursor:'pointer',background:isSel?'rgba(29,185,84,.06)':'transparent',borderLeft:`3px solid ${isSel?'var(--accent)':'transparent'}`,transition:'all .12s'}}>
+              <div key={o.id} onClick={()=>setSel(isSel?null:o)} style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',cursor:'pointer',background:isSel?'rgba(5,150,105,.06)':'transparent',borderLeft:`3px solid ${isSel?'var(--accent)':'transparent'}`,transition:'all .12s'}}>
                 <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:8}}>
                   <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
                     <div style={{width:36,height:36,borderRadius:8,background:cat.c+'15',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>{cat.icon}</div>
@@ -941,7 +976,7 @@ function Ocorrencias(){
                   <span style={{fontSize:11,color:'var(--text-muted)'}}>{ago(o.created_at)}</span>
                 </div>
                 {o.total_relatos>1&&(
-                  <div style={{marginTop:8,background:'rgba(29,185,84,.06)',border:'1px solid rgba(29,185,84,.15)',borderRadius:6,padding:'5px 10px',fontSize:12,color:'#4ade80'}}>
+                  <div style={{marginTop:8,background:'rgba(5,150,105,.06)',border:'1px solid rgba(5,150,105,.15)',borderRadius:6,padding:'5px 10px',fontSize:12,color:'#4ade80'}}>
                     👥 {o.total_relatos} cidadãos reportaram
                   </div>
                 )}
@@ -956,7 +991,7 @@ function Ocorrencias(){
           {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
         </div>
         {sel&&(
-          <div className="card" style={{margin:16,padding:18,borderColor:'rgba(29,185,84,.25)',background:'rgba(29,185,84,.03)'}}>
+          <div className="card" style={{margin:16,padding:18,borderColor:'rgba(5,150,105,.25)',background:'rgba(5,150,105,.03)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
               <div>
                 <div style={{fontWeight:600,fontSize:16,color:'#fff'}}>{sel.titulo}</div>
@@ -965,7 +1000,7 @@ function Ocorrencias(){
               <div style={{display:'flex',gap:8}}>
                 <button className="btn btn-outline">Em andamento</button>
                 <button className="btn btn-primary">Resolver ✓</button>
-                <button className="btn" style={{background:'#00D1FF',color:'#fff',border:'none'}}
+                <button className="btn" style={{background:'var(--accent)',color:'#fff',border:'none'}}
                   onClick={()=>handleTraceRoute(sel)}
                   disabled={loadingRoute}>
                   {loadingRoute?'Calculando...':'🗺️ Traçar Rota'}
@@ -987,17 +1022,16 @@ function Ocorrencias(){
 
 /* ─── DENÚNCIAS ────────────────────────────────────────────────── */
 function Denuncias(){
-  const {data:denData}=useAPI('/api/denuncias',DEN);
   const [tab,setTab]=useState('lista');
   const [sel,setSel]=useState(null);
   const [fc,setFc]=useState('');
-  const lista=denData.filter(d=>!fc||d.categoria===fc);
-  const pago=denData.filter(d=>d.status==='recompensa_paga').reduce((a,d)=>a+(d.valor_recompensa||0),0);
-  const apagar=denData.filter(d=>d.status==='procedente').reduce((a,d)=>a+(d.valor_recompensa||0),0);
-  const analise=denData.filter(d=>d.status==='em_analise').reduce((a,d)=>a+(d.valor_recompensa||0),0);
+  const lista=DEN.filter(d=>!fc||d.categoria===fc);
+  const pago=DEN.filter(d=>d.status==='recompensa_paga').reduce((a,d)=>a+(d.valor_recompensa||0),0);
+  const apagar=DEN.filter(d=>d.status==='procedente').reduce((a,d)=>a+(d.valor_recompensa||0),0);
+  const analise=DEN.filter(d=>d.status==='em_analise').reduce((a,d)=>a+(d.valor_recompensa||0),0);
   const chartData=[{label:'Out',oc:34,den:12},{label:'Nov',oc:41,den:18},{label:'Dez',oc:29,den:9},{label:'Jan',oc:52,den:22},{label:'Fev',oc:38,den:15},{label:'Mar',oc:47,den:19}];
   const recompData=[{label:'Jan',pago:2400,apagar:800},{label:'Fev',pago:1800,apagar:600},{label:'Mar',pago:3200,apagar:1200}];
-  const pieData=[{v:2,c:'#dc2626',n:'Tráfico'},{v:2,c:'#7c3aed',n:'Pichação'},{v:1,c:'#fbbf24',n:'Descarte'},{v:1,c:'#00D1FF',n:'Furto Fios'}];
+  const pieData=[{v:2,c:'#dc2626',n:'Tráfico'},{v:2,c:'#7c3aed',n:'Pichação'},{v:1,c:'#fbbf24',n:'Descarte'},{v:1,c:'#3b82f6',n:'Furto Fios'}];
 
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
@@ -1005,10 +1039,10 @@ function Denuncias(){
         {[
           {num:`R$ ${pago.toLocaleString('pt-BR')}`,lbl:'Total Pago',c:'#4ade80'},
           {num:`R$ ${apagar.toLocaleString('pt-BR')}`,lbl:'A Pagar',c:'#fbbf24'},
-          {num:`R$ ${analise.toLocaleString('pt-BR')}`,lbl:'Em Análise',c:'#00D1FF'},
+          {num:`R$ ${analise.toLocaleString('pt-BR')}`,lbl:'Em Análise',c:'#3b82f6'},
           {num:`R$ ${(pago+apagar+analise).toLocaleString('pt-BR')}`,lbl:'Total Geral',c:'#fff'},
-          {num:denData.length,lbl:'Denúncias',c:'#00D1FF'},
-          {num:denData.filter(d=>d.cidadania_ativa).length,lbl:'Cidadania Ativa',c:'#4ade80'},
+          {num:DEN.length,lbl:'Denúncias',c:'#3b82f6'},
+          {num:DEN.filter(d=>d.cidadania_ativa).length,lbl:'Cidadania Ativa',c:'#4ade80'},
         ].map((s,i)=>(
           <div key={i} className="stat-box anim-card">
             <div className="stat-num" style={{color:s.c}}>{s.num}</div>
@@ -1028,57 +1062,69 @@ function Denuncias(){
         </div>
       </div>
       {tab==='lista'?(
-        <div style={{flex:1,display:'flex',overflow:'hidden'}}>
-          <div className="scrollable" style={{flex:1}}>
-            <table>
-              <thead><tr><th>Protocolo</th><th>Categoria</th><th>Mensagem</th><th>Bairro</th><th>Status</th><th>Recompensa</th><th>Recebido</th></tr></thead>
-              <tbody>
-                {lista.map(d=>{
-                  const cat=CAT_DEN[d.categoria]||{label:d.categoria,icon:'📌',badge:'b-gray'};
-                  const sta=S_DEN[d.status]||{label:d.status,badge:'b-gray'};
-                  return(
-                    <tr key={d.id} onClick={()=>setSel(d===sel?null:d)} style={{cursor:'pointer',background:sel?.id===d.id?'rgba(29,185,84,.04)':''}}>
-                      <td><span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{d.protocolo}</span></td>
-                      <td><span className={`badge ${cat.badge}`}>{cat.icon} {cat.label}</span></td>
-                      <td style={{maxWidth:280}}><span className="truncate" style={{display:'block',maxWidth:280}}>{d.mensagem}</span></td>
-                      <td>{d.bairro}</td>
-                      <td><span className={`badge ${sta.badge}`}>{sta.label}</span></td>
-                      <td>{d.valor_recompensa?<span className="mono" style={{fontWeight:600,color:'#4ade80'}}>R$ {d.valor_recompensa.toLocaleString('pt-BR')}</span>:<span style={{color:'var(--text-muted)'}}>—</span>}</td>
-                      <td style={{color:'var(--text-muted)',fontSize:12}}>{ago(d.created_at)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {sel&&(
-            <div style={{width:320,flexShrink:0,borderLeft:'1px solid var(--border)',padding:20,overflowY:'auto',background:'var(--surface)'}}>
-              <div style={{display:'flex',justifyContent:'space-between',marginBottom:16}}>
-                <span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{sel.protocolo}</span>
-                <button onClick={()=>setSel(null)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:16}}>✕</button>
-              </div>
-              <div style={{marginBottom:14}}><span className={`badge ${CAT_DEN[sel.categoria]?.badge||'b-gray'}`} style={{fontSize:13}}>{CAT_DEN[sel.categoria]?.icon} {CAT_DEN[sel.categoria]?.label}</span></div>
-              <p style={{fontSize:14,lineHeight:1.6,marginBottom:18,color:'var(--text)'}}>{sel.mensagem}</p>
-              <div style={{display:'grid',gap:12,fontSize:13,marginBottom:20}}>
-                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)'}}>Bairro</span><span>{sel.bairro}</span></div>
-                <div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)'}}>Cidadania Ativa</span><span style={{color:sel.cidadania_ativa?'#4ade80':'var(--text-muted)'}}>{sel.cidadania_ativa?'Sim':'Não'}</span></div>
-                {sel.valor_recompensa&&<div style={{display:'flex',justifyContent:'space-between'}}><span style={{color:'var(--text-muted)'}}>Recompensa</span><span className="mono" style={{fontWeight:600,color:'#4ade80'}}>R$ {sel.valor_recompensa.toLocaleString('pt-BR')}</span></div>}
-              </div>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                <button className="btn btn-primary" style={{justifyContent:'center',width:'100%'}}>Marcar Procedente</button>
-                <button className="btn btn-outline" style={{justifyContent:'center',width:'100%'}}>Encaminhar</button>
-                <button className="btn btn-danger" style={{justifyContent:'center',width:'100%'}}>Improcedente</button>
-              </div>
-            </div>
-          )}
+        <div className="scrollable" style={{flex:1}}>
+          <table>
+            <thead><tr><th>Protocolo</th><th>Categoria</th><th>Mensagem</th><th>Bairro</th><th>Status</th><th>Recompensa</th><th>Recebido</th></tr></thead>
+            <tbody>
+              {lista.map(d=>{
+                const cat=CAT_DEN[d.categoria]||{label:d.categoria,icon:'📌',badge:'b-gray'};
+                const sta=S_DEN[d.status]||{label:d.status,badge:'b-gray'};
+                return(
+                  <tr key={d.id} onClick={()=>setSel(d)} style={{cursor:'pointer',background:sel?.id===d.id?'rgba(5,150,105,.04)':''}}>
+                    <td><span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{d.protocolo}</span></td>
+                    <td><span className={`badge ${cat.badge}`}>{cat.icon} {cat.label}</span></td>
+                    <td style={{maxWidth:280}}><span className="truncate" style={{display:'block',maxWidth:280}}>{d.mensagem}</span></td>
+                    <td>{d.bairro}</td>
+                    <td><span className={`badge ${sta.badge}`}>{sta.label}</span></td>
+                    <td>{d.valor_recompensa?<span className="mono" style={{fontWeight:600,color:'#4ade80'}}>R$ {d.valor_recompensa.toLocaleString('pt-BR')}</span>:<span style={{color:'var(--text-muted)'}}>—</span>}</td>
+                    <td style={{color:'var(--text-muted)',fontSize:12}}>{ago(d.created_at)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       ):(
         <div className="scrollable" style={{flex:1,padding:20}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-            <div className="chart-card anim-card"><div className="chart-title">Ocorrências × Denúncias · 6 meses</div><AreaChart data={chartData} keys={['oc','den']} colors={['#00D1FF','#1DB954']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#00D1FF'}}/>Ocorrências</div><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#1DB954'}}/>Denúncias</div></div></div>
+            <div className="chart-card anim-card"><div className="chart-title">Ocorrências × Denúncias · 6 meses</div><AreaChart data={chartData} keys={['oc','den']} colors={['#3b82f6','#059669']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#3b82f6'}}/>Ocorrências</div><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#059669'}}/>Denúncias</div></div></div>
             <div className="chart-card anim-card"><div className="chart-title">Distribuição por Categoria</div><div style={{display:'flex',alignItems:'center',gap:28,flex:1,justifyContent:'center'}}><DonutChart data={pieData} size={170}/><div style={{display:'flex',flexDirection:'column',gap:12}}>{pieData.map((d,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:10,fontSize:13}}><div style={{width:10,height:10,borderRadius:3,background:d.c}}/><span style={{color:'var(--text-muted)',minWidth:70}}>{d.n}</span><span className="mono" style={{fontWeight:600,color:'#fff'}}>{d.v}</span></div>))}</div></div></div>
-            <div className="chart-card anim-card"><div className="chart-title">Recompensas Pagas × A Pagar</div><BarChart data={recompData} keys={['pago','apagar']} colors={['#1DB954','#fbbf24']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#1DB954'}}/>Pago</div><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#fbbf24'}}/>A Pagar</div></div></div>
-            <div className="chart-card anim-card"><div className="chart-title">Resumo Financeiro</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,flex:1,alignContent:'center'}}>{[['Pago','R$ '+pago.toLocaleString('pt-BR'),'#4ade80'],['A Pagar','R$ '+apagar.toLocaleString('pt-BR'),'#fbbf24'],['Em Análise','R$ '+analise.toLocaleString('pt-BR'),'#00D1FF'],['Total','R$ '+(pago+apagar+analise).toLocaleString('pt-BR'),'#fff']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:'16px 18px'}}><div className="mono" style={{fontSize:20,fontWeight:600,color:c}}>{v}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginTop:5}}>{l}</div></div>))}</div></div>
+            <div className="chart-card anim-card"><div className="chart-title">Recompensas Pagas × A Pagar</div><BarChart data={recompData} keys={['pago','apagar']} colors={['#059669','#fbbf24']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#059669'}}/>Pago</div><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#fbbf24'}}/>A Pagar</div></div></div>
+            <div className="chart-card anim-card"><div className="chart-title">Resumo Financeiro</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,flex:1,alignContent:'center'}}>{[['Pago','R$ '+pago.toLocaleString('pt-BR'),'#4ade80'],['A Pagar','R$ '+apagar.toLocaleString('pt-BR'),'#fbbf24'],['Em Análise','R$ '+analise.toLocaleString('pt-BR'),'#3b82f6'],['Total','R$ '+(pago+apagar+analise).toLocaleString('pt-BR'),'#fff']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:'16px 18px'}}><div className="mono" style={{fontSize:20,fontWeight:600,color:c}}>{v}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginTop:5}}>{l}</div></div>))}</div></div>
+          </div>
+        </div>
+      )}
+      {sel&&(
+        <div className="modal-overlay" onClick={()=>setSel(null)}>
+          <div className="modal-box" onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 22px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{sel.protocolo}</span>
+                <span className={`badge ${CAT_DEN[sel.categoria]?.badge||'b-gray'}`}>{CAT_DEN[sel.categoria]?.icon} {CAT_DEN[sel.categoria]?.label}</span>
+              </div>
+              <button onClick={()=>setSel(null)} style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',cursor:'pointer',borderRadius:8,border:'none',background:'none',fontSize:18}}>✕</button>
+            </div>
+            <div className="scrollable" style={{flex:1,padding:'20px 22px',minHeight:0}}>
+              <p style={{fontSize:14,lineHeight:1.7,marginBottom:22,color:'var(--text)'}}>{sel.mensagem}</p>
+              <div style={{display:'grid',gap:10,fontSize:13,marginBottom:24}}>
+                {[
+                  ['Bairro',sel.bairro],
+                  ['Cidadania Ativa',sel.cidadania_ativa?'✓ Sim':'Não'],
+                  sel.valor_recompensa&&['Recompensa',`R$ ${sel.valor_recompensa.toLocaleString('pt-BR')}`],
+                  ['Status',S_DEN[sel.status]?.label||sel.status],
+                ].filter(Boolean).map(([l,v])=>(
+                  <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'10px 14px',background:'rgba(255,255,255,.02)',borderRadius:8,border:'1px solid var(--border)'}}>
+                    <span style={{color:'var(--text-muted)'}}>{l}</span>
+                    <span style={{fontWeight:500,color:l==='Cidadania Ativa'&&sel.cidadania_ativa?'#4ade80':l==='Recompensa'?'#4ade80':'var(--text)'}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn btn-primary" style={{flex:1,justifyContent:'center'}}>✓ Procedente</button>
+                <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}}>→ Encaminhar</button>
+                <button className="btn btn-danger" style={{flex:1,justifyContent:'center'}}>✕ Improcedente</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1088,8 +1134,7 @@ function Denuncias(){
 
 /* ─── SOS MULHER ───────────────────────────────────────────────── */
 function SOSMulher(){
-  const {data:sosData}=useAPI('/api/sos/alertas',SOS);
-  const [sel,setSel]=useState(null);
+  const [sel,setSel]=useState(SOS[0]);
   const [routeData,setRouteData]=useState(null);
   const [routeBase,setRouteBase]=useState(null);
   const [routeIncident,setRouteIncident]=useState(null);
@@ -1106,21 +1151,21 @@ function SOSMulher(){
 
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden',position:'relative'}}>
-      <div style={{width:340,flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',background:'var(--surface)'}}>
+      <div style={{width:300,flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',background:'var(--surface)'}}>
         <div style={{padding:'16px 16px 10px'}}>
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
             <div style={{width:8,height:8,borderRadius:'50%',background:'#dc2626',animation:'pulse 1s infinite'}}/>
             <span style={{fontSize:12,fontWeight:600,color:'#dc2626',textTransform:'uppercase',letterSpacing:'1px'}}>Alertas Ativos</span>
-            <span className="nav-badge" style={{marginLeft:'auto'}}>{sosData.length}</span>
+            <span className="nav-badge" style={{marginLeft:'auto'}}>{SOS.length}</span>
           </div>
         </div>
-        {sosData.map(s=>(
+        {SOS.map(s=>(
           <div key={s.id} onClick={()=>setSel(s)} style={{margin:'0 10px 6px',padding:'14px 16px',borderRadius:8,background:sel?.id===s.id?'rgba(220,38,38,.08)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':'rgba(220,38,38,.12)'}`,cursor:'pointer'}}>
             <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
               <span style={{fontWeight:600,fontSize:14,color:'#fff'}}>{s.sos_cadastros?.nome||s.telefone}</span>
               <span style={{fontSize:12,color:'#f87171'}}>{ago(s.created_at)}</span>
             </div>
-            <div style={{fontSize:13,color:'#9ca3af'}}>{s.sos_cadastros?.endereco}</div>
+            <div style={{fontSize:13,color:'var(--text-secondary)'}}>{s.sos_cadastros?.endereco}</div>
           </div>
         ))}
         <div style={{height:1,background:'var(--border)',margin:'14px 14px 10px'}}/>
@@ -1136,20 +1181,20 @@ function SOSMulher(){
         ))}
       </div>
       {sel?(
-        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}}>
-          <div style={{flex:1,padding:28,overflowY:'auto'}}>
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          <div style={{flex:1,padding:20,overflowY:'auto',minHeight:0}}>
             <div style={{maxWidth:700}}>
               <div style={{background:'rgba(220,38,38,.04)',border:'1px solid rgba(220,38,38,.18)',borderRadius:10,padding:24,marginBottom:20}}>
                 <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:20}}>
                   <div style={{width:50,height:50,borderRadius:12,background:'rgba(220,38,38,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🛡️</div>
                   <div style={{flex:1}}>
                     <div style={{fontSize:20,fontWeight:700,color:'#fff'}}>{sel.sos_cadastros?.nome||'Não identificada'}</div>
-                    <div style={{fontSize:13,color:'#9ca3af',marginTop:3}}>Alerta ativo · {ago(sel.created_at)}</div>
+                    <div style={{fontSize:13,color:'var(--text-secondary)',marginTop:3}}>Alerta ativo · {ago(sel.created_at)}</div>
                   </div>
                   <div style={{display:'flex',gap:8}}>
                     <button className="btn btn-primary">📞 Ligar</button>
                     <button className="btn btn-danger">Resolver</button>
-                    <button className="btn" style={{background:'#00D1FF',color:'#fff',border:'none'}}
+                    <button className="btn" style={{background:'var(--accent)',color:'#fff',border:'none'}}
                       onClick={()=>handleTraceRoute(sel)}
                       disabled={loadingRoute}>
                       {loadingRoute?'Calculando...':'🗺️ Rota'}
@@ -1177,7 +1222,7 @@ function SOSMulher(){
               </div>
             </div>
           </div>
-          <div style={{borderRadius:12,overflow:'hidden',height:280,marginBottom:16,position:'absolute',bottom:0,left:0,right:0}}>
+          <div style={{height:'45%',minHeight:220,flexShrink:0,borderTop:'1px solid var(--border)',position:'relative'}}>
             <MapboxMap items={[{...sel,severidade:'critica',titulo:'SOS: '+sel.sos_cadastros?.nome}]} showBases={true} route={routeData}/>
             {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
           </div>
@@ -1192,12 +1237,181 @@ function SOSMulher(){
   );
 }
 
+/* ─── FEEDBACKS ────────────────────────────────────────────────── */
+function Feedbacks(){
+  const [sel,setSel]=useState(null);
+  const [msgs,setMsgs]=useState([]);
+  const [filtCat,setFiltCat]=useState('');
+  const [filtPri,setFiltPri]=useState('');
+  const [filtSta,setFiltSta]=useState('ativos');
+
+  const lista=FBK.filter(f=>{
+    if(filtCat&&f.categoria!==filtCat)return false;
+    if(filtPri&&f.prioridade!==filtPri)return false;
+    if(filtSta==='ativos')return['aberto','em_atendimento','encaminhado'].includes(f.status);
+    if(filtSta==='resolvido')return f.status==='resolvido';
+    return true;
+  });
+
+  function abrirConversa(f){setSel(f);setMsgs(FBK_MSGS[f.id]||[]);}
+  function fecharModal(){setSel(null);setMsgs([]);}
+  function mudarStatus(id,novo){if(sel?.id===id)setSel(prev=>({...prev,status:novo}));}
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+      {/* ── Topo: título + filtros inline ── */}
+      <div style={{padding:'20px 28px',borderBottom:'1px solid var(--border)',flexShrink:0,background:'var(--surface)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+          <div>
+            <div style={{fontSize:20,fontWeight:700,color:'#fff'}}>Feedbacks</div>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Gerencie e analise as ocorrências dos cidadãos</div>
+          </div>
+          <span className="mono" style={{fontSize:13,color:'var(--text-secondary)'}}>{lista.length} feedbacks</span>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <select value={filtCat} onChange={e=>setFiltCat(e.target.value)}>
+            <option value="">Todas Categorias</option>
+            {Object.entries(CAT_FBK).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
+          </select>
+          <select value={filtPri} onChange={e=>setFiltPri(e.target.value)}>
+            <option value="">Todas Prioridades</option>
+            {Object.entries(PRI_FBK).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+          </select>
+          <select value={filtSta} onChange={e=>setFiltSta(e.target.value)}>
+            <option value="ativos">Cards Ativos</option>
+            <option value="resolvido">Resolvidos</option>
+            <option value="todos">Todos</option>
+          </select>
+          {(filtCat||filtPri||filtSta!=='ativos')&&(
+            <button className="btn btn-outline" style={{fontSize:12,padding:'6px 12px'}} onClick={()=>{setFiltCat('');setFiltPri('');setFiltSta('ativos');}}>✕ Limpar</button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Grid de cards (sempre visível) ── */}
+      {lista.length===0?(
+        <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12}}>
+          <span style={{fontSize:48,opacity:.3}}>💬</span>
+          <div style={{fontSize:13,color:'var(--text-muted)'}}>Nenhum feedback encontrado</div>
+        </div>
+      ):(
+        <div className="scrollable" style={{flex:1,padding:20}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:16}}>
+            {lista.map((f,i)=>{
+              const cat=CAT_FBK[f.categoria]||{label:f.categoria||'N/A',emoji:'📌',color:'#8b949e'};
+              const pri=PRI_FBK[f.prioridade]||PRI_FBK.normal;
+              const sta=STA_FBK[f.status]||STA_FBK.aberto;
+              return(
+                <div key={f.id} className="fb-card anim-card" onClick={()=>abrirConversa(f)}>
+                  {/* Categoria + data */}
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8,gap:8}}>
+                    <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:6,background:`${cat.color}20`,color:cat.color,border:`1px solid ${cat.color}35`,textTransform:'uppercase',letterSpacing:'.4px'}}>{cat.emoji} {cat.label}</span>
+                    <span style={{fontSize:11,color:'var(--text-muted)',whiteSpace:'nowrap',flexShrink:0}}>{ago(f.created_at)}</span>
+                  </div>
+                  {/* Endereço */}
+                  {(f.endereco||f.bairro)?(
+                    <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6,display:'flex',alignItems:'center',gap:4}}>📍 {f.endereco||f.bairro}</div>
+                  ):(
+                    <div style={{fontSize:11,color:'#4b5563',marginBottom:6,fontStyle:'italic'}}>⚠ Sem endereço</div>
+                  )}
+                  {/* Mensagem */}
+                  <p style={{fontSize:13,lineHeight:1.55,color:'var(--text-secondary)',margin:'8px 0',display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
+                    {f.mensagem}
+                  </p>
+                  {/* Ações */}
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10}}>
+                    <button className="btn" onClick={e=>{e.stopPropagation();abrirConversa(f);}}
+                      style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.25)',color:'#4ade80',fontWeight:600,cursor:'pointer'}}>
+                      💬 Ver conversa
+                    </button>
+                  </div>
+                  {/* Rodapé */}
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:12,paddingTop:10,borderTop:'1px solid var(--border)'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span style={{width:8,height:8,borderRadius:'50%',background:pri.color,display:'inline-block'}}/>
+                      <span style={{fontSize:12,color:'var(--text-muted)'}}>{pri.label}</span>
+                    </div>
+                    <select value={f.status} onChange={e=>{e.stopPropagation();mudarStatus(f.id,e.target.value);}}
+                      onClick={e=>e.stopPropagation()}
+                      style={{fontSize:11,padding:'3px 8px',borderRadius:6,background:sta.bg,border:`1px solid ${sta.border}`,color:sta.color}}>
+                      {Object.entries(STA_FBK).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal conversa (sobrepõe tudo) ── */}
+      {sel&&(
+        <div className="modal-overlay" onClick={fecharModal}>
+          <div className="modal-box" onClick={e=>e.stopPropagation()}>
+            {/* Header: nome + fechar */}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <div style={{width:10,height:10,borderRadius:'50%',background:'var(--accent)'}}/>
+                <span style={{fontSize:16,fontWeight:700,color:'#fff'}}>{sel.nome||'Cidadão'}</span>
+              </div>
+              <button onClick={fecharModal} style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',cursor:'pointer',borderRadius:8,border:'none',background:'none',fontSize:18}}>✕</button>
+            </div>
+            {/* Info: telefone + categoria + endereço */}
+            <div style={{padding:'10px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',flexShrink:0}}>
+              {sel.telefone&&<span style={{fontSize:12,color:'var(--text-secondary)',display:'flex',alignItems:'center',gap:4}}>📱 {sel.telefone}</span>}
+              <a href={`tel:${sel.telefone}`} style={{width:28,height:28,borderRadius:14,background:'var(--accent)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:13,textDecoration:'none',cursor:'pointer',color:'#fff'}}>📞</a>
+              {(()=>{const cat=CAT_FBK[sel.categoria];return cat?<span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:6,background:`${cat.color}20`,color:cat.color,border:`1px solid ${cat.color}35`}}>{cat.label}</span>:null;})()}
+            </div>
+            {(sel.endereco||sel.bairro)&&(
+              <div style={{padding:'8px 20px',borderBottom:'1px solid var(--border)',fontSize:12,color:'var(--accent)',display:'flex',alignItems:'center',gap:4,flexShrink:0}}>📍 {sel.endereco?`${sel.endereco}, ${sel.bairro||''}`:sel.bairro}</div>
+            )}
+            {/* Thread conversa */}
+            <div className="scrollable" style={{flex:1,padding:20,minHeight:0}}>
+              {msgs.length===0?(
+                <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:200,gap:8}}>
+                  <span style={{fontSize:32,opacity:.3}}>💬</span>
+                  <div style={{fontSize:12,color:'var(--text-muted)'}}>Nenhuma mensagem no histórico</div>
+                </div>
+              ):(
+                <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                  {msgs.map(m=>{
+                    const deCidadao=m.de==='cidadao';
+                    return(
+                      <div key={m.id} style={{display:'flex',flexDirection:'column',alignItems:deCidadao?'flex-start':'flex-end'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,width:'100%',justifyContent:'space-between'}}>
+                          <span style={{fontSize:11,fontWeight:700,color:deCidadao?'var(--text)':'var(--accent-light)',textTransform:'uppercase',letterSpacing:'.5px'}}>{deCidadao?'CIDADÃO':'CLARA IA'}</span>
+                          <span style={{fontSize:11,color:'var(--text-muted)'}}>{new Date(m.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
+                        </div>
+                        <div className={`chat-bubble ${deCidadao?'client':'agent'}`} style={{maxWidth:'85%'}}>
+                          <div style={{fontSize:14,color:'var(--text-secondary)',lineHeight:1.6}}>{m.mensagem}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {/* Rodapé */}
+            <div style={{padding:'10px 20px',borderTop:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+              <select value={sel.status} onChange={e=>mudarStatus(sel.id,e.target.value)}
+                style={{fontSize:12,padding:'5px 10px',borderRadius:8,background:STA_FBK[sel.status]?.bg||'transparent',border:`1px solid ${STA_FBK[sel.status]?.border||'var(--border)'}`,color:STA_FBK[sel.status]?.color||'var(--text)'}}>
+                {Object.entries(STA_FBK).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+              </select>
+              <span style={{fontSize:11,color:'var(--text-muted)'}}>Aberto: {new Date(sel.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── RELATÓRIOS ───────────────────────────────────────────────── */
 function Relatorios(){
   const [periodo,setPeriodo]=useState('mes');
   const monthly=[{label:'Out',oc:34,den:12},{label:'Nov',oc:41,den:18},{label:'Dez',oc:29,den:9},{label:'Jan',oc:52,den:22},{label:'Fev',oc:38,den:15},{label:'Mar',oc:47,den:19}];
   const reward=[{label:'Jan',pago:2400,apagar:800},{label:'Fev',pago:1800,apagar:600},{label:'Mar',pago:3200,apagar:1200}];
-  const pie=[{v:18,c:'#00D1FF',n:'Vias'},{v:14,c:'#1DB954',n:'Arborização'},{v:9,c:'#00D1FF',n:'Drenagem'},{v:6,c:'#fbbf24',n:'Iluminação'}];
+  const pie=[{v:18,c:'#3b82f6',n:'Vias'},{v:14,c:'#059669',n:'Arborização'},{v:9,c:'#3b82f6',n:'Drenagem'},{v:6,c:'#fbbf24',n:'Iluminação'}];
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
       <div style={{padding:'14px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:12,flexShrink:0,background:'var(--surface)'}}>
@@ -1211,10 +1425,10 @@ function Relatorios(){
       </div>
       <div className="scrollable" style={{flex:1,padding:20}}>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-          <div className="chart-card anim-card"><div className="chart-title">Ocorrências × Denúncias · 6 meses</div><AreaChart data={monthly} keys={['oc','den']} colors={['#00D1FF','#1DB954']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#00D1FF'}}/>Ocorrências</div><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#1DB954'}}/>Denúncias</div></div></div>
+          <div className="chart-card anim-card"><div className="chart-title">Ocorrências × Denúncias · 6 meses</div><AreaChart data={monthly} keys={['oc','den']} colors={['#3b82f6','#059669']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#3b82f6'}}/>Ocorrências</div><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#059669'}}/>Denúncias</div></div></div>
           <div className="chart-card anim-card"><div className="chart-title">Ocorrências por Categoria</div><div style={{display:'flex',alignItems:'center',gap:28,flex:1,justifyContent:'center'}}><DonutChart data={pie} size={170}/><div style={{display:'flex',flexDirection:'column',gap:12,flex:1}}>{pie.map((d,i)=>(<div key={i}><div style={{display:'flex',justifyContent:'space-between',marginBottom:5,fontSize:13}}><div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:8,height:8,borderRadius:3,background:d.c}}/><span style={{color:'var(--text-muted)'}}>{d.n}</span></div><span className="mono" style={{fontWeight:600,color:'#fff'}}>{d.v}</span></div><div style={{height:3,borderRadius:2,background:'rgba(255,255,255,.05)'}}><div style={{height:'100%',borderRadius:2,background:d.c,width:`${(d.v/47)*100}%`,opacity:.8}}/></div></div>))}</div></div></div>
-          <div className="chart-card anim-card"><div className="chart-title">Recompensas · Mês a Mês</div><BarChart data={reward} keys={['pago','apagar']} colors={['#1DB954','#fbbf24']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#1DB954'}}/>Pago</div><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#fbbf24'}}/>A Pagar</div></div></div>
-          <div className="chart-card anim-card"><div className="chart-title">SOS Mulher · Resumo</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,flex:1,alignContent:'center'}}>{[['Total Alertas','1','#f87171'],['Resolvidos','1','#4ade80'],['Cadastros Ativos','3','#00D1FF'],['Tempo Médio','12min','#fbbf24']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:'18px 20px'}}><div className="mono" style={{fontSize:26,fontWeight:600,color:c}}>{v}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginTop:5}}>{l}</div></div>))}</div></div>
+          <div className="chart-card anim-card"><div className="chart-title">Recompensas · Mês a Mês</div><BarChart data={reward} keys={['pago','apagar']} colors={['#059669','#fbbf24']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#059669'}}/>Pago</div><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#fbbf24'}}/>A Pagar</div></div></div>
+          <div className="chart-card anim-card"><div className="chart-title">SOS Mulher · Resumo</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,flex:1,alignContent:'center'}}>{[['Total Alertas','1','#f87171'],['Resolvidos','1','#4ade80'],['Cadastros Ativos','3','#3b82f6'],['Tempo Médio','12min','#fbbf24']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:'18px 20px'}}><div className="mono" style={{fontSize:26,fontWeight:600,color:c}}>{v}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginTop:5}}>{l}</div></div>))}</div></div>
         </div>
       </div>
     </div>
@@ -1223,11 +1437,11 @@ function Relatorios(){
 
 /* ─── APP ──────────────────────────────────────────────────────── */
 function App(){
+  useApiPolling();
   const [aba,setAba]=useState('central');
   const [hora,setHora]=useState(new Date());
   const [mutado,setMutado]=useState(false);
-  const {data:sosGlobal}=useAPI('/api/sos/alertas/ativos',SOS);
-  const sos=sosGlobal.length;
+  const sos=SOS.length;
   useEffect(()=>{const t=setInterval(()=>setHora(new Date()),1000);return()=>clearInterval(t);},[]);
 
   const ABAS=[
@@ -1235,6 +1449,7 @@ function App(){
     {id:'mapa',icon:<Ico.map/>,label:'Mapa'},
     {id:'ocorrencias',icon:<Ico.alert/>,label:'Ocorrências'},
     {id:'denuncias',icon:<Ico.eye/>,label:'Denúncias'},
+    {id:'feedbacks',icon:<Ico.chat/>,label:'Feedbacks',badge:FBK.filter(f=>f.prioridade==='critico').length||null},
     {id:'sos',icon:<Ico.shield/>,label:'SOS Mulher',badge:sos>0?sos:null},
     {id:'relatorios',icon:<Ico.report/>,label:'Relatórios'},
   ];
@@ -1263,7 +1478,7 @@ function App(){
           <span style={{fontSize:18}}>🚨</span>
           <div>
             <span className="sos-label">Alerta SOS Mulher Ativo</span>
-            <span className="sos-detail">{sosGlobal[0]?.sos_cadastros?.nome} — {sosGlobal[0]?.sos_cadastros?.endereco}</span>
+            <span className="sos-detail">{SOS[0]?.sos_cadastros?.nome} — {SOS[0]?.sos_cadastros?.endereco}</span>
           </div>
           <span style={{fontSize:12,opacity:.7}}>Clique para ver</span>
           <span className="sos-count">{sos} ativo{sos>1?'s':''}</span>
@@ -1295,6 +1510,7 @@ function App(){
             {aba==='mapa'&&<Mapa/>}
             {aba==='ocorrencias'&&<Ocorrencias/>}
             {aba==='denuncias'&&<Denuncias/>}
+            {aba==='feedbacks'&&<Feedbacks/>}
             {aba==='sos'&&<SOSMulher/>}
             {aba==='relatorios'&&<Relatorios/>}
           </PageTransition>
