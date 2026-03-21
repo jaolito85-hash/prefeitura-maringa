@@ -21,7 +21,7 @@ from app.config import settings
 logger = logging.getLogger("classificador")
 
 CLAUDE_API_URL = "https://api.anthropic.com/v1/messages"
-CLAUDE_MODEL = "claude-sonnet-4-20250514"
+CLAUDE_MODEL = "claude-3-5-sonnet-20241022"
 
 
 # ── O PROMPT DO SISTEMA ────────────────────────────────────────────────────
@@ -194,7 +194,7 @@ async def _chamar_claude(
     headers = {
         "Content-Type": "application/json",
         "x-api-key": settings.anthropic_api_key,
-        "anthropic-version": "2023-06-01",
+        "anthropic-version": "2024-10-22",
     }
 
     payload = {
@@ -240,7 +240,7 @@ async def _chamar_claude(
         return _fallback_json_invalido()
 
     except httpx.HTTPStatusError as exc:
-        logger.error(f"Erro HTTP da API Claude: {exc.response.status_code}")
+        logger.error(f"Erro HTTP da API Claude: {exc.response.status_code} - {exc.response.text[:500]}")
         return _fallback_erro_api()
 
     except Exception as exc:
