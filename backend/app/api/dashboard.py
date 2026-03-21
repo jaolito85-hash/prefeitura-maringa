@@ -33,10 +33,15 @@ async def get_kpis():
     ocorr_result = sb.table("ocorrencias").select("id", count="exact").neq("status", "resolvido").execute()
     ocorrencias_abertas = ocorr_result.count or 0
 
+    # Feedbacks hoje
+    fb_result = sb.table("feedbacks").select("id", count="exact").gte("created_at", hoje).execute()
+    feedbacks_hoje = fb_result.count or 0
+
     return {
         "sos_ativos": sos_ativos,
         "denuncias_hoje": denuncias_hoje,
         "ocorrencias_abertas": ocorrencias_abertas,
+        "feedbacks_hoje": feedbacks_hoje,
         "tempo_medio_resposta": "12min",  # TODO: calcular real
     }
 
@@ -58,6 +63,9 @@ async def get_feed():
     # Últimos alertas SOS
     sos = sb.table("sos_alertas").select("id, telefone, status, created_at").order("created_at", desc=True).limit(6).execute()
 
+    # Últimos feedbacks
+    fb = sb.table("feedbacks").select("id, protocolo, categoria, sentimento, urgencia, resumo, bairro, status, created_at").order("created_at", desc=True).limit(5).execute()
+
     # Combinar e ordenar
     feed = []
 
@@ -69,6 +77,9 @@ async def get_feed():
 
     for s in (sos.data or []):
         feed.append({**s, "tipo": "sos", "categoria": "sos_mulher"})
+
+    for f in (fb.data or []):
+        feed.append({**f, "tipo": "feedback"})
 
     feed.sort(key=lambda x: x["created_at"], reverse=True)
     return feed[:20]
