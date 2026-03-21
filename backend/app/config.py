@@ -16,9 +16,17 @@ class Settings(BaseSettings):
     # Evolution API (WhatsApp)
     evolution_api_url: str = ""
     evolution_api_key: str = ""
+    wa_instance_name: str = "maringa-demo"          # Instancia unica pra demo
     wa_instance_denuncias: str = "maringa-denuncias"
     wa_instance_sos: str = "maringa-sos-mulher"
     wa_instance_ocorrencias: str = "maringa-ocorrencias"
+
+    # Anthropic (Claude API) — classificador inteligente
+    # Pegue em: https://console.anthropic.com → API Keys
+    anthropic_api_key: str = ""
+
+    # OpenAI (GPT API) — classificador alternativo
+    openai_api_key: str = ""
 
     # Seguranca
     webhook_secret: str = ""
