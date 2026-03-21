@@ -20,8 +20,8 @@ from app.config import settings
 
 logger = logging.getLogger("classificador")
 
-CLAUDE_API_URL = "https://api.anthropic.com/v1/messages"
-CLAUDE_MODEL = "claude-3-5-sonnet-20241022"
+OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+OPENAI_MODEL = "gpt-4o-mini"
 
 
 # ── O PROMPT DO SISTEMA ────────────────────────────────────────────────────
@@ -151,7 +151,7 @@ Contexto:
 
 Classifique e responda em JSON."""
 
-    return await _chamar_claude(SYSTEM_PROMPT, mensagem_usuario, telefone)
+    return await _chamar_ia(SYSTEM_PROMPT, mensagem_usuario, telefone)
 
 
 async def continuar_sessao(
@@ -181,41 +181,40 @@ Contexto da nova mensagem:
 
 Gere a resposta adequada em JSON."""
 
-    return await _chamar_claude(SYSTEM_PROMPT_SESSAO, mensagem_usuario, telefone)
+    return await _chamar_ia(SYSTEM_PROMPT_SESSAO, mensagem_usuario, telefone)
 
 
-async def _chamar_claude(
+async def _chamar_ia(
     system_prompt: str,
     mensagem: str,
     telefone: str,
 ) -> dict[str, Any]:
-    """Faz a chamada real pra API do Claude. Timeout de 15s."""
+    """Faz a chamada pra API da OpenAI (GPT-4o-mini). Timeout de 15s."""
 
     headers = {
         "Content-Type": "application/json",
-        "x-api-key": settings.anthropic_api_key,
-        "anthropic-version": "2024-10-22",
+        "Authorization": f"Bearer {settings.openai_api_key}",
     }
 
     payload = {
-        "model": CLAUDE_MODEL,
+        "model": OPENAI_MODEL,
         "max_tokens": 500,
         "temperature": 0.1,
-        "system": system_prompt,
         "messages": [
-            {"role": "user", "content": mensagem}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": mensagem},
         ],
     }
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.post(CLAUDE_API_URL, headers=headers, json=payload)
+            response = await client.post(OPENAI_API_URL, headers=headers, json=payload)
             response.raise_for_status()
 
         data = response.json()
-        texto_resposta = data["content"][0]["text"]
+        texto_resposta = data["choices"][0]["message"]["content"]
 
-        # Limpa possíveis ```json ``` que o Claude as vezes coloca
+        # Limpa possiveis ```json ``` que o modelo as vezes coloca
         texto_limpo = texto_resposta.strip()
         if texto_limpo.startswith("```"):
             texto_limpo = texto_limpo.split("\n", 1)[1]
@@ -232,15 +231,15 @@ async def _chamar_claude(
         return resultado
 
     except httpx.TimeoutException:
-        logger.error(f"Timeout ao chamar Claude API para {telefone}")
+        logger.error(f"Timeout ao chamar OpenAI API para {telefone}")
         return _fallback_timeout()
 
     except json.JSONDecodeError as exc:
-        logger.error(f"Claude retornou JSON invalido: {exc}")
+        logger.error(f"OpenAI retornou JSON invalido: {exc}")
         return _fallback_json_invalido()
 
     except httpx.HTTPStatusError as exc:
-        logger.error(f"Erro HTTP da API Claude: {exc.response.status_code} - {exc.response.text[:500]}")
+        logger.error(f"Erro HTTP da API OpenAI: {exc.response.status_code} - {exc.response.text[:500]}")
         return _fallback_erro_api()
 
     except Exception as exc:

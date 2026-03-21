@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Pegue em: https://console.anthropic.com → API Keys
     anthropic_api_key: str = ""
 
+    # OpenAI (GPT API) — classificador alternativo
+    openai_api_key: str = ""
+
     # Seguranca
     webhook_secret: str = ""
     aes_key: str = ""
