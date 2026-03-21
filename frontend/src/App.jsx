@@ -7,10 +7,12 @@ import Central from './pages/Central'
 import Denuncias from './pages/Denuncias'
 import SOSMulher from './pages/SOSMulher'
 import Ocorrencias from './pages/Ocorrencias'
+import Feedbacks from './pages/Feedbacks'
 import AudioManager from './components/AudioManager'
 
 const ABAS = [
   { id: 'central', icon: '📊', label: 'CENTRAL' },
+  { id: 'feedbacks', icon: '💬', label: 'FEEDBACKS' },
   { id: 'denuncias', icon: '📋', label: 'DENÚNCIAS' },
   { id: 'sos', icon: '🛡️', label: 'SOS MULHER' },
   { id: 'ocorrencias', icon: '🌳', label: 'OCORRÊNCIAS' },
@@ -152,6 +154,7 @@ export default function App() {
 
         <main className="flex-1 overflow-hidden">
           {abaAtiva === 'central' && <Central sosAtivos={sosAtivos} />}
+          {abaAtiva === 'feedbacks' && <Feedbacks />}
           {abaAtiva === 'denuncias' && <Denuncias />}
           {abaAtiva === 'sos' && <SOSMulher />}
           {abaAtiva === 'ocorrencias' && <Ocorrencias />}
