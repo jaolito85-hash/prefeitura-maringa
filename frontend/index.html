@@ -421,6 +421,7 @@ const S_DEN={
   novo:{label:'Novo',badge:'b-blue'},
   em_analise:{label:'Em análise',badge:'b-warn'},
   encaminhado:{label:'Encaminhado',badge:'b-purple'},
+  encaminhada:{label:'Encaminhada',badge:'b-purple'},
   procedente:{label:'Procedente',badge:'b-green'},
   recompensa_paga:{label:'Recompensa Paga',badge:'b-green'},
   improcedente:{label:'Improcedente',badge:'b-gray'},
@@ -1141,7 +1142,8 @@ function Denuncias(){
               )}
               <div style={{display:'grid',gap:10,fontSize:13,marginBottom:24}}>
                 {[
-                  ['Bairro',sel.bairro],
+                  ['Bairro',sel.bairro||(sel.latitude?`📍 GPS: ${Number(sel.latitude).toFixed(4)}, ${Number(sel.longitude).toFixed(4)}`:'Não informado')],
+                  sel.endereco&&['Endereço',sel.endereco],
                   ['Cidadania Ativa',sel.cidadania_ativa?'✓ Sim':'Não'],
                   sel.valor_recompensa&&['Recompensa',`R$ ${sel.valor_recompensa.toLocaleString('pt-BR')}`],
                   ['Status',S_DEN[sel.status]?.label||sel.status],
@@ -1153,9 +1155,28 @@ function Denuncias(){
                 ))}
               </div>
               <div style={{display:'flex',gap:10}}>
-                <button className="btn btn-primary" style={{flex:1,justifyContent:'center'}}>✓ Procedente</button>
-                <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}}>→ Encaminhar</button>
-                <button className="btn btn-danger" style={{flex:1,justifyContent:'center'}}>✕ Improcedente</button>
+                <button className="btn btn-primary" style={{flex:1,justifyContent:'center'}} onClick={async()=>{
+                  try{
+                    const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'procedente',operador:'admin'})});
+                    if(res.ok){alert('✅ Denúncia marcada como procedente!');setSel(null);}
+                    else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
+                  }catch(e){alert('Erro: '+e.message);}
+                }}>✓ Procedente</button>
+                <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}} onClick={async()=>{
+                  try{
+                    const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'encaminhada',operador:'admin'})});
+                    if(res.ok){alert('✅ Denúncia encaminhada!');setSel(null);}
+                    else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
+                  }catch(e){alert('Erro: '+e.message);}
+                }}>→ Encaminhar</button>
+                <button className="btn btn-danger" style={{flex:1,justifyContent:'center'}} onClick={async()=>{
+                  const motivo=prompt('Motivo (opcional):');
+                  try{
+                    const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'improcedente',operador:'admin',notas:motivo||''})});
+                    if(res.ok){alert('Denúncia marcada como improcedente.');setSel(null);}
+                    else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
+                  }catch(e){alert('Erro: '+e.message);}
+                }}>✕ Improcedente</button>
               </div>
             </div>
           </div>
@@ -1517,9 +1538,12 @@ function Recompensas(){
       const res=await fetch(API_URL+'/api/recompensas/'+id+'/dados-pagamento?operador=dashboard_admin');
       if(res.ok){
         const d=await res.json();
-        alert(`CPF: ${d.cpf_masked}\nChave PIX: ${d.chave_pix_masked}\nTipo: ${d.tipo_chave_pix}`);
-      }else alert('Erro ao buscar dados.');
-    }catch(e){alert('Erro: '+e.message);}
+        alert(`🔐 Dados de Pagamento (LGPD auditado)\n\n📋 CPF: ${d.cpf||'—'}\n💳 Chave PIX: ${d.chave_pix||'—'}\n📌 Tipo: ${d.tipo_chave_pix||'—'}\n\n⚠️ ${d.aviso||''}`);
+      }else{
+        const err=await res.json().catch(()=>({}));
+        alert('Erro: '+(err.detail||res.statusText));
+      }
+    }catch(e){alert('Erro de conexão: '+e.message);}
   };
 
   return(
@@ -1632,7 +1656,7 @@ function Recompensas(){
               <div style={{display:'flex',gap:10}}>
                 <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}} onClick={()=>setModalValidar(null)}>Cancelar</button>
                 <button className="btn btn-primary" style={{flex:1,justifyContent:'center'}} disabled={loadingAction}
-                  onClick={()=>doAction('/api/recompensas/'+modalValidar.id+'/validar',{operador:'admin'},'Recompensa validada com sucesso!')}>
+                  onClick={()=>doAction('/api/recompensas/'+modalValidar.id+'/validar',{operador:'admin',procedente:true},'Recompensa validada com sucesso!')}>
                   {loadingAction?'...':'✓ Confirmar'}
                 </button>
               </div>
@@ -1656,7 +1680,7 @@ function Recompensas(){
               <div style={{display:'flex',gap:10,marginTop:14}}>
                 <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}} onClick={()=>setModalRejeitar(null)}>Cancelar</button>
                 <button className="btn btn-danger" style={{flex:1,justifyContent:'center'}} disabled={loadingAction||!motivoRejeicao.trim()}
-                  onClick={()=>doAction('/api/recompensas/'+modalRejeitar.id+'/validar',{operador:'admin',aprovado:false,motivo:motivoRejeicao},'Recompensa rejeitada.')}>
+                  onClick={()=>doAction('/api/recompensas/'+modalRejeitar.id+'/validar',{operador:'admin',procedente:false,motivo_rejeicao:motivoRejeicao},'Recompensa rejeitada.')}>
                   {loadingAction?'...':'✕ Rejeitar'}
                 </button>
               </div>

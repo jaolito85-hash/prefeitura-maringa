@@ -317,14 +317,25 @@ def _criar_recompensa(sb: Client, denuncia_id: str, protocolo: str,
 def _detectar_tipo_pix(chave: str) -> str:
     """
     Detecta automaticamente o tipo de chave PIX pelo formato.
-    CPF: 11 dígitos | Email: tem @ | Telefone: começa com + | Aleatória: resto
+    Telefone BR: 11 dígitos com DDD + 9 (celular) | CPF: 11 dígitos sem padrão celular
+    Email: tem @ | Telefone intl: começa com + | Aleatória: resto
     """
     chave_limpa = chave.strip().replace(".", "").replace("-", "").replace(" ", "")
-    if len(chave_limpa) == 11 and chave_limpa.isdigit():
-        return "cpf"
+    # Email — mais fácil de detectar
     if "@" in chave:
         return "email"
-    if chave_limpa.startswith("+") or (len(chave_limpa) in (10, 11, 13) and chave_limpa.isdigit()):
+    # Telefone com + (internacional)
+    if chave_limpa.startswith("+"):
+        return "telefone"
+    # 11 dígitos: pode ser CPF ou telefone celular BR
+    # Telefone celular BR: DDD(2) + 9(1) + número(8) = 11 dígitos
+    # O 3º dígito (índice 2) é sempre 9 em celulares brasileiros
+    if len(chave_limpa) == 11 and chave_limpa.isdigit():
+        if chave_limpa[2] == '9':
+            return "telefone"
+        return "cpf"
+    # 10 ou 13 dígitos numéricos = provavelmente telefone
+    if len(chave_limpa) in (10, 13) and chave_limpa.isdigit():
         return "telefone"
     return "aleatoria"
 
@@ -360,14 +371,22 @@ def processar_denuncia(event: dict, sb: Client) -> None:
     protocolo = gerar_protocolo(sb)
     categoria = classificacao.get("categoria", "outros_crimes")
 
-    res = sb.table("denuncias").insert({
+    insert_data = {
         "protocolo": protocolo,
         "telefone": telefone,
         "nome": push_name or None,
         "categoria": categoria,
         "mensagem": texto,
         "status": "novo",
-    }).execute()
+    }
+    # Salvar localização se veio junto com a primeira mensagem
+    tem_loc = event.get("tem_localizacao", False)
+    if tem_loc and event.get("latitude"):
+        insert_data["latitude"] = event["latitude"]
+        insert_data["longitude"] = event["longitude"]
+        insert_data["bairro"] = f"GPS: {event['latitude']:.4f}, {event['longitude']:.4f}"
+
+    res = sb.table("denuncias").insert(insert_data).execute()
 
     if not res.data:
         logger.error(f"Falha ao criar denuncia")
@@ -543,6 +562,7 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
     elif tem_loc:
         update_data["latitude"] = event.get("latitude")
         update_data["longitude"] = event.get("longitude")
+        update_data["bairro"] = f"GPS: {event.get('latitude', 0):.4f}, {event.get('longitude', 0):.4f}"
         # Checar se é elegível ao Cidadão Ativo antes de finalizar
         valor = _buscar_valor_recompensa(sb, categoria)
         if valor:

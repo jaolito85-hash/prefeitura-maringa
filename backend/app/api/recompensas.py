@@ -109,12 +109,12 @@ async def get_recompensas_kpis():
     """
     sb = get_supabase()
 
-    # Pendentes de validação
-    pendentes = sb.table("recompensas").select("id", count="exact").eq(
+    # Pendentes de validação (com valor em R$)
+    pendentes = sb.table("recompensas").select("id, valor").eq(
         "status", "pendente_validacao").execute()
 
-    # Aguardando pagamento
-    aguardando = sb.table("recompensas").select("id", count="exact").eq(
+    # Aguardando pagamento (com valor em R$)
+    aguardando = sb.table("recompensas").select("id, valor").eq(
         "status", "aguardando_pagamento").execute()
 
     # Pagas
@@ -125,12 +125,20 @@ async def get_recompensas_kpis():
     rejeitadas = sb.table("recompensas").select("id", count="exact").eq(
         "status", "rejeitada").execute()
 
+    # Todas
+    todas = sb.table("recompensas").select("id", count="exact").execute()
+
     total_pago = sum(float(r["valor"] or 0) for r in (pagas.data or []))
+    total_aguardando = sum(float(r["valor"] or 0) for r in (aguardando.data or []))
+    total_pendente = sum(float(r["valor"] or 0) for r in (pendentes.data or []))
 
     return {
-        "pendentes_validacao": pendentes.count or 0,
-        "aguardando_pagamento": aguardando.count or 0,
+        "pendentes_validacao": len(pendentes.data or []),
+        "aguardando_pagamento": len(aguardando.data or []),
         "total_pago": total_pago,
+        "total_aguardando": total_aguardando,
+        "total_pendente": total_pendente,
+        "total_recompensas": todas.count or 0,
         "quantidade_pagas": len(pagas.data or []),
         "rejeitadas": rejeitadas.count or 0,
     }
@@ -163,11 +171,12 @@ async def get_dados_pagamento(recompensa_id: str, request: Request, operador: st
 
     recompensa = result.data[0]
 
-    # Só permite ver dados se estiver aguardando pagamento ou já paga
-    if recompensa["status"] not in ("aguardando_pagamento", "paga", "validada"):
+    # Permite ver dados em qualquer status exceto rejeitada
+    # (o operador pode precisar conferir dados antes de validar)
+    if recompensa["status"] == "rejeitada":
         raise HTTPException(
             status_code=403,
-            detail=f"Dados de pagamento só disponíveis para recompensas validadas ou aguardando pagamento. Status atual: {recompensa['status']}"
+            detail="Dados de pagamento não disponíveis para recompensas rejeitadas."
         )
 
     # ⚠️ REGISTRAR NO AUDIT LOG — isso é obrigatório!

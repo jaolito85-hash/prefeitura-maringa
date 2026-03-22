@@ -16,7 +16,7 @@ async def listar_denuncias(
     sb = get_supabase()
     query = sb.table("denuncias").select(
         "id, protocolo, telefone, nome, categoria, mensagem, bairro, endereco, "
-        "latitude, longitude, cidadania_ativa, status, midia_urls, created_at"
+        "latitude, longitude, cidadania_ativa, valor_recompensa, status, midia_urls, created_at"
         # Nota: cpf_encrypted e dados_bancarios_encrypted NÃO são retornados aqui!
     ).order("created_at", desc=True)
 
