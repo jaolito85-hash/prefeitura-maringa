@@ -265,7 +265,7 @@ function PageTransition({children,pageKey}){
 
 /* ─── API CONFIG ────────────────────────────────────────────────── */
 const API_URL='';
-let OC=[],DEN=[],SOS=[],FBK=[],KPIS={};
+let OC=[],DEN=[],SOS=[],FBK=[],KPIS={},RECOMP=[],RECOMP_KPIS={},RECOMP_CFG=[];
 const FBK_MSGS={};
 
 /* Busca dados da API a cada 5 segundos — faz o dashboard atualizar sozinho */
@@ -274,12 +274,15 @@ function useApiPolling(){
   useEffect(()=>{
     async function poll(){
       try{
-        const [oc,den,sos,fb,kpis]=await Promise.all([
+        const [oc,den,sos,fb,kpis,recomp,rkpis,rcfg]=await Promise.all([
           fetch(API_URL+'/api/ocorrencias/').then(r=>r.ok?r.json():[]).catch(()=>[]),
           fetch(API_URL+'/api/denuncias/').then(r=>r.ok?r.json():[]).catch(()=>[]),
           fetch(API_URL+'/api/sos/alertas/ativos').then(r=>r.ok?r.json():[]).catch(()=>[]),
           fetch(API_URL+'/api/feedbacks/').then(r=>r.ok?r.json():[]).catch(()=>[]),
           fetch(API_URL+'/api/kpis').then(r=>r.ok?r.json():{}).catch(()=>({})),
+          fetch(API_URL+'/api/recompensas/').then(r=>r.ok?r.json():[]).catch(()=>[]),
+          fetch(API_URL+'/api/recompensas/kpis').then(r=>r.ok?r.json():{}).catch(()=>({})),
+          fetch(API_URL+'/api/recompensas/config').then(r=>r.ok?r.json():[]).catch(()=>[]),
         ]);
         OC=oc.map(o=>({...o,lat:o.latitude,lng:o.longitude}));
         DEN=den.map(d=>({...d,lat:d.latitude,lng:d.longitude}));
@@ -296,6 +299,7 @@ function useApiPolling(){
             status:f.status==='novo'?'aberto':f.status};
         });
         KPIS=kpis;
+        RECOMP=recomp; RECOMP_KPIS=rkpis; RECOMP_CFG=rcfg;
         setTick(t=>t+1);
       }catch(e){console.error('API poll error:',e);}
     }
@@ -433,6 +437,7 @@ const Ico={
   report:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
   chat:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
   eye:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  coin:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9.5c0-.83 1.34-1.5 3-1.5s3 .67 3 1.5S14.66 11 12 11 9 11.67 9 12.5s1.34 1.5 3 1.5 3 .67 3 1.5"/></svg>,
   pin:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
 };
 
@@ -1468,6 +1473,329 @@ function Relatorios(){
   );
 }
 
+/* ─── RECOMPENSAS (Programa Cidadão Ativo) ────────────────────── */
+const S_RECOMP={
+  pendente_validacao:{label:'Pendente',badge:'b-warn'},
+  validada:{label:'Validada',badge:'b-blue'},
+  aguardando_pagamento:{label:'Aguardando Pgto',badge:'b-purple'},
+  paga:{label:'Paga',badge:'b-green'},
+  rejeitada:{label:'Rejeitada',badge:'b-gray'},
+};
+
+function Recompensas(){
+  const [sel,setSel]=useState(null);
+  const [filtro,setFiltro]=useState('');
+  const [modalValidar,setModalValidar]=useState(null);
+  const [modalRejeitar,setModalRejeitar]=useState(null);
+  const [modalPagar,setModalPagar]=useState(null);
+  const [motivoRejeicao,setMotivoRejeicao]=useState('');
+  const [empenho,setEmpenho]=useState('');
+  const [dotacao,setDotacao]=useState('');
+  const [loadingAction,setLoadingAction]=useState(false);
+
+  const lista=RECOMP.filter(r=>!filtro||r.status===filtro);
+  const kpi=RECOMP_KPIS||{};
+
+  const doAction=async(url,body,msg)=>{
+    setLoadingAction(true);
+    try{
+      const res=await fetch(API_URL+url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(res.ok){
+        alert(msg);
+        setModalValidar(null);setModalRejeitar(null);setModalPagar(null);setSel(null);
+      }else{
+        const err=await res.json().catch(()=>({}));
+        alert('Erro: '+(err.detail||res.statusText));
+      }
+    }catch(e){alert('Erro de conexão: '+e.message);}
+    setLoadingAction(false);
+  };
+
+  const verDadosPagamento=async(id)=>{
+    if(!confirm('⚠️ ATENÇÃO: Acessar dados de pagamento gera um registro no audit log (LGPD).\n\nDeseja continuar?'))return;
+    try{
+      const res=await fetch(API_URL+'/api/recompensas/'+id+'/dados-pagamento?operador=dashboard_admin');
+      if(res.ok){
+        const d=await res.json();
+        alert(`CPF: ${d.cpf_masked}\nChave PIX: ${d.chave_pix_masked}\nTipo: ${d.tipo_chave_pix}`);
+      }else alert('Erro ao buscar dados.');
+    }catch(e){alert('Erro: '+e.message);}
+  };
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
+      <div className="stat-row">
+        {[
+          {num:`R$ ${(kpi.total_pago||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`,lbl:'Total Pago',c:'#4ade80'},
+          {num:`R$ ${(kpi.total_aguardando||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`,lbl:'Aguardando Pgto',c:'#fbbf24'},
+          {num:`R$ ${(kpi.total_pendente||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`,lbl:'Pendente Valid.',c:'#3b82f6'},
+          {num:kpi.total_recompensas||RECOMP.length,lbl:'Total Registros',c:'#fff'},
+          {num:kpi.pendentes_validacao||RECOMP.filter(r=>r.status==='pendente_validacao').length,lbl:'A Validar',c:'#f59e0b'},
+        ].map((s,i)=>(
+          <div key={i} className="stat-box anim-card">
+            <div className="stat-num" style={{color:s.c}}>{s.num}</div>
+            <div className="stat-lbl">{s.lbl}</div>
+          </div>
+        ))}
+      </div>
+      <div className="tab-bar">
+        <div className="tab active">Recompensas</div>
+        <div className="tab-spacer"/>
+        <div style={{display:'flex',alignItems:'flex-end',paddingBottom:10,gap:8}}>
+          <select value={filtro} onChange={e=>setFiltro(e.target.value)}>
+            <option value="">Todos status</option>
+            {Object.entries(S_RECOMP).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+        <div className="scrollable" style={{flex:1}}>
+          <table>
+            <thead><tr><th>Protocolo</th><th>Cidadão</th><th>Categoria</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead>
+            <tbody>
+              {lista.map(r=>{
+                const sta=S_RECOMP[r.status]||{label:r.status,badge:'b-gray'};
+                const den=DEN.find(d=>d.id===r.denuncia_id)||{};
+                const cat=CAT_DEN[den.categoria]||{label:den.categoria||'—',icon:'📌',badge:'b-gray'};
+                return(
+                  <tr key={r.id} onClick={()=>setSel(r)} style={{cursor:'pointer',background:sel?.id===r.id?'rgba(5,150,105,.04)':''}}>
+                    <td><span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{r.protocolo}</span></td>
+                    <td>{den.nome||'—'}</td>
+                    <td><span className={`badge ${cat.badge}`}>{cat.icon} {cat.label}</span></td>
+                    <td><span className="mono" style={{fontWeight:600,color:'#4ade80'}}>R$ {(r.valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</span></td>
+                    <td><span className={`badge ${sta.badge}`}>{sta.label}</span></td>
+                    <td style={{color:'var(--text-muted)',fontSize:12}}>{ago(r.created_at)}</td>
+                  </tr>
+                );
+              })}
+              {lista.length===0&&<tr><td colSpan={6} style={{textAlign:'center',color:'var(--text-muted)',padding:40}}>Nenhuma recompensa encontrada</td></tr>}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Painel lateral de detalhes */}
+        {sel&&(
+          <div style={{width:360,borderLeft:'1px solid var(--border)',background:'var(--surface)',display:'flex',flexDirection:'column',flexShrink:0}}>
+            <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span className="mono" style={{fontSize:13,color:'var(--text-muted)'}}>{sel.protocolo}</span>
+              <button onClick={()=>setSel(null)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:16}}>✕</button>
+            </div>
+            <div className="scrollable" style={{flex:1,padding:'16px 20px'}}>
+              <div style={{display:'grid',gap:10,fontSize:13,marginBottom:20}}>
+                {[
+                  ['Status',(S_RECOMP[sel.status]||{}).label||sel.status],
+                  ['Valor',`R$ ${(sel.valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`],
+                  ['Tipo PIX',sel.tipo_chave_pix||'—'],
+                  ['Cidadão',(DEN.find(d=>d.id===sel.denuncia_id)||{}).nome||'—'],
+                  sel.empenho&&['Empenho',sel.empenho],
+                  sel.dotacao_orcamentaria&&['Dotação',sel.dotacao_orcamentaria],
+                  sel.motivo_rejeicao&&['Motivo Rejeição',sel.motivo_rejeicao],
+                ].filter(Boolean).map(([l,v])=>(
+                  <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'10px 14px',background:'rgba(255,255,255,.02)',borderRadius:8,border:'1px solid var(--border)'}}>
+                    <span style={{color:'var(--text-muted)'}}>{l}</span>
+                    <span style={{fontWeight:500,color:l==='Valor'?'#4ade80':l==='Status'&&sel.status==='paga'?'#4ade80':'var(--text)'}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                <button className="btn btn-outline" style={{width:'100%',justifyContent:'center'}} onClick={()=>verDadosPagamento(sel.id)}>🔒 Ver Dados de Pagamento</button>
+
+                {sel.status==='pendente_validacao'&&(
+                  <>
+                    <button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} onClick={()=>setModalValidar(sel)}>✓ Validar Recompensa</button>
+                    <button className="btn btn-danger" style={{width:'100%',justifyContent:'center'}} onClick={()=>{setMotivoRejeicao('');setModalRejeitar(sel);}}>✕ Rejeitar</button>
+                  </>
+                )}
+                {(sel.status==='validada'||sel.status==='aguardando_pagamento')&&(
+                  <button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} onClick={()=>{setEmpenho('');setDotacao('');setModalPagar(sel);}}>💳 Registrar Pagamento</button>
+                )}
+                {sel.status==='paga'&&(
+                  <a href={API_URL+'/api/recompensas/'+sel.id+'/termo'} target="_blank" className="btn btn-outline" style={{width:'100%',justifyContent:'center',textDecoration:'none'}}>📄 Gerar Termo PDF</a>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modal Validar */}
+      {modalValidar&&(
+        <div className="modal-overlay" onClick={()=>setModalValidar(null)}>
+          <div className="modal-box" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:'18px 22px',borderBottom:'1px solid var(--border)'}}>
+              <div style={{fontWeight:600,fontSize:16}}>Validar Recompensa</div>
+              <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>Protocolo: {modalValidar.protocolo} — R$ {modalValidar.valor?.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+            </div>
+            <div style={{padding:'18px 22px'}}>
+              <p style={{fontSize:13,color:'var(--text-secondary)',marginBottom:16}}>Confirma que a denúncia foi verificada e a recompensa deve ser liberada para pagamento?</p>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}} onClick={()=>setModalValidar(null)}>Cancelar</button>
+                <button className="btn btn-primary" style={{flex:1,justifyContent:'center'}} disabled={loadingAction}
+                  onClick={()=>doAction('/api/recompensas/'+modalValidar.id+'/validar',{operador:'admin'},'Recompensa validada com sucesso!')}>
+                  {loadingAction?'...':'✓ Confirmar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Rejeitar */}
+      {modalRejeitar&&(
+        <div className="modal-overlay" onClick={()=>setModalRejeitar(null)}>
+          <div className="modal-box" style={{maxWidth:440}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:'18px 22px',borderBottom:'1px solid var(--border)'}}>
+              <div style={{fontWeight:600,fontSize:16}}>Rejeitar Recompensa</div>
+              <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>Protocolo: {modalRejeitar.protocolo}</div>
+            </div>
+            <div style={{padding:'18px 22px'}}>
+              <label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Motivo da rejeição *</label>
+              <textarea value={motivoRejeicao} onChange={e=>setMotivoRejeicao(e.target.value)} placeholder="Explique o motivo..."
+                style={{width:'100%',minHeight:80,padding:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',fontSize:13,resize:'vertical'}}/>
+              <div style={{display:'flex',gap:10,marginTop:14}}>
+                <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}} onClick={()=>setModalRejeitar(null)}>Cancelar</button>
+                <button className="btn btn-danger" style={{flex:1,justifyContent:'center'}} disabled={loadingAction||!motivoRejeicao.trim()}
+                  onClick={()=>doAction('/api/recompensas/'+modalRejeitar.id+'/validar',{operador:'admin',aprovado:false,motivo:motivoRejeicao},'Recompensa rejeitada.')}>
+                  {loadingAction?'...':'✕ Rejeitar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Pagar */}
+      {modalPagar&&(
+        <div className="modal-overlay" onClick={()=>setModalPagar(null)}>
+          <div className="modal-box" style={{maxWidth:440}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:'18px 22px',borderBottom:'1px solid var(--border)'}}>
+              <div style={{fontWeight:600,fontSize:16}}>Registrar Pagamento</div>
+              <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>Protocolo: {modalPagar.protocolo} — R$ {modalPagar.valor?.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+            </div>
+            <div style={{padding:'18px 22px'}}>
+              <label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Nº do Empenho *</label>
+              <input value={empenho} onChange={e=>setEmpenho(e.target.value)} placeholder="Ex: 2026NE001234"
+                style={{width:'100%',padding:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',fontSize:13,marginBottom:12}}/>
+              <label style={{fontSize:12,color:'var(--text-muted)',display:'block',marginBottom:6}}>Dotação Orçamentária *</label>
+              <input value={dotacao} onChange={e=>setDotacao(e.target.value)} placeholder="Ex: 06.122.0002.2001.339039"
+                style={{width:'100%',padding:10,background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',fontSize:13,marginBottom:14}}/>
+              <div style={{display:'flex',gap:10}}>
+                <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}} onClick={()=>setModalPagar(null)}>Cancelar</button>
+                <button className="btn btn-primary" style={{flex:1,justifyContent:'center'}} disabled={loadingAction||!empenho.trim()||!dotacao.trim()}
+                  onClick={()=>doAction('/api/recompensas/'+modalPagar.id+'/pagar',{operador:'admin',empenho,dotacao_orcamentaria:dotacao},'Pagamento registrado com sucesso!')}>
+                  {loadingAction?'...':'💳 Confirmar Pagamento'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Config de valores - mostra quando nada selecionado */}
+      {!sel&&RECOMP_CFG.length>0&&(
+        <div style={{position:'absolute',bottom:20,right:20,background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'14px 18px',fontSize:12,maxWidth:260}}>
+          <div style={{fontWeight:600,marginBottom:8,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',fontSize:10}}>Valores por Categoria</div>
+          {RECOMP_CFG.filter(c=>c.ativo).map(c=>(
+            <div key={c.categoria} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid var(--border)'}}>
+              <span style={{color:'var(--text-secondary)'}}>{c.categoria.replace('_',' ')}</span>
+              <span className="mono" style={{color:'#4ade80',fontWeight:600}}>R$ {c.valor_padrao?.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── BUSCA POR PROTOCOLO ─────────────────────────────────────── */
+function SearchProtocolo({setAba}){
+  const [q,setQ]=useState('');
+  const [res,setRes]=useState(null);
+  const [err,setErr]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [show,setShow]=useState(false);
+
+  const buscar=async()=>{
+    const termo=q.trim().toUpperCase();
+    if(!termo)return;
+    setLoading(true);setErr(null);setRes(null);setShow(true);
+    try{
+      const r=await fetch(API_URL+'/api/protocolo/'+encodeURIComponent(termo));
+      if(r.ok){setRes(await r.json());}
+      else if(r.status===404){setErr('Protocolo não encontrado.');}
+      else if(r.status===400){setErr('Formato inválido. Use MGA-2026-XXXXX.');}
+      else{setErr('Erro ao buscar.');}
+    }catch(e){setErr('Erro de conexão.');}
+    setLoading(false);
+  };
+
+  const canalLabel={denuncia:'📋 Denúncia',ocorrencia:'🚨 Ocorrência',feedback:'💬 Feedback',sos:'🆘 SOS'};
+  const abaMap={denuncia:'denuncias',ocorrencia:'ocorrencias',feedback:'feedbacks',sos:'sos'};
+
+  return(
+    <>
+      <div style={{display:'flex',alignItems:'center',gap:6}}>
+        <div style={{position:'relative'}}>
+          <input type="text" placeholder="Buscar protocolo..." value={q} onChange={e=>setQ(e.target.value)}
+            onKeyDown={e=>e.key==='Enter'&&buscar()}
+            style={{width:220,padding:'6px 10px 6px 28px',background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',fontSize:12,outline:'none'}}/>
+          <span style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',fontSize:12,opacity:.5}}>🔍</span>
+        </div>
+        <button onClick={buscar} disabled={loading||!q.trim()}
+          style={{padding:'6px 12px',background:'var(--accent)',color:'#fff',border:'none',borderRadius:8,fontSize:12,fontWeight:600,cursor:'pointer',opacity:loading||!q.trim()?0.5:1}}>
+          {loading?'...':'Buscar'}
+        </button>
+      </div>
+
+      {show&&(
+        <div className="modal-overlay" onClick={()=>setShow(false)}>
+          <div className="modal-box" style={{maxWidth:480}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:'18px 22px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{fontWeight:600,fontSize:16}}>Resultado da Busca</span>
+              <button onClick={()=>setShow(false)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:18}}>✕</button>
+            </div>
+            <div style={{padding:'18px 22px'}}>
+              {loading&&<div style={{textAlign:'center',padding:30,color:'var(--text-muted)'}}>Buscando...</div>}
+              {err&&<div style={{textAlign:'center',padding:20,color:'var(--danger-light)',background:'rgba(239,68,68,.08)',borderRadius:8}}>{err}</div>}
+              {res&&(
+                <div>
+                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16}}>
+                    <span className={`badge ${res.canal==='denuncia'?'b-warn':res.canal==='ocorrencia'?'b-red':res.canal==='feedback'?'b-blue':'b-red'}`}>
+                      {canalLabel[res.canal]||res.canal}
+                    </span>
+                    <span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{res.protocolo}</span>
+                  </div>
+                  <div style={{display:'grid',gap:8,fontSize:13,marginBottom:16}}>
+                    {[
+                      res.dados?.status&&['Status',res.dados.status.replace(/_/g,' ').toUpperCase()],
+                      res.dados?.categoria&&['Categoria',res.dados.categoria.replace(/_/g,' ')],
+                      res.dados?.nome&&['Cidadão',res.dados.nome],
+                      res.dados?.bairro&&['Bairro',res.dados.bairro],
+                      res.dados?.mensagem&&['Mensagem',res.dados.mensagem],
+                      res.dados?.cidadania_ativa&&['Cidadão Ativo','SIM — Elegível a recompensa'],
+                      res.dados?.created_at&&['Data',new Date(res.dados.created_at).toLocaleString('pt-BR')],
+                    ].filter(Boolean).map(([l,v])=>(
+                      <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'8px 12px',background:'rgba(255,255,255,.02)',borderRadius:8,border:'1px solid var(--border)',gap:12}}>
+                        <span style={{color:'var(--text-muted)',flexShrink:0}}>{l}</span>
+                        <span style={{fontWeight:500,color:l==='Cidadão Ativo'?'#4ade80':'var(--text)',textAlign:'right'}}>{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}}
+                    onClick={()=>{setAba(abaMap[res.canal]||'central');setShow(false);}}>
+                    Ir para aba {canalLabel[res.canal]?.split(' ')[1]||'Central'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ─── APP ──────────────────────────────────────────────────────── */
 function App(){
   useApiPolling();
@@ -1483,6 +1811,7 @@ function App(){
     {id:'ocorrencias',icon:<Ico.alert/>,label:'Ocorrências'},
     {id:'denuncias',icon:<Ico.eye/>,label:'Denúncias'},
     {id:'feedbacks',icon:<Ico.chat/>,label:'Feedbacks',badge:FBK.filter(f=>f.prioridade==='critico').length||null},
+    {id:'recompensas',icon:<Ico.coin/>,label:'Recompensas',badge:RECOMP.filter(r=>r.status==='pendente_validacao').length||null},
     {id:'sos',icon:<Ico.shield/>,label:'SOS Mulher',badge:sos>0?sos:null},
     {id:'relatorios',icon:<Ico.report/>,label:'Relatórios'},
   ];
@@ -1497,6 +1826,7 @@ function App(){
           <span className="logo-sub">Central de Segurança Pública · Maringá‑PR</span>
         </div>
         <div className="hdr-right">
+          <SearchProtocolo setAba={setAba}/>
           <div className="status-badge"><div className="status-dot"/>Online</div>
           <div className="clock-area">
             <div className="clock">{hora.toLocaleTimeString('pt-BR')}</div>
@@ -1544,6 +1874,7 @@ function App(){
             {aba==='ocorrencias'&&<Ocorrencias/>}
             {aba==='denuncias'&&<Denuncias/>}
             {aba==='feedbacks'&&<Feedbacks/>}
+            {aba==='recompensas'&&<Recompensas/>}
             {aba==='sos'&&<SOSMulher/>}
             {aba==='relatorios'&&<Relatorios/>}
           </PageTransition>
