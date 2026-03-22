@@ -46,6 +46,20 @@ CINZA_CLARO = HexColor("#f0f0f0")
 # Caminho do brasão (opcional — se não existir, usa texto)
 BRASAO_PATH = Path(__file__).parent / "brasao_maringa.png"
 
+# ── Dados oficiais da empresa operadora da plataforma ──
+EMPRESA = {
+    "razao_social": "NODE DATA TECNOLOGIA LTDA",
+    "nome_fantasia": "NODE DATA",
+    "cnpj": "65.705.831/0001-04",
+    "endereco": "ESTM Teodor Condiev, 970, Sala 502, Edif. Veccon Prime Center",
+    "bairro": "Jardim Marchissolo",
+    "cidade_uf": "Sumaré - SP",
+    "cep": "13.171-105",
+    "email": "contato@nodedata.com.br",
+    "telefone": "(44) 9514-6866",
+    "atividade": "62.03-1-00 - Desenvolvimento e licenciamento de programas de computador",
+}
+
 
 def _criar_estilos():
     """Cria os estilos de parágrafo do documento."""
@@ -223,7 +237,7 @@ def gerar_termo_recompensa(dados: dict) -> bytes:
         styles["TituloTermo"],
     ))
     story.append(Paragraph(
-        "Decreto Municipal nº 291/2026",
+        "Decreto Municipal nº 291/2026 — Programa Cidadão Ativo",
         styles["SubCabecalho"],
     ))
 
@@ -268,9 +282,11 @@ def gerar_termo_recompensa(dados: dict) -> bytes:
     agora = datetime.now(timezone.utc).strftime("%d/%m/%Y")
 
     story.append(Paragraph(
-        f"A Prefeitura do Município de Maringá, Estado do Paraná, no uso de suas "
+        f"A <b>Prefeitura do Município de Maringá</b>, Estado do Paraná, no uso de suas "
         f"atribuições legais e com fundamento no <b>Decreto Municipal nº 291/2026</b>, "
-        f"que institui o <b>Programa Cidadão Ativo</b>, declara para os devidos fins que:",
+        f"que institui o <b>Programa Cidadão Ativo</b>, por intermédio da plataforma "
+        f"digital operada pela empresa <b>{EMPRESA['razao_social']}</b>, inscrita no "
+        f"CNPJ sob nº <b>{EMPRESA['cnpj']}</b>, declara para os devidos fins que:",
         styles["Corpo"],
     ))
 
@@ -280,14 +296,16 @@ def gerar_termo_recompensa(dados: dict) -> bytes:
         f"O cidadão identificado pelo CPF <b>{dados.get('cpf_mascarado', '***.***.***-**')}</b>, "
         f"registrou denúncia classificada na categoria <b>{categoria}</b>, "
         f"sob o protocolo <b>{protocolo}</b>, por meio da plataforma digital "
-        f"<b>Node Data — Central de Segurança Pública</b>.",
+        f"<b>Node Data — Central de Segurança Pública</b>, "
+        f"em conformidade com as diretrizes do Programa Cidadão Ativo.",
         styles["Corpo"],
     ))
 
     story.append(Paragraph(
-        f"Após análise e validação pela equipe operacional, a denúncia foi considerada "
-        f"<b>PROCEDENTE</b>, fazendo jus o denunciante à recompensa prevista no "
-        f"programa, no valor de <b>{_formatar_valor(valor)}</b>.",
+        f"Após análise e validação pela equipe operacional da Secretaria de Segurança "
+        f"Pública, a denúncia foi considerada <b>PROCEDENTE</b>, fazendo jus o denunciante "
+        f"à recompensa pecuniária prevista no programa, no valor de <b>{_formatar_valor(valor)}</b>, "
+        f"a ser creditado via PIX na conta indicada pelo beneficiário.",
         styles["Corpo"],
     ))
 
@@ -357,24 +375,67 @@ def gerar_termo_recompensa(dados: dict) -> bytes:
         story.append(fiscal_table)
 
     # ══════════════════════════════════════════
-    # DECLARAÇÃO FINAL
+    # IDENTIFICAÇÃO DA PLATAFORMA OPERADORA
+    # ══════════════════════════════════════════
+
+    story.append(Spacer(1, 6 * mm))
+    story.append(Paragraph("PLATAFORMA DIGITAL OPERADORA", styles["CorpoNegrito"]))
+
+    emp_data = [
+        ["Razão Social:", EMPRESA["razao_social"]],
+        ["CNPJ:", EMPRESA["cnpj"]],
+        ["Nome Fantasia:", EMPRESA["nome_fantasia"]],
+        ["Endereço:", f"{EMPRESA['endereco']}, {EMPRESA['bairro']}"],
+        ["Município/UF:", EMPRESA["cidade_uf"]],
+        ["CEP:", EMPRESA["cep"]],
+        ["Contato:", f"{EMPRESA['email']} | {EMPRESA['telefone']}"],
+        ["Atividade Principal:", EMPRESA["atividade"]],
+    ]
+
+    emp_table = Table(emp_data, colWidths=[5 * cm, 11 * cm])
+    emp_table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("TEXTCOLOR", (0, 0), (0, -1), CINZA_MEDIO),
+        ("TEXTCOLOR", (1, 0), (1, -1), CINZA_ESCURO),
+        ("BACKGROUND", (0, 0), (-1, -1), HexColor("#f5f5ff")),
+        ("BOX", (0, 0), (-1, -1), 1, HexColor("#c0c0d0")),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("LINEBELOW", (0, 0), (-1, -2), 0.5, HexColor("#e0e0e8")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    story.append(emp_table)
+
+    # ══════════════════════════════════════════
+    # DECLARAÇÃO FINAL E FUNDAMENTAÇÃO LEGAL
     # ══════════════════════════════════════════
 
     story.append(Spacer(1, 8 * mm))
 
     story.append(Paragraph(
         f"O presente termo é gerado automaticamente pela plataforma "
-        f"<b>Node Data — Central de Segurança Pública</b> e constitui documento "
-        f"hábil para fins de prestação de contas junto ao Tribunal de Contas do "
+        f"<b>Node Data — Central de Segurança Pública</b>, operada pela empresa "
+        f"<b>{EMPRESA['razao_social']}</b> (CNPJ: {EMPRESA['cnpj']}), e constitui "
+        f"documento hábil para fins de prestação de contas junto ao Tribunal de Contas do "
         f"Estado do Paraná, nos termos do Decreto Municipal nº 291/2026.",
         styles["Corpo"],
     ))
 
     story.append(Paragraph(
         f"A identidade do denunciante é protegida por criptografia AES-256, "
-        f"conforme exigência da Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018). "
-        f"O acesso aos dados pessoais é restrito ao setor financeiro e cada acesso "
-        f"é registrado no log de auditoria do sistema.",
+        f"conforme exigência da <b>Lei Geral de Proteção de Dados</b> (LGPD — Lei nº 13.709/2018). "
+        f"O acesso aos dados pessoais é restrito ao setor financeiro autorizado e cada acesso "
+        f"é registrado no log de auditoria do sistema, garantindo rastreabilidade completa.",
+        styles["Corpo"],
+    ))
+
+    story.append(Paragraph(
+        f"O pagamento da recompensa observa os princípios da <b>legalidade, impessoalidade, "
+        f"moralidade, publicidade e eficiência</b> (art. 37, caput, CF/88), sendo realizado "
+        f"exclusivamente via transferência PIX, com registro do empenho e dotação orçamentária "
+        f"correspondentes.",
         styles["Corpo"],
     ))
 
@@ -403,8 +464,13 @@ def gerar_termo_recompensa(dados: dict) -> bytes:
                         fontName="Helvetica-Bold", textColor=CINZA_ESCURO),
     ))
     story.append(Paragraph(
-        "Node Data — Central de Segurança Pública",
+        f"{EMPRESA['razao_social']} — CNPJ: {EMPRESA['cnpj']}",
         ParagraphStyle("assin2", alignment=TA_CENTER, fontSize=8,
+                        fontName="Helvetica", textColor=CINZA_MEDIO),
+    ))
+    story.append(Paragraph(
+        "Node Data — Central de Segurança Pública · Maringá-PR",
+        ParagraphStyle("assin3", alignment=TA_CENTER, fontSize=7,
                         fontName="Helvetica", textColor=CINZA_MEDIO),
     ))
 
@@ -420,6 +486,7 @@ def gerar_termo_recompensa(dados: dict) -> bytes:
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     story.append(Paragraph(
         f"Validação digital: {protocolo} | Gerado em: {ts} | "
+        f"{EMPRESA['razao_social']} (CNPJ: {EMPRESA['cnpj']}) | "
         f"Plataforma Node Data v2.0 | Prefeitura de Maringá-PR",
         styles["Rodape"],
     ))
