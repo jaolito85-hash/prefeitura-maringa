@@ -265,7 +265,7 @@ function PageTransition({children,pageKey}){
 
 /* ─── API CONFIG ────────────────────────────────────────────────── */
 const API_URL='';
-let OC=[],DEN=[],SOS=[],FBK=[],KPIS={},RECOMP=[],RECOMP_KPIS={},RECOMP_CFG=[],SOS_HIST=[];
+let OC=[],DEN=[],SOS=[],FBK=[],KPIS={},RECOMP=[],RECOMP_KPIS={},RECOMP_CFG=[],SOS_HIST=[],REL_DATA=null;
 const FBK_MSGS={};
 
 /* Busca dados da API a cada 5 segundos — faz o dashboard atualizar sozinho */
@@ -274,7 +274,7 @@ function useApiPolling(){
   useEffect(()=>{
     async function poll(){
       try{
-        const [oc,den,sos,fb,kpis,recomp,rkpis,rcfg,soshist]=await Promise.all([
+        const [oc,den,sos,fb,kpis,recomp,rkpis,rcfg,soshist,reldata]=await Promise.all([
           fetch(API_URL+'/api/ocorrencias/').then(r=>r.ok?r.json():[]).catch(()=>[]),
           fetch(API_URL+'/api/denuncias/').then(r=>r.ok?r.json():[]).catch(()=>[]),
           fetch(API_URL+'/api/sos/alertas/ativos').then(r=>r.ok?r.json():[]).catch(()=>[]),
@@ -284,11 +284,13 @@ function useApiPolling(){
           fetch(API_URL+'/api/recompensas/kpis').then(r=>r.ok?r.json():{}).catch(()=>({})),
           fetch(API_URL+'/api/recompensas/config').then(r=>r.ok?r.json():[]).catch(()=>[]),
           fetch(API_URL+'/api/sos/alertas/historico').then(r=>r.ok?r.json():[]).catch(()=>[]),
+          fetch(API_URL+'/api/dashboard/relatorio').then(r=>r.ok?r.json():null).catch(()=>null),
         ]);
         OC=oc.map(o=>({...o,lat:o.latitude,lng:o.longitude}));
         DEN=den.map(d=>({...d,lat:d.latitude,lng:d.longitude}));
         SOS=sos.map(s=>({...s,lat:s.latitude,lng:s.longitude}));
         SOS_HIST=soshist;
+        if(reldata) REL_DATA=reldata;
         FBK=fb.map(f=>{
           const priMap={alta:'critico',normal:'urgente',baixa:'normal'};
           const catMap={transporte:'transporte',saude:'saude_atendimento',educacao:'educacao_escolas',
@@ -1884,28 +1886,278 @@ function Feedbacks(){
 
 /* ─── RELATÓRIOS ───────────────────────────────────────────────── */
 function Relatorios(){
-  const [periodo,setPeriodo]=useState('mes');
-  const monthly=[{label:'Out',oc:34,den:12},{label:'Nov',oc:41,den:18},{label:'Dez',oc:29,den:9},{label:'Jan',oc:52,den:22},{label:'Fev',oc:38,den:15},{label:'Mar',oc:47,den:19}];
-  const reward=[{label:'Jan',pago:2400,apagar:800},{label:'Fev',pago:1800,apagar:600},{label:'Mar',pago:3200,apagar:1200}];
-  const pie=[{v:18,c:'#3b82f6',n:'Vias'},{v:14,c:'#059669',n:'Arborização'},{v:9,c:'#3b82f6',n:'Drenagem'},{v:6,c:'#fbbf24',n:'Iluminação'}];
+  const d=REL_DATA;
+  if(!d) return(<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'var(--text-muted)',fontSize:14}}>Carregando dados...</div>);
+
+  /* helpers */
+  const fmtR=v=>'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const pct=(v,t)=>t>0?Math.round((v/t)*100):0;
+  const totalGeral=d.denuncias.total+d.ocorrencias.total+d.feedbacks.total+d.sos.total;
+
+  /* cores das categorias de denúncia */
+  const catColors={pichacao:'#a78bfa',trafico_drogas:'#f87171',descarte_irregular:'#fbbf24',furto_fios:'#60a5fa',depredacao:'#fb923c',generica:'#6b7280'};
+  const catLabels={pichacao:'Pichação',trafico_drogas:'Tráfico',descarte_irregular:'Descarte Irregular',furto_fios:'Furto de Fios',depredacao:'Depredação',generica:'Outras'};
+  const ocCatColors={iluminacao:'#fbbf24',buraco_via:'#60a5fa',alagamento:'#06b6d4',arvore_caida:'#4ade80',vazamento_agua:'#38bdf8',poluicao_sonora:'#a78bfa',abandono_veiculo:'#fb923c',descarte_irregular:'#f87171',animal_solto:'#e879f9',mau_cheiro:'#84cc16',outros:'#6b7280'};
+  const ocCatLabels={iluminacao:'Iluminação',buraco_via:'Buraco na Via',alagamento:'Alagamento',arvore_caida:'Árvore Caída',vazamento_agua:'Vazamento',poluicao_sonora:'Poluição Sonora',abandono_veiculo:'Veículo Abandonado',descarte_irregular:'Descarte',animal_solto:'Animal Solto',mau_cheiro:'Mau Cheiro',outros:'Outros'};
+
+  /* dados para gráficos de denúncia por categoria */
+  const denCatData=Object.entries(d.denuncias.por_categoria||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({n:catLabels[k]||k,v,c:catColors[k]||'#6b7280'}));
+  const denCatMax=Math.max(...denCatData.map(x=>x.v),1);
+
+  /* dados para ocorrências por categoria */
+  const ocCatData=Object.entries(d.ocorrencias.por_categoria||{}).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>({n:ocCatLabels[k]||k,v,c:ocCatColors[k]||'#6b7280'}));
+  const ocCatMax=Math.max(...ocCatData.map(x=>x.v),1);
+
+  /* dados para top bairros */
+  const bairroMax=Math.max(...(d.top_bairros||[]).map(x=>x.total),1);
+
+  /* dados para donut de feedbacks por sentimento */
+  const sentColors={positivo:'#4ade80',negativo:'#f87171',neutro:'#fbbf24',misto:'#a78bfa'};
+  const sentLabels={positivo:'Positivo',negativo:'Negativo',neutro:'Neutro',misto:'Misto'};
+  const fbSentData=Object.entries(d.feedbacks.por_sentimento||{}).map(([k,v])=>({n:sentLabels[k]||k,v,c:sentColors[k]||'#6b7280'}));
+
+  /* dados para donut de recompensas por status */
+  const recColors={pendente_validacao:'#fbbf24',validada:'#60a5fa',aguardando_pagamento:'#a78bfa',paga:'#4ade80',rejeitada:'#f87171'};
+  const recLabels={pendente_validacao:'Pendente',validada:'Validada',aguardando_pagamento:'Aguardando',paga:'Paga',rejeitada:'Rejeitada'};
+  const recStatusData=Object.entries(d.recompensas.por_status||{}).map(([k,v])=>({n:recLabels[k]||k,v,c:recColors[k]||'#6b7280'}));
+
+  /* severidade ocorrências */
+  const sevColors={baixa:'#4ade80',media:'#fbbf24',alta:'#fb923c',critica:'#f87171'};
+  const sevLabels={baixa:'Baixa',media:'Média',alta:'Alta',critica:'Crítica'};
+  const sevData=Object.entries(d.ocorrencias.por_severidade||{}).map(([k,v])=>({n:sevLabels[k]||k,v,c:sevColors[k]||'#6b7280'}));
+
+  /* mini stat card */
+  const StatCard=({num,label,color,sub})=>(
+    <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'22px 20px',position:'relative',overflow:'hidden'}}>
+      <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:color,opacity:.6}}/>
+      <div className="mono" style={{fontSize:32,fontWeight:700,color,lineHeight:1}}>{num}</div>
+      <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',marginTop:8,textTransform:'uppercase',letterSpacing:'.5px'}}>{label}</div>
+      {sub&&<div style={{fontSize:11,color:'var(--text-muted)',marginTop:4,opacity:.7}}>{sub}</div>}
+    </div>
+  );
+
+  /* horizontal bar row */
+  const HBar=({label,value,max,color,suffix})=>(
+    <div style={{marginBottom:10}}>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+        <span style={{fontSize:12,color:'var(--text)',fontWeight:500}}>{label}</span>
+        <span className="mono" style={{fontSize:12,fontWeight:600,color}}>{value}{suffix||''}</span>
+      </div>
+      <div style={{height:6,borderRadius:3,background:'rgba(255,255,255,.04)'}}>
+        <div style={{height:'100%',borderRadius:3,background:color,width:`${Math.max(pct(value,max),3)}%`,transition:'width .6s ease',opacity:.85}}/>
+      </div>
+    </div>
+  );
+
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-      <div style={{padding:'14px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:12,flexShrink:0,background:'var(--surface)'}}>
-        <select value={periodo} onChange={e=>setPeriodo(e.target.value)}>
-          <option value="semana">Esta semana</option><option value="mes">Este mês</option><option value="trimestre">Trimestre</option><option value="ano">Este ano</option>
-        </select>
-        <div style={{flex:1}}/>
-        <button className="btn btn-outline">🖨️ Imprimir</button>
-        <button className="btn btn-outline">📄 Exportar PDF</button>
-        <button className="btn btn-primary">📧 Enviar por Email</button>
-      </div>
-      <div className="scrollable" style={{flex:1,padding:20}}>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-          <div className="chart-card anim-card"><div className="chart-title">Ocorrências × Denúncias · 6 meses</div><AreaChart data={monthly} keys={['oc','den']} colors={['#3b82f6','#059669']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#3b82f6'}}/>Ocorrências</div><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#059669'}}/>Denúncias</div></div></div>
-          <div className="chart-card anim-card"><div className="chart-title">Ocorrências por Categoria</div><div style={{display:'flex',alignItems:'center',gap:28,flex:1,justifyContent:'center'}}><DonutChart data={pie} size={170}/><div style={{display:'flex',flexDirection:'column',gap:12,flex:1}}>{pie.map((d,i)=>(<div key={i}><div style={{display:'flex',justifyContent:'space-between',marginBottom:5,fontSize:13}}><div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:8,height:8,borderRadius:3,background:d.c}}/><span style={{color:'var(--text-muted)'}}>{d.n}</span></div><span className="mono" style={{fontWeight:600,color:'#fff'}}>{d.v}</span></div><div style={{height:3,borderRadius:2,background:'rgba(255,255,255,.05)'}}><div style={{height:'100%',borderRadius:2,background:d.c,width:`${(d.v/47)*100}%`,opacity:.8}}/></div></div>))}</div></div></div>
-          <div className="chart-card anim-card"><div className="chart-title">Recompensas · Mês a Mês</div><BarChart data={reward} keys={['pago','apagar']} colors={['#059669','#fbbf24']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#059669'}}/>Pago</div><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#fbbf24'}}/>A Pagar</div></div></div>
-          <div className="chart-card anim-card"><div className="chart-title">SOS Mulher · Resumo</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,flex:1,alignContent:'center'}}>{[['Total Alertas','1','#f87171'],['Resolvidos','1','#4ade80'],['Cadastros Ativos','3','#3b82f6'],['Tempo Médio','12min','#fbbf24']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:'18px 20px'}}><div className="mono" style={{fontSize:26,fontWeight:600,color:c}}>{v}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginTop:5}}>{l}</div></div>))}</div></div>
+      {/* Header */}
+      <div style={{padding:'18px 24px',borderBottom:'1px solid var(--border)',flexShrink:0,background:'var(--surface)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:700,color:'#fff',letterSpacing:'-.3px'}}>Relatório Geral</div>
+          <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Visão consolidada — dados em tempo real</div>
         </div>
+        <div style={{display:'flex',gap:8}}>
+          <button className="btn btn-outline" onClick={()=>window.print()}>Imprimir</button>
+        </div>
+      </div>
+
+      <div className="scrollable" style={{flex:1,padding:24}}>
+        {/* ── ROW 1: KPIs PRINCIPAIS ── */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:14,marginBottom:24}}>
+          <StatCard num={totalGeral} label="Total Registros" color="#fff" sub="Todas as categorias"/>
+          <StatCard num={d.denuncias.total} label="Denúncias" color="#f87171" sub={`${d.denuncias.por_status?.procedente||0} procedentes`}/>
+          <StatCard num={d.ocorrencias.total} label="Ocorrências" color="#60a5fa" sub={`${d.ocorrencias.total_relatos} relatos cidadãos`}/>
+          <StatCard num={d.feedbacks.total} label="Feedbacks" color="#fbbf24" sub={`${d.feedbacks.por_sentimento?.positivo||0} positivos`}/>
+          <StatCard num={d.sos.total} label="SOS Mulher" color="#e879f9" sub={`${d.sos.resolvidos} resolvidos`}/>
+        </div>
+
+        {/* ── ROW 2: DENÚNCIAS + OCORRÊNCIAS ── */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+          {/* Denúncias por categoria */}
+          <div className="chart-card anim-card">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
+              <div className="chart-title" style={{margin:0}}>Denúncias por Categoria</div>
+              <span className="mono" style={{fontSize:20,fontWeight:700,color:'#f87171'}}>{d.denuncias.total}</span>
+            </div>
+            {denCatData.length>0?denCatData.map((c,i)=><HBar key={i} label={c.n} value={c.v} max={denCatMax} color={c.c}/>):<div style={{color:'var(--text-muted)',fontSize:13,textAlign:'center',padding:30}}>Sem dados</div>}
+          </div>
+          {/* Ocorrências por categoria */}
+          <div className="chart-card anim-card">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
+              <div className="chart-title" style={{margin:0}}>Ocorrências por Categoria</div>
+              <span className="mono" style={{fontSize:20,fontWeight:700,color:'#60a5fa'}}>{d.ocorrencias.total}</span>
+            </div>
+            {ocCatData.length>0?ocCatData.map((c,i)=><HBar key={i} label={c.n} value={c.v} max={ocCatMax} color={c.c}/>):<div style={{color:'var(--text-muted)',fontSize:13,textAlign:'center',padding:30}}>Sem dados</div>}
+          </div>
+        </div>
+
+        {/* ── ROW 3: TOP BAIRROS + SEVERIDADE + FEEDBACKS ── */}
+        <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:16,marginBottom:16}}>
+          {/* Top bairros */}
+          <div className="chart-card anim-card">
+            <div className="chart-title">Bairros com Mais Chamados</div>
+            {(d.top_bairros||[]).map((b,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
+                <span className="mono" style={{fontSize:11,color:'var(--text-muted)',width:18,textAlign:'right'}}>{i+1}</span>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                    <span style={{fontSize:12,color:'var(--text)',fontWeight:500}}>{b.bairro}</span>
+                    <span className="mono" style={{fontSize:12,fontWeight:600,color:i===0?'#4ade80':i<3?'#fbbf24':'var(--text-muted)'}}>{b.total}</span>
+                  </div>
+                  <div style={{height:4,borderRadius:2,background:'rgba(255,255,255,.04)'}}>
+                    <div style={{height:'100%',borderRadius:2,background:i===0?'#4ade80':i<3?'#fbbf24':'var(--text-muted)',width:`${pct(b.total,bairroMax)}%`,transition:'width .6s ease',opacity:.7}}/>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {(!d.top_bairros||d.top_bairros.length===0)&&<div style={{color:'var(--text-muted)',fontSize:13,textAlign:'center',padding:30}}>Sem dados</div>}
+          </div>
+          {/* Severidade ocorrências */}
+          <div className="chart-card anim-card">
+            <div className="chart-title">Severidade</div>
+            <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
+              <DonutChart data={sevData} size={140}/>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {sevData.map((s,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{width:8,height:8,borderRadius:'50%',background:s.c}}/>
+                    <span style={{fontSize:12,color:'var(--text-muted)'}}>{s.n}</span>
+                  </div>
+                  <span className="mono" style={{fontSize:13,fontWeight:600,color:s.c}}>{s.v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Feedbacks por sentimento */}
+          <div className="chart-card anim-card">
+            <div className="chart-title">Sentimento Feedbacks</div>
+            <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
+              <DonutChart data={fbSentData} size={140}/>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {fbSentData.map((s,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{width:8,height:8,borderRadius:'50%',background:s.c}}/>
+                    <span style={{fontSize:12,color:'var(--text-muted)'}}>{s.n}</span>
+                  </div>
+                  <span className="mono" style={{fontSize:13,fontWeight:600,color:s.c}}>{s.v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── ROW 4: RECOMPENSAS + SOS MULHER ── */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+          {/* Recompensas */}
+          <div className="chart-card anim-card">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+              <div className="chart-title" style={{margin:0}}>Programa Cidadão Ativo — Recompensas</div>
+              <span className="mono" style={{fontSize:16,fontWeight:700,color:'#4ade80'}}>{fmtR(d.recompensas.valor_pago)}</span>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:10,marginBottom:20}}>
+              {[
+                {v:fmtR(d.recompensas.valor_pago),l:'Pago',c:'#4ade80'},
+                {v:fmtR(d.recompensas.valor_aguardando),l:'Aguardando',c:'#a78bfa'},
+                {v:fmtR(d.recompensas.valor_pendente),l:'Pendente',c:'#fbbf24'},
+                {v:fmtR(d.recompensas.valor_rejeitado),l:'Rejeitado',c:'#f87171'},
+              ].map((s,i)=>(
+                <div key={i} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}>
+                  <div className="mono" style={{fontSize:15,fontWeight:700,color:s.c}}>{s.v}</div>
+                  <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',marginTop:6}}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:20}}>
+              <DonutChart data={recStatusData} size={120}/>
+              <div style={{display:'flex',flexDirection:'column',gap:6,flex:1}}>
+                {recStatusData.map((s,i)=>(
+                  <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <div style={{width:8,height:8,borderRadius:'50%',background:s.c}}/>
+                      <span style={{fontSize:12,color:'var(--text-muted)'}}>{s.n}</span>
+                    </div>
+                    <span className="mono" style={{fontSize:12,fontWeight:600,color:s.c}}>{s.v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* SOS Mulher */}
+          <div className="chart-card anim-card">
+            <div className="chart-title">SOS Mulher</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20}}>
+              {[
+                {v:d.sos.total,l:'Total Alertas',c:'#e879f9',icon:'🚨'},
+                {v:d.sos.resolvidos,l:'Resolvidos',c:'#4ade80',icon:'✅'},
+                {v:d.sos.ativos,l:'Ativos Agora',c:'#f87171',icon:'🔴'},
+                {v:d.sos.cadastros,l:'Cadastros',c:'#60a5fa',icon:'👤'},
+              ].map((s,i)=>(
+                <div key={i} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:12,padding:'18px 16px',display:'flex',alignItems:'center',gap:14}}>
+                  <div style={{width:42,height:42,borderRadius:10,background:`${s.c}15`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{s.icon}</div>
+                  <div>
+                    <div className="mono" style={{fontSize:24,fontWeight:700,color:s.c,lineHeight:1}}>{s.v}</div>
+                    <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',marginTop:4}}>{s.l}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Taxa de resolução */}
+            {d.sos.total>0&&(
+              <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:12,padding:'16px 18px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                  <span style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px'}}>Taxa de Resolução</span>
+                  <span className="mono" style={{fontSize:20,fontWeight:700,color:'#4ade80'}}>{pct(d.sos.resolvidos,d.sos.total)}%</span>
+                </div>
+                <div style={{height:8,borderRadius:4,background:'rgba(255,255,255,.04)'}}>
+                  <div style={{height:'100%',borderRadius:4,background:'linear-gradient(90deg,#4ade80,#059669)',width:`${pct(d.sos.resolvidos,d.sos.total)}%`,transition:'width .8s ease'}}/>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── ROW 5: STATUS DENÚNCIAS + STATUS OCORRÊNCIAS ── */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          {/* Status denúncias */}
+          <div className="chart-card anim-card">
+            <div className="chart-title">Status das Denúncias</div>
+            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+              {Object.entries(d.denuncias.por_status||{}).map(([k,v],i)=>{
+                const sColors={nova:'#60a5fa',em_analise:'#fbbf24',procedente:'#4ade80',improcedente:'#f87171',encaminhada:'#a78bfa',resolvida:'#059669'};
+                const sLabels={nova:'Nova',em_analise:'Em Análise',procedente:'Procedente',improcedente:'Improcedente',encaminhada:'Encaminhada',resolvida:'Resolvida'};
+                return(
+                  <div key={k} style={{flex:'1 1 calc(33% - 10px)',minWidth:100,background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}>
+                    <div className="mono" style={{fontSize:22,fontWeight:700,color:sColors[k]||'#fff'}}>{v}</div>
+                    <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',marginTop:4}}>{sLabels[k]||k}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          {/* Status ocorrências */}
+          <div className="chart-card anim-card">
+            <div className="chart-title">Status das Ocorrências</div>
+            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+              {Object.entries(d.ocorrencias.por_status||{}).map(([k,v],i)=>{
+                const sColors={aberta:'#60a5fa',em_atendimento:'#fbbf24',resolvido:'#4ade80',encaminhada:'#a78bfa'};
+                const sLabels={aberta:'Aberta',em_atendimento:'Em Atendimento',resolvido:'Resolvido',encaminhada:'Encaminhada'};
+                return(
+                  <div key={k} style={{flex:'1 1 calc(33% - 10px)',minWidth:100,background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}>
+                    <div className="mono" style={{fontSize:22,fontWeight:700,color:sColors[k]||'#fff'}}>{v}</div>
+                    <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',marginTop:4}}>{sLabels[k]||k}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
