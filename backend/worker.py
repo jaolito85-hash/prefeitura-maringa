@@ -44,30 +44,26 @@ STORAGE_BUCKET = "evidencias"
 # SOS primeiro — prioridade maxima
 QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:feedbacks", "queue:consultas", "queue:saudacoes"]
 
-# ── Programa Cidadão Ativo ──
-# Categorias de denúncia elegíveis pra recompensa (Decreto 291/2026)
+# ── Programa Cidadão Ativo — Decreto 291/2026 ──
+# APENAS as 5 categorias que a Prefeitura de Maringá paga recompensa.
 # Mapeamento: categoria do classificador IA → categoria na recompensas_config
 CATEGORIAS_ELEGIVEIS = {
     "pichacao": "pichacao",
     "trafico_drogas": "trafico",
     "trafico": "trafico",
-    "vandalismo": "vandalismo",
-    "depredacao": "depredacao",
     "descarte_irregular": "lixo",
     "lixo": "lixo",
+    "furto_fios": "furto_fios",
+    "depredacao": "depredacao",
 }
 
-# Menu de categorias para denúncia genérica (quando cidadão diz "quero denunciar" sem dizer o quê)
-# Cada item: (número_opcao, categoria_worker, label_amigavel, valor_recompensa_display)
+# Menu de categorias — SOMENTE as 5 categorias pagas pelo Decreto 291/2026
 MENU_CATEGORIAS = [
-    ("1", "trafico_drogas", "Tráfico de drogas", "R$ 300"),
-    ("2", "pichacao", "Pichação", "R$ 100"),
-    ("3", "vandalismo", "Vandalismo", "R$ 150"),
-    ("4", "depredacao", "Depredação de bens públicos", "R$ 150"),
-    ("5", "descarte_irregular", "Descarte irregular de lixo", "R$ 80"),
-    ("6", "roubo_furto", "Roubo ou furto", "—"),
-    ("7", "perturbacao_sossego", "Perturbação do sossego", "—"),
-    ("8", "outros_crimes", "Outro tipo de crime", "—"),
+    ("1", "pichacao", "Pichação", "R$ 100"),
+    ("2", "trafico_drogas", "Tráfico de drogas", "R$ 300"),
+    ("3", "descarte_irregular", "Descarte irregular de lixo e entulhos", "R$ 80"),
+    ("4", "furto_fios", "Furto de fios e cabos elétricos", "R$ 150"),
+    ("5", "depredacao", "Depredação de patrimônio público", "R$ 150"),
 ]
 
 # Mapa rápido: número ou texto → categoria
@@ -481,12 +477,15 @@ def processar_denuncia(event: dict, sb: Client) -> None:
         return
 
     # ── DENÚNCIA GENÉRICA — envia menu de categorias ──
-    categoria = classificacao.get("categoria", "outros_crimes")
+    categoria = classificacao.get("categoria", "generica")
     if categoria == "generica":
         menu = _montar_menu_categorias()
         # Cria sessão aguardando escolha (sem criar registro ainda)
-        criar_sessao(sb, telefone, "denuncia", "aguardando_categoria", "",
-                     {"push_name": push_name, "mensagem_original": texto})
+        # IMPORTANTE: registro_id não pode ser vazio — usa placeholder UUID
+        placeholder_id = str(uuid.uuid4())
+        criar_sessao(sb, telefone, "denuncia", "aguardando_categoria", placeholder_id,
+                     {"push_name": push_name, "mensagem_original": texto,
+                      "_placeholder": True})
         enviar_whatsapp(telefone, menu)
         logger.info(f"Menu de categorias enviado para {telefone}")
         return
@@ -605,8 +604,8 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
         if not cat_escolhida:
             # Não entendeu — reenvia menu
             resposta = "Não entendi. Por favor, responda com o *número* da opção:\n\n" + _montar_menu_categorias()
-            criar_sessao(sb, telefone, "denuncia", "aguardando_categoria", "",
-                         contexto)
+            criar_sessao(sb, telefone, "denuncia", "aguardando_categoria",
+                         registro_id or str(uuid.uuid4()), contexto)
             enviar_whatsapp(telefone, resposta)
             return
 

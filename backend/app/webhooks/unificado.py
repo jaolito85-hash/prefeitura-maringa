@@ -154,10 +154,15 @@ async def receber_webhook_unificado(
     texto = dados["texto"]
     logger.info(f"Mensagem de {telefone}: {texto[:80] if texto else '[midia/localizacao]'}")
 
-    # ── 1. SOS RAPIDO — prioridade absoluta, sem checar sessao ──
-    if texto and detectar_sos_rapido(texto):
+    # ── 1. CHECAR SESSAO ATIVA (ANTES de tudo) ──
+    # Se tem sessao, mensagens curtas como "1", "3", "." sao respostas,
+    # NAO codigos SOS. Isso evita falso-positivo de SOS durante conversa.
+    sessao = _buscar_sessao_ativa(telefone)
+
+    # ── 2. SOS RAPIDO — so se NAO tem sessao ativa ──
+    if not sessao and texto and detectar_sos_rapido(texto):
         logger.warning(f"🚨 SOS RAPIDO detectado de {telefone}!")
-        # Limpa qualquer sessao ativa — SOS sempre ganha
+        # Limpa qualquer sessao expirada residual
         try:
             sb = get_supabase()
             sb.table("sessoes_conversa").delete().eq("telefone", telefone).execute()
@@ -176,10 +181,9 @@ async def receber_webhook_unificado(
         }, is_continuacao=False)
         return _enfileirar(event, "queue:sos")
 
-    # ── 2. CONSULTA DE PROTOCOLO — detecta MGA-XXXX-XXXXX antes da IA ──
+    # ── 3. CONSULTA DE PROTOCOLO — detecta MGA-XXXX-XXXXX antes da IA ──
     protocolo_match = re.search(r"MGA-\d{4}-\d{4,6}", texto.upper()) if texto else None
-    if protocolo_match and not _buscar_sessao_ativa(telefone):
-        # Cidadão enviou um protocolo e NÃO tem sessão ativa → é uma consulta
+    if protocolo_match and not sessao:
         protocolo_num = protocolo_match.group(0)
         logger.info(f"🔍 Consulta de protocolo detectada: {protocolo_num} de {telefone}")
 
@@ -190,10 +194,7 @@ async def receber_webhook_unificado(
         }, is_continuacao=False)
         return _enfileirar(event, "queue:consultas")
 
-    # ── 3. CHECAR SESSAO ATIVA ──
-    sessao = _buscar_sessao_ativa(telefone)
-
-    # ── 3b. SAUDAÇÃO RÁPIDA — só se NÃO tem sessão ativa ──
+    # ── 4. SAUDAÇÃO RÁPIDA — só se NÃO tem sessão ativa ──
     # Se tem sessão, a mensagem pode ser resposta a uma pergunta (ex: "ok" = aceitar)
     _SAUDACOES_RAPIDAS = {
         "obrigado", "obrigada", "valeu", "muito obrigado", "muito obrigada",
@@ -210,6 +211,7 @@ async def receber_webhook_unificado(
         }, is_continuacao=False)
         return _enfileirar(event, "queue:saudacoes")
 
+    # ── 5. SESSAO ATIVA — continuacao da conversa ──
     if sessao:
         # CONTINUACAO — mesmo protocolo, nao classifica de novo
         logger.info(f"Sessao ativa encontrada: canal={sessao['canal']} etapa={sessao['etapa']}")
@@ -229,7 +231,7 @@ async def receber_webhook_unificado(
         }, is_continuacao=True, sessao=sessao)
         return _enfileirar(event, fila)
 
-    # ── 4. MENSAGEM NOVA — classificar com IA ──
+    # ── 6. MENSAGEM NOVA — classificar com IA ──
     classificacao = await classificar_mensagem(
         texto=texto or "[Mídia sem legenda]",
         telefone=telefone,
@@ -240,7 +242,7 @@ async def receber_webhook_unificado(
 
     canal = classificacao.get("canal", "feedback")
 
-    # ── 4b. SAUDAÇÃO — responde sem criar protocolo ──
+    # ── 6b. SAUDAÇÃO — responde sem criar protocolo ──
     if canal == "saudacao":
         resposta = classificacao.get("resposta_whatsapp", "")
         if not resposta:

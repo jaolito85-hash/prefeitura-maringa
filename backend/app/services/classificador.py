@@ -49,33 +49,33 @@ Mensagens que são APENAS cumprimentos, agradecimentos ou despedidas, SEM nenhum
 - Categorias: saudacao
 
 ### CANAL: sos_mulher (PRIORIDADE MÁXIMA)
-Palavras-código de emergência: ".", "1", "socorro", "me ajuda", "ajuda", "femi", "sos"
+Palavras-código de emergência: ".", "socorro", "me ajuda", "ajuda", "femi", "sos"
 - Se a mensagem for APENAS uma dessas palavras-código → é SOS
 - Se a mensagem mencionar violência doméstica, agressão de parceiro, ameaça de companheiro → é SOS
 - Categorias: emergencia, cadastro
 - REGRA: mensagem MUITO curta (1-2 palavras) que seja código → SOS emergencia
 - REGRA: se mencionar "cadastro" → SOS cadastro
+- REGRA: números sozinhos ("1", "2", "3", "4", "5") NÃO são SOS — podem ser respostas a menus
 
 ### CANAL: denuncia
-Mensagens que relatam CRIMES ou INFRAÇÕES que precisam de investigação.
+Mensagens que relatam CRIMES ou INFRAÇÕES que o Programa Cidadão Ativo investiga.
+O programa paga recompensa ao cidadão por denúncias VÁLIDAS nas 5 categorias abaixo.
 IMPORTANTE — Existem DUAS situações:
 
 **A) Denúncia GENÉRICA** (o cidadão QUER denunciar mas NÃO disse o quê):
 - "Quero fazer uma denúncia", "Quero denunciar", "Como faço uma denúncia?"
 - "Preciso denunciar algo", "Tem como denunciar?"
 - Categoria: **generica**
-- A resposta NÃO precisa ser gerada (o worker vai enviar o menu)
+- A resposta NÃO precisa ser gerada (resposta_whatsapp = ""). O worker vai enviar o menu de categorias.
 
 **B) Denúncia ESPECÍFICA** (o cidadão JÁ disse o que quer denunciar):
-- "Vi um ponto de tráfico na rua tal" → trafico_drogas
 - "Tem pichação no muro da escola" → pichacao
+- "Vi um ponto de tráfico na rua tal" → trafico_drogas
 - "Estão jogando lixo no terreno baldio" → descarte_irregular
-- "Quebraram o ponto de ônibus" → vandalismo
-- "Depredaram a praça" → depredacao
-- "Fui assaltado", "Vi um furto" → roubo_furto
-- "Som alto todo dia de madrugada" → perturbacao_sossego
-- Se não encaixar em nenhuma → outros_crimes
-- Categorias: trafico_drogas, pichacao, descarte_irregular, vandalismo, depredacao, roubo_furto, perturbacao_sossego, outros_crimes
+- "Roubaram os fios de cobre do poste" → furto_fios
+- "Depredaram a praça", "Quebraram o ponto de ônibus" → depredacao
+- APENAS 5 categorias válidas: pichacao, trafico_drogas, descarte_irregular, furto_fios, depredacao
+- Se o relato NÃO se encaixa em nenhuma dessas 5 → classifique como **generica** (o worker vai mostrar o menu)
 
 ### CANAL: ocorrencia
 Mensagens que relatam PROBLEMAS URBANOS ou EMERGÊNCIAS NATURAIS:
@@ -109,8 +109,8 @@ Mensagens que são OPINIÕES, ELOGIOS, RECLAMAÇÕES sobre serviços públicos:
 
 ## RESPOSTA:
 Gere uma resposta curta e acolhedora para o WhatsApp (máximo 3 linhas).
-- Para DENÚNCIAS GENÉRICAS: NÃO gere resposta (resposta_whatsapp = ""). O worker vai enviar o menu.
-- Para DENÚNCIAS ESPECÍFICAS: confirme o recebimento, peça foto/vídeo se não enviou
+- Para DENÚNCIAS GENÉRICAS: NÃO gere resposta (resposta_whatsapp = ""). O worker vai enviar o menu com as 5 categorias.
+- Para DENÚNCIAS ESPECÍFICAS (pichacao, trafico_drogas, descarte_irregular, furto_fios, depredacao): confirme o recebimento, peça foto/vídeo se não enviou
 - Para SOS: resposta MÍNIMA e discreta ("✓ Recebido. Equipe acionada.")
 - Para OCORRÊNCIAS: confirme, peça endereço/localização se não informou
 - Para FEEDBACKS: agradeça, diga que vai encaminhar ao setor responsável
@@ -316,7 +316,7 @@ def _fallback_erro_generico() -> dict[str, Any]:
 # ── DETECTOR RAPIDO DE SOS (sem IA) ───────────────────────────────────────
 # Roda ANTES da API do Claude. Se for SOS, dispara em milissegundos.
 
-CODIGOS_SOS = {".", "oi", "1", "socorro", "me ajuda", "ajuda", "femi", "sos"}
+CODIGOS_SOS = {".", "socorro", "me ajuda", "ajuda", "femi", "sos"}
 
 
 def detectar_sos_rapido(texto: str) -> bool:
