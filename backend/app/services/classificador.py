@@ -50,12 +50,17 @@ Mensagens que são APENAS cumprimentos, agradecimentos ou despedidas, SEM nenhum
 
 ### CANAL: sos_mulher (PRIORIDADE MÁXIMA)
 Palavras-código de emergência: ".", "socorro", "me ajuda", "ajuda", "femi", "sos"
-- Se a mensagem for APENAS uma dessas palavras-código → é SOS
-- Se a mensagem mencionar violência doméstica, agressão de parceiro, ameaça de companheiro → é SOS
-- Categorias: emergencia, cadastro
+- Se a mensagem for APENAS uma dessas palavras-código → é SOS emergencia
+- Se a mensagem mencionar violência doméstica, agressão de parceiro, ameaça de companheiro → é SOS emergencia
 - REGRA: mensagem MUITO curta (1-2 palavras) que seja código → SOS emergencia
-- REGRA: se mencionar "cadastro" → SOS cadastro
 - REGRA: números sozinhos ("1", "2", "3", "4", "5") NÃO são SOS — podem ser respostas a menus
+
+Categorias:
+- **emergencia** — situação de perigo, código de emergência, violência
+- **cadastro** — mulher quer se cadastrar no programa Mulher Segura:
+  - "Quero me cadastrar no programa", "cadastro mulher segura", "como me cadastro?"
+  - "Quero proteção", "programa de proteção à mulher"
+  - REGRA: para cadastro, NÃO gere resposta (resposta_whatsapp = ""). O worker guia o cadastro.
 
 ### CANAL: denuncia
 Mensagens que relatam CRIMES ou INFRAÇÕES que o Programa Cidadão Ativo investiga.
@@ -111,7 +116,8 @@ Mensagens que são OPINIÕES, ELOGIOS, RECLAMAÇÕES sobre serviços públicos:
 Gere uma resposta curta e acolhedora para o WhatsApp (máximo 3 linhas).
 - Para DENÚNCIAS GENÉRICAS: NÃO gere resposta (resposta_whatsapp = ""). O worker vai enviar o menu com as 5 categorias.
 - Para DENÚNCIAS ESPECÍFICAS (pichacao, trafico_drogas, descarte_irregular, furto_fios, depredacao): confirme o recebimento, peça foto/vídeo se não enviou
-- Para SOS: resposta MÍNIMA e discreta ("✓ Recebido. Equipe acionada.")
+- Para SOS emergência: resposta MÍNIMA e discreta ("✓ Recebido. Equipe acionada.")
+- Para SOS cadastro: NÃO gere resposta (resposta_whatsapp = ""). O worker guia o cadastro passo a passo.
 - Para OCORRÊNCIAS: confirme, peça endereço/localização se não informou
 - Para FEEDBACKS: agradeça, diga que vai encaminhar ao setor responsável
 - Para SAUDAÇÕES: responda educadamente sem criar protocolo

@@ -265,7 +265,7 @@ function PageTransition({children,pageKey}){
 
 /* ─── API CONFIG ────────────────────────────────────────────────── */
 const API_URL='';
-let OC=[],DEN=[],SOS=[],FBK=[],KPIS={},RECOMP=[],RECOMP_KPIS={},RECOMP_CFG=[];
+let OC=[],DEN=[],SOS=[],FBK=[],KPIS={},RECOMP=[],RECOMP_KPIS={},RECOMP_CFG=[],SOS_HIST=[];
 const FBK_MSGS={};
 
 /* Busca dados da API a cada 5 segundos — faz o dashboard atualizar sozinho */
@@ -274,7 +274,7 @@ function useApiPolling(){
   useEffect(()=>{
     async function poll(){
       try{
-        const [oc,den,sos,fb,kpis,recomp,rkpis,rcfg]=await Promise.all([
+        const [oc,den,sos,fb,kpis,recomp,rkpis,rcfg,soshist]=await Promise.all([
           fetch(API_URL+'/api/ocorrencias/').then(r=>r.ok?r.json():[]).catch(()=>[]),
           fetch(API_URL+'/api/denuncias/').then(r=>r.ok?r.json():[]).catch(()=>[]),
           fetch(API_URL+'/api/sos/alertas/ativos').then(r=>r.ok?r.json():[]).catch(()=>[]),
@@ -283,10 +283,12 @@ function useApiPolling(){
           fetch(API_URL+'/api/recompensas/').then(r=>r.ok?r.json():[]).catch(()=>[]),
           fetch(API_URL+'/api/recompensas/kpis').then(r=>r.ok?r.json():{}).catch(()=>({})),
           fetch(API_URL+'/api/recompensas/config').then(r=>r.ok?r.json():[]).catch(()=>[]),
+          fetch(API_URL+'/api/sos/alertas/historico').then(r=>r.ok?r.json():[]).catch(()=>[]),
         ]);
         OC=oc.map(o=>({...o,lat:o.latitude,lng:o.longitude}));
         DEN=den.map(d=>({...d,lat:d.latitude,lng:d.longitude}));
         SOS=sos.map(s=>({...s,lat:s.latitude,lng:s.longitude}));
+        SOS_HIST=soshist;
         FBK=fb.map(f=>{
           const priMap={alta:'critico',normal:'urgente',baixa:'normal'};
           const catMap={transporte:'transporte',saude:'saude_atendimento',educacao:'educacao_escolas',
@@ -1423,18 +1425,54 @@ function SOSMulher(){
   const [routeBase,setRouteBase]=useState(null);
   const [routeIncident,setRouteIncident]=useState(null);
   const [loadingRoute,setLoadingRoute]=useState(false);
+  const [notas,setNotas]=useState('');
+  const [salvandoNotas,setSalvandoNotas]=useState(false);
+
+  // Atualiza notas quando muda a seleção
+  useEffect(()=>{setNotas(sel?.notas||'');},[sel?.id]);
 
   async function handleTraceRoute(item){
     setLoadingRoute(true);
     const base=nearestBase(item.lat,item.lng,'pm');
     if(!base){setLoadingRoute(false);return;}
     const r=await fetchRoute(base.lng,base.lat,item.lng,item.lat);
-    if(r){setRouteData(r);setRouteBase(base);setRouteIncident({...item,severidade:'critica',titulo:'SOS: '+item.sos_cadastros?.nome});}
+    if(r){setRouteData(r);setRouteBase(base);setRouteIncident({...item,severidade:'critica',titulo:'SOS: '+(item.sos_cadastros?.nome||item.telefone)});}
     setLoadingRoute(false);
   }
 
+  async function handleAceitar(){
+    if(!sel) return;
+    try{
+      const res=await fetch(API_URL+'/api/sos/alertas/'+sel.id+'/aceitar',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({operador:'admin'})});
+      if(res.ok){alert('✅ Atendimento aceito! Sirene desativada.');setSel(prev=>({...prev,status:'attending'}));}
+      else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
+    }catch(e){alert('Erro: '+e.message);}
+  }
+
+  async function handleResolver(){
+    if(!sel) return;
+    const motivo=prompt('Notas de resolução (opcional):');
+    try{
+      const res=await fetch(API_URL+'/api/sos/alertas/'+sel.id+'/resolver',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({notas:motivo||notas||''})});
+      if(res.ok){alert('✅ Alerta resolvido.');setSel(null);}
+      else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
+    }catch(e){alert('Erro: '+e.message);}
+  }
+
+  async function handleSalvarNotas(){
+    if(!sel) return;
+    setSalvandoNotas(true);
+    try{
+      await fetch(API_URL+'/api/sos/alertas/'+sel.id+'/notas',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({notas})});
+    }catch(e){}
+    setSalvandoNotas(false);
+  }
+
+  const isAttending=sel?.status==='attending';
+
   return(
     <div style={{display:'flex',height:'100%',overflow:'hidden',position:'relative'}}>
+      {/* ── SIDEBAR ESQUERDA ── */}
       <div style={{width:300,flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',background:'var(--surface)'}}>
         <div style={{padding:'16px 16px 10px'}}>
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
@@ -1443,75 +1481,115 @@ function SOSMulher(){
             <span className="nav-badge" style={{marginLeft:'auto'}}>{SOS.length}</span>
           </div>
         </div>
-        {SOS.map(s=>(
-          <div key={s.id} onClick={()=>setSel(s)} style={{margin:'0 10px 6px',padding:'14px 16px',borderRadius:8,background:sel?.id===s.id?'rgba(220,38,38,.08)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':'rgba(220,38,38,.12)'}`,cursor:'pointer'}}>
-            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-              <span style={{fontWeight:600,fontSize:14,color:'#fff'}}>{s.sos_cadastros?.nome||s.telefone}</span>
-              <span style={{fontSize:12,color:'#f87171'}}>{ago(s.created_at)}</span>
-            </div>
-            <div style={{fontSize:13,color:'var(--text-secondary)'}}>{s.sos_cadastros?.endereco}</div>
-          </div>
-        ))}
-        <div style={{height:1,background:'var(--border)',margin:'14px 14px 10px'}}/>
-        <div style={{padding:'0 16px 6px',fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px'}}>Histórico</div>
-        {[{nome:'Joana Ferreira',tempo:'2 dias'}].map((h,i)=>(
-          <div key={i} style={{padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span style={{fontSize:13,color:'var(--text-secondary)'}}>{h.nome}</span>
-              <span className="badge b-green">Resolvido</span>
-            </div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:3}}>há {h.tempo}</div>
-          </div>
-        ))}
+        <div className="scrollable" style={{flex:1,minHeight:0}}>
+          {SOS.length===0&&(
+            <div style={{padding:'20px 16px',textAlign:'center',color:'var(--text-muted)',fontSize:13}}>Nenhum alerta ativo</div>
+          )}
+          {SOS.map(s=>{
+            const isAtt=s.status==='attending';
+            return(
+              <div key={s.id} onClick={()=>setSel(s)} style={{margin:'0 10px 6px',padding:'14px 16px',borderRadius:8,background:sel?.id===s.id?'rgba(220,38,38,.08)':isAtt?'rgba(251,191,36,.05)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':isAtt?'rgba(251,191,36,.2)':'rgba(220,38,38,.12)'}`,cursor:'pointer'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <span style={{fontWeight:600,fontSize:14,color:'#fff'}}>{s.sos_cadastros?.nome||s.telefone}</span>
+                  <span style={{fontSize:12,color:isAtt?'#fbbf24':'#f87171'}}>{ago(s.created_at)}</span>
+                </div>
+                <div style={{fontSize:12,color:'var(--text-secondary)',marginBottom:4}}>{s.sos_cadastros?.endereco||'Endereço não informado'}</div>
+                <span className={`badge ${isAtt?'b-warn':'b-red'}`} style={{fontSize:10}}>{isAtt?'Em atendimento':'Aguardando'}</span>
+              </div>
+            );
+          })}
+          {/* Histórico real */}
+          {SOS_HIST.length>0&&(
+            <>
+              <div style={{height:1,background:'var(--border)',margin:'14px 14px 10px'}}/>
+              <div style={{padding:'0 16px 6px',fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px'}}>Histórico</div>
+              {SOS_HIST.slice(0,10).map(h=>(
+                <div key={h.id} style={{padding:'10px 16px',borderBottom:'1px solid var(--border)'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span style={{fontSize:13,color:'var(--text-secondary)'}}>{h.sos_cadastros?.nome||h.telefone}</span>
+                    <span className="badge b-green" style={{fontSize:10}}>Resolvido</span>
+                  </div>
+                  <div style={{fontSize:11,color:'var(--text-muted)',marginTop:3}}>{h.resolvido_em?ago(h.resolvido_em):'—'}</div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
       </div>
+      {/* ── CONTEÚDO PRINCIPAL ── */}
       {sel?(
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-          {/* Info da vítima — cabeçalho fixo, não scrolla */}
+          {/* Cabeçalho da vítima */}
           <div style={{flexShrink:0,padding:'16px 20px',borderBottom:'1px solid var(--border)',background:'var(--surface)'}}>
-            <div style={{background:'rgba(220,38,38,.04)',border:'1px solid rgba(220,38,38,.18)',borderRadius:10,padding:20}}>
+            <div style={{background:isAttending?'rgba(251,191,36,.04)':'rgba(220,38,38,.04)',border:`1px solid ${isAttending?'rgba(251,191,36,.18)':'rgba(220,38,38,.18)'}`,borderRadius:10,padding:20}}>
               <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:16,flexWrap:'wrap'}}>
-                <div style={{width:44,height:44,borderRadius:10,background:'rgba(220,38,38,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>🛡️</div>
+                <div style={{width:44,height:44,borderRadius:10,background:isAttending?'rgba(251,191,36,.1)':'rgba(220,38,38,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>{isAttending?'🔔':'🚨'}</div>
                 <div style={{flex:1,minWidth:180}}>
                   <div style={{fontSize:18,fontWeight:700,color:'#fff'}}>{sel.sos_cadastros?.nome||'Não identificada'}</div>
-                  <div style={{fontSize:12,color:'var(--text-secondary)',marginTop:2}}>Alerta ativo · {ago(sel.created_at)}</div>
+                  <div style={{fontSize:12,color:'var(--text-secondary)',marginTop:2}}>
+                    {isAttending?'Em atendimento':'Alerta ativo'} · {sel.created_at?new Date(sel.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}
+                  </div>
                 </div>
                 <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                  <button className="btn btn-primary" style={{fontSize:13,padding:'7px 14px'}}>📞 Ligar</button>
-                  <button className="btn btn-danger" style={{fontSize:13,padding:'7px 14px'}}>Resolver</button>
+                  {!isAttending&&(
+                    <button className="btn" style={{background:'#fbbf24',color:'#000',border:'none',fontSize:13,padding:'7px 14px',fontWeight:600}}
+                      onClick={handleAceitar}>🔔 Aceitar Atendimento</button>
+                  )}
+                  <a href={`tel:${sel.telefone}`} className="btn btn-primary" style={{fontSize:13,padding:'7px 14px',textDecoration:'none'}}>📞 Ligar</a>
+                  {sel.sos_cadastros?.contato_confianca_telefone&&(
+                    <a href={`tel:${sel.sos_cadastros.contato_confianca_telefone}`} className="btn btn-outline" style={{fontSize:13,padding:'7px 14px',textDecoration:'none'}}>📞 Confiança</a>
+                  )}
+                  <button className="btn btn-danger" style={{fontSize:13,padding:'7px 14px'}} onClick={handleResolver}>✓ Resolver</button>
                   <button className="btn" style={{background:'var(--accent)',color:'#fff',border:'none',fontSize:13,padding:'7px 14px'}}
-                    onClick={()=>handleTraceRoute(sel)}
-                    disabled={loadingRoute}>
-                    {loadingRoute?'Calculando...':'🗺️ Rota'}
+                    onClick={()=>handleTraceRoute(sel)} disabled={loadingRoute}>
+                    {loadingRoute?'...':'🗺️ Rota'}
                   </button>
                 </div>
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,fontSize:13}}>
-                {[['Telefone',sel.telefone],['Código',sel.codigo_usado],['Endereço',sel.sos_cadastros?.endereco||'Não informado'],['Agressor',sel.sos_cadastros?.agressor||'Não informado']].map(([l,v])=>(
-                  <div key={l} style={{background:'rgba(0,0,0,.2)',borderRadius:8,padding:'10px 12px'}}><div style={{color:'var(--text-muted)',fontSize:10,fontWeight:600,letterSpacing:'.5px',marginBottom:4,textTransform:'uppercase'}}>{l}</div><div style={{color:'var(--text)',fontWeight:500,fontSize:13,wordBreak:'break-word'}}>{v}</div></div>
+              {/* Dados em grid */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10,fontSize:13}}>
+                {[
+                  ['Telefone',sel.telefone],
+                  ['Código Usado',sel.codigo_usado],
+                  ['Endereço',sel.sos_cadastros?.endereco||'Não informado'],
+                  ['Referência',sel.sos_cadastros?.referencia],
+                  ['Agressor',sel.sos_cadastros?.agressor||'Não informado'],
+                  sel.sos_cadastros?.contato_confianca_nome&&['Contato Confiança',sel.sos_cadastros.contato_confianca_nome+' — '+sel.sos_cadastros.contato_confianca_telefone],
+                  sel.latitude&&['Localização',`📍 ${Number(sel.latitude).toFixed(5)}, ${Number(sel.longitude).toFixed(5)}`],
+                ].filter(Boolean).map(([l,v])=>(
+                  <div key={l} style={{background:'rgba(0,0,0,.2)',borderRadius:8,padding:'10px 12px'}}>
+                    <div style={{color:'var(--text-muted)',fontSize:10,fontWeight:600,letterSpacing:'.5px',marginBottom:4,textTransform:'uppercase'}}>{l}</div>
+                    <div style={{color:l==='Agressor'&&v!=='Não informado'?'#f87171':'var(--text)',fontWeight:500,fontSize:13,wordBreak:'break-word'}}>{v||'—'}</div>
+                  </div>
                 ))}
               </div>
             </div>
           </div>
-          {/* Corpo: mapa (esquerda) + painel lateral (direita) */}
+          {/* Corpo: mapa + painel lateral */}
           <div style={{flex:1,display:'flex',overflow:'hidden',minHeight:0}}>
-            {/* Mapa */}
             <div style={{flex:1,position:'relative'}}>
-              <MapboxMap items={[{...sel,severidade:'critica',titulo:'SOS: '+sel.sos_cadastros?.nome}]} showBases={true} route={routeData}/>
+              <MapboxMap items={[{...sel,severidade:'critica',titulo:'SOS: '+(sel.sos_cadastros?.nome||sel.telefone)}]} showBases={true} route={routeData}/>
               {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
             </div>
-            {/* Painel lateral */}
             <div style={{width:280,flexShrink:0,borderLeft:'1px solid var(--border)',overflowY:'auto',background:'var(--surface)',display:'flex',flexDirection:'column',gap:12,padding:14}}>
-              {sel.sos_cadastros?.contato_confianca_nome&&(
-                <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:14}}>
-                  <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Contato de Confiança</div>
-                  <div style={{fontWeight:600,fontSize:13,color:'#fff'}}>{sel.sos_cadastros.contato_confianca_nome}</div>
-                  <div style={{fontSize:12,color:'var(--text-muted)',marginTop:3,marginBottom:10}}>{sel.sos_cadastros.contato_confianca_telefone}</div>
-                  <button className="btn btn-outline" style={{width:'100%',justifyContent:'center',fontSize:12,padding:'6px 10px'}}>📞 Notificar</button>
+              {/* Ações rápidas */}
+              <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:14}}>
+                <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Ações Rápidas</div>
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  <a href={`https://wa.me/${sel.telefone?.replace('+','')}`} target="_blank" rel="noopener" className="btn btn-outline" style={{width:'100%',justifyContent:'center',fontSize:12,padding:'6px 10px',textDecoration:'none'}}>💬 WhatsApp Vítima</a>
+                  {sel.sos_cadastros?.contato_confianca_telefone&&(
+                    <a href={`https://wa.me/55${sel.sos_cadastros.contato_confianca_telefone.replace(/\D/g,'')}`} target="_blank" rel="noopener" className="btn btn-outline" style={{width:'100%',justifyContent:'center',fontSize:12,padding:'6px 10px',textDecoration:'none'}}>💬 WhatsApp Confiança</a>
+                  )}
                 </div>
-              )}
+              </div>
+              {/* Notas do operador — salva de verdade */}
               <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:14,flex:1,display:'flex',flexDirection:'column'}}>
                 <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Notas do Operador</div>
-                <textarea placeholder="Adicionar nota sobre o atendimento..." style={{width:'100%',flex:1,minHeight:80,fontSize:13,lineHeight:1.6,background:'rgba(0,0,0,.2)',border:'1px solid var(--border)',borderRadius:6,padding:10,color:'var(--text)',resize:'vertical'}}/>
+                <textarea value={notas} onChange={e=>setNotas(e.target.value)} placeholder="Adicionar nota sobre o atendimento..." style={{width:'100%',flex:1,minHeight:80,fontSize:13,lineHeight:1.6,background:'rgba(0,0,0,.2)',border:'1px solid var(--border)',borderRadius:6,padding:10,color:'var(--text)',resize:'vertical'}}/>
+                <button className="btn btn-outline" style={{marginTop:8,width:'100%',justifyContent:'center',fontSize:11,padding:'5px 8px'}}
+                  onClick={handleSalvarNotas} disabled={salvandoNotas}>
+                  {salvandoNotas?'Salvando...':'💾 Salvar Notas'}
+                </button>
               </div>
             </div>
           </div>
@@ -1519,7 +1597,7 @@ function SOSMulher(){
       ):(
         <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12}}>
           <div style={{fontSize:48,opacity:.5}}>🛡️</div>
-          <div style={{fontSize:14,color:'var(--text-muted)'}}>Nenhum alerta selecionado</div>
+          <div style={{fontSize:14,color:'var(--text-muted)'}}>{SOS.length===0?'Nenhum alerta SOS ativo':'Selecione um alerta na lista'}</div>
         </div>
       )}
     </div>

@@ -19,11 +19,21 @@ async def listar_alertas_sos():
 
 @router.get("/alertas/ativos")
 async def alertas_sos_ativos():
-    """Retorna apenas os alertas SOS com status 'active' — para o alerta vermelho."""
+    """Retorna apenas os alertas SOS com status 'active' ou 'attending' — para o painel."""
     sb = get_supabase()
     result = sb.table("sos_alertas").select(
         "*, sos_cadastros(nome, endereco, referencia, agressor, contato_confianca_nome, contato_confianca_telefone)"
-    ).eq("status", "active").order("created_at", desc=True).execute()
+    ).in_("status", ["active", "attending"]).order("created_at", desc=True).execute()
+    return result.data or []
+
+
+@router.get("/alertas/historico")
+async def historico_sos():
+    """Retorna alertas resolvidos — para o histórico na sidebar."""
+    sb = get_supabase()
+    result = sb.table("sos_alertas").select(
+        "*, sos_cadastros(nome, endereco)"
+    ).eq("status", "resolved").order("resolvido_em", desc=True).limit(20).execute()
     return result.data or []
 
 
@@ -50,5 +60,15 @@ async def resolver_alerta(alerta_id: str, body: dict):
         "status": "resolved",
         "notas": body.get("notas"),
         "resolvido_em": datetime.now(timezone.utc).isoformat(),
+    }).eq("id", alerta_id).execute()
+    return result.data[0] if result.data else {}
+
+
+@router.patch("/alertas/{alerta_id}/notas")
+async def salvar_notas(alerta_id: str, body: dict):
+    """Salva notas do operador no alerta."""
+    sb = get_supabase()
+    result = sb.table("sos_alertas").update({
+        "notas": body.get("notas", ""),
     }).eq("id", alerta_id).execute()
     return result.data[0] if result.data else {}

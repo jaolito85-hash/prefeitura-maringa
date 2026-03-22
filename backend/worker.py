@@ -274,6 +274,20 @@ def criar_sessao(sb: Client, telefone: str, canal: str, etapa: str,
         logger.error(f"Erro ao criar sessao: {exc}")
 
 
+def atualizar_sessao(sb: Client, telefone: str, etapa: str, contexto: dict) -> None:
+    """Atualiza a etapa e contexto da sessao ativa sem mudar canal/registro_id."""
+    try:
+        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+        sb.table("sessoes_conversa").update({
+            "etapa": etapa,
+            "contexto": contexto,
+            "expira_em": expira_em,
+        }).eq("telefone", telefone).execute()
+        logger.info(f"Sessao atualizada: {telefone} → etapa={etapa}")
+    except Exception as exc:
+        logger.error(f"Erro ao atualizar sessao: {exc}")
+
+
 def finalizar_sessao(sb: Client, telefone: str) -> None:
     """Marca sessao como finalizada."""
     try:
@@ -851,32 +865,80 @@ def processar_sos(event: dict, sb: Client) -> None:
     telefone = event.get("telefone", "desconhecido")
     texto = event.get("texto", "")
     tem_loc = event.get("tem_localizacao", False)
+    classificacao = event.get("classificacao", {})
+    categoria_sos = classificacao.get("categoria", "emergencia")
 
-    if is_continuacao and tem_loc:
-        # Atualizou localizacao do SOS ativo
-        sessao = event.get("sessao", {})
-        registro_id = sessao.get("registro_id") if sessao else None
-        if registro_id:
-            sb.table("sos_alertas").update({
-                "latitude": event.get("latitude"),
-                "longitude": event.get("longitude"),
-            }).eq("id", registro_id).execute()
-            logger.warning(f"🚨 SOS localizacao atualizada para {telefone}")
-        enviar_whatsapp(telefone, "📍 Localização recebida. Equipe a caminho. Mantenha-se segura.")
-        finalizar_sessao(sb, telefone)
+    # ── CADASTRO — mulher quer se cadastrar no Mulher Segura ──
+    if categoria_sos == "cadastro" and not is_continuacao:
+        logger.info(f"🛡️ Iniciando cadastro Mulher Segura para {telefone}")
+        # Verifica se já tem cadastro
+        existente = sb.table("sos_cadastros").select("id").eq("telefone", telefone).execute()
+        if existente.data:
+            enviar_whatsapp(telefone,
+                "Você já está cadastrada no Programa Mulher Segura. 🛡️\n\n"
+                "Em caso de emergência, envie apenas um ponto (.) que acionamos ajuda imediata.\n\n"
+                "Se precisar atualizar seus dados, envie *atualizar cadastro*.")
+            return
+        placeholder_id = str(uuid.uuid4())
+        criar_sessao(sb, telefone, "sos_mulher", "cadastro_nome", placeholder_id,
+                     {"tipo": "cadastro", "push_name": event.get("push_name", "")})
+        enviar_whatsapp(telefone,
+            "🛡️ *Programa Mulher Segura — Prefeitura de Maringá*\n\n"
+            "Vamos fazer seu cadastro sigiloso. Seus dados ficam protegidos e só são acessados em caso de emergência.\n\n"
+            "📝 *Qual é o seu nome completo?*")
         return
 
+    # ── CONTINUAÇÃO de cadastro ──
     if is_continuacao:
+        sessao = event.get("sessao", {})
+        contexto = sessao.get("contexto") or {}
+        etapa = sessao.get("etapa", "")
+
+        # Continuação de cadastro
+        if contexto.get("tipo") == "cadastro":
+            _continuar_cadastro_sos(event, sb, sessao)
+            return
+
+        # Continuação de SOS ativo — recebeu localização
+        if tem_loc:
+            registro_id = sessao.get("registro_id") if sessao else None
+            if registro_id:
+                sb.table("sos_alertas").update({
+                    "latitude": event.get("latitude"),
+                    "longitude": event.get("longitude"),
+                }).eq("id", registro_id).execute()
+                logger.warning(f"🚨 SOS localizacao atualizada para {telefone}")
+            enviar_whatsapp(telefone, "📍 Localização recebida. Equipe a caminho. Mantenha-se segura.")
+            finalizar_sessao(sb, telefone)
+            return
+
         # Qualquer outra mensagem durante SOS ativo
         enviar_whatsapp(telefone, "✓ Recebido. Se puder, envie sua localização: 📎 > Localização")
         return
 
-    # ── NOVO SOS ──
+    # ── NOVO SOS — emergência ──
     logger.warning(f"🚨🚨🚨 PROCESSANDO SOS de {telefone}")
 
-    cad = sb.table("sos_cadastros").select("id").eq("telefone", telefone).execute()
+    # Buscar cadastro
+    cad = sb.table("sos_cadastros").select("id,nome").eq("telefone", telefone).execute()
     cadastro_id = cad.data[0]["id"] if cad.data else None
+    nome_cadastro = cad.data[0]["nome"] if cad.data else None
 
+    # DEDUPLICAR: se já tem alerta ativo do mesmo telefone, apenas atualizar
+    existente = sb.table("sos_alertas").select("id").eq("telefone", telefone) \
+        .in_("status", ["active", "attending"]).execute()
+    if existente.data:
+        registro_id = existente.data[0]["id"]
+        logger.warning(f"🚨 SOS duplicado de {telefone} — atualizando alerta {registro_id}")
+        update_data = {"codigo_usado": texto[:50] if texto else "sem_texto"}
+        if event.get("latitude"):
+            update_data["latitude"] = event.get("latitude")
+            update_data["longitude"] = event.get("longitude")
+        sb.table("sos_alertas").update(update_data).eq("id", registro_id).execute()
+        enviar_whatsapp(telefone, "✓ Recebido. Equipe já foi acionada. Mantenha-se segura.")
+        return
+
+    # Criar novo alerta
     res = sb.table("sos_alertas").insert({
         "telefone": telefone,
         "codigo_usado": texto[:50] if texto else "sem_texto",
@@ -891,7 +953,117 @@ def processar_sos(event: dict, sb: Client) -> None:
         logger.warning(f"🚨 SOS ALERTA CRIADO (id={registro_id})")
         criar_sessao(sb, telefone, "sos_mulher", "aguardando_localizacao", registro_id,
                      {"tipo": "emergencia"})
-        enviar_whatsapp(telefone, "✓ Recebido. Se puder, envie sua localização: 📎 > Localização")
+        if nome_cadastro:
+            enviar_whatsapp(telefone,
+                f"✓ {nome_cadastro}, recebemos seu alerta. Equipe acionada.\n"
+                "Se puder, envie sua localização: 📎 > Localização")
+        else:
+            enviar_whatsapp(telefone,
+                "✓ Recebido. Equipe acionada.\n"
+                "Se puder, envie sua localização: 📎 > Localização")
+
+
+def _continuar_cadastro_sos(event: dict, sb: Client, sessao: dict) -> None:
+    """Fluxo passo a passo do cadastro Mulher Segura."""
+    telefone = event.get("telefone", "desconhecido")
+    texto = (event.get("texto") or "").strip()
+    etapa = sessao.get("etapa", "")
+    contexto = sessao.get("contexto") or {}
+    registro_id = sessao.get("registro_id", "")
+
+    if etapa == "cadastro_nome":
+        if len(texto) < 3:
+            enviar_whatsapp(telefone, "Por favor, informe seu nome completo:")
+            return
+        contexto["nome"] = texto
+        atualizar_sessao(sb, telefone, "cadastro_endereco", contexto)
+        enviar_whatsapp(telefone,
+            f"Obrigada, {texto}. 🙏\n\n"
+            "📍 *Qual é o seu endereço completo?*\n"
+            "(Rua, número, bairro — ou envie sua localização pelo 📎)")
+        return
+
+    if etapa == "cadastro_endereco":
+        tem_loc = event.get("tem_localizacao", False)
+        if tem_loc:
+            lat = event.get("latitude")
+            lng = event.get("longitude")
+            contexto["endereco"] = f"GPS: {lat}, {lng}"
+        elif len(texto) < 5:
+            enviar_whatsapp(telefone, "Por favor, informe seu endereço completo (rua, número, bairro):")
+            return
+        else:
+            contexto["endereco"] = texto
+        atualizar_sessao(sb, telefone, "cadastro_agressor", contexto)
+        enviar_whatsapp(telefone,
+            "📋 *Qual o nome do agressor?*\n"
+            "(Se preferir não informar agora, envie *pular*)")
+        return
+
+    if etapa == "cadastro_agressor":
+        if texto.lower() in ("pular", "nao", "não", "n", "prefiro nao", "prefiro não"):
+            contexto["agressor"] = None
+        else:
+            contexto["agressor"] = texto
+        atualizar_sessao(sb, telefone, "cadastro_contato", contexto)
+        enviar_whatsapp(telefone,
+            "👤 *Qual o nome e telefone de uma pessoa de confiança?*\n"
+            "(Ex: Minha mãe Maria — 44999001234)\n"
+            "Essa pessoa será avisada em caso de emergência.\n\n"
+            "Se preferir não informar, envie *pular*")
+        return
+
+    if etapa == "cadastro_contato":
+        if texto.lower() in ("pular", "nao", "não", "n"):
+            contexto["contato_nome"] = None
+            contexto["contato_tel"] = None
+        else:
+            # Tenta separar nome e telefone
+            import re
+            nums = re.findall(r"\d{10,11}", texto.replace(" ", ""))
+            tel_contato = nums[0] if nums else None
+            # Remove telefone do texto pra pegar o nome
+            nome_contato = re.sub(r"[\d\-\(\)\+\s]{8,}", "", texto).strip(" -—–:")
+            if not nome_contato:
+                nome_contato = "Contato de confiança"
+            contexto["contato_nome"] = nome_contato
+            contexto["contato_tel"] = tel_contato
+
+        # ── SALVAR CADASTRO ──
+        try:
+            # Normaliza telefone (remove + se tiver)
+            tel_limpo = telefone.lstrip("+")
+            dados_cadastro = {
+                "telefone": telefone,
+                "nome": contexto.get("nome", ""),
+                "endereco": contexto.get("endereco"),
+                "agressor": contexto.get("agressor"),
+                "contato_confianca_nome": contexto.get("contato_nome"),
+                "contato_confianca_telefone": contexto.get("contato_tel"),
+                "ativo": True,
+            }
+            res = sb.table("sos_cadastros").insert(dados_cadastro).execute()
+            if res.data:
+                logger.info(f"🛡️ Cadastro Mulher Segura criado para {telefone}: {contexto.get('nome')}")
+                enviar_whatsapp(telefone,
+                    f"✅ *Cadastro realizado com sucesso, {contexto.get('nome')}!*\n\n"
+                    "🛡️ Você está protegida pelo Programa Mulher Segura da Prefeitura de Maringá.\n\n"
+                    "Em caso de emergência, envie apenas:\n"
+                    "• Um ponto: *.*\n"
+                    "• Ou a palavra: *socorro*\n\n"
+                    "A equipe será acionada imediatamente. 💜\n"
+                    "Seus dados são sigilosos e protegidos pela LGPD.")
+            else:
+                logger.error(f"Falha ao criar cadastro SOS para {telefone}")
+                enviar_whatsapp(telefone,
+                    "Ocorreu um erro ao salvar seu cadastro. Por favor, tente novamente mais tarde.")
+        except Exception as e:
+            logger.error(f"Erro ao criar cadastro SOS: {e}")
+            enviar_whatsapp(telefone,
+                "Ocorreu um erro ao salvar seu cadastro. Por favor, tente novamente mais tarde.")
+
+        finalizar_sessao(sb, telefone)
+        return
 
 
 # ══════════════════════════════════════════════════════════════
