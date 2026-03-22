@@ -32,7 +32,7 @@ async def historico_sos():
     """Retorna alertas resolvidos — para o histórico na sidebar."""
     sb = get_supabase()
     result = sb.table("sos_alertas").select(
-        "*, sos_cadastros(nome, endereco)"
+        "*, sos_cadastros(nome, endereco, referencia, agressor, contato_confianca_nome, contato_confianca_telefone, telefone)"
     ).eq("status", "resolved").order("resolvido_em", desc=True).limit(20).execute()
     return result.data or []
 

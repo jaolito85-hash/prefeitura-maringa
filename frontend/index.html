@@ -1427,6 +1427,7 @@ function SOSMulher(){
   const [loadingRoute,setLoadingRoute]=useState(false);
   const [notas,setNotas]=useState('');
   const [salvandoNotas,setSalvandoNotas]=useState(false);
+  const [histModal,setHistModal]=useState(null);
 
   // Atualiza notas quando muda a seleção
   useEffect(()=>{setNotas(sel?.notas||'');},[sel?.id]);
@@ -1502,14 +1503,19 @@ function SOSMulher(){
           {SOS_HIST.length>0&&(
             <>
               <div style={{height:1,background:'var(--border)',margin:'14px 14px 10px'}}/>
-              <div style={{padding:'0 16px 6px',fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px'}}>Histórico</div>
-              {SOS_HIST.slice(0,10).map(h=>(
-                <div key={h.id} style={{padding:'10px 16px',borderBottom:'1px solid var(--border)'}}>
+              <div style={{padding:'0 16px 6px',fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px'}}>Histórico ({SOS_HIST.length})</div>
+              {SOS_HIST.slice(0,15).map(h=>(
+                <div key={h.id} onClick={()=>setHistModal(h)} style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',cursor:'pointer',transition:'background .1s'}}
+                  onMouseEnter={e=>e.currentTarget.style.background='rgba(74,222,128,.04)'}
+                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span style={{fontSize:13,color:'var(--text-secondary)'}}>{h.sos_cadastros?.nome||h.telefone}</span>
+                    <span style={{fontSize:13,color:'var(--text)',fontWeight:500}}>{h.sos_cadastros?.nome||h.telefone}</span>
                     <span className="badge b-green" style={{fontSize:10}}>Resolvido</span>
                   </div>
-                  <div style={{fontSize:11,color:'var(--text-muted)',marginTop:3}}>{h.resolvido_em?ago(h.resolvido_em):'—'}</div>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:4}}>
+                    <span style={{fontSize:11,color:'var(--text-muted)'}}>{h.sos_cadastros?.endereco||'—'}</span>
+                    <span style={{fontSize:10,color:'var(--text-muted)',fontFamily:'var(--font-mono)'}}>{h.resolvido_em?new Date(h.resolvido_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):''}</span>
+                  </div>
                 </div>
               ))}
             </>
@@ -1517,6 +1523,109 @@ function SOSMulher(){
         </div>
       </div>
       {/* ── CONTEÚDO PRINCIPAL ── */}
+      {/* ── MODAL HISTÓRICO ── */}
+      {histModal&&(()=>{
+        const h=histModal;
+        const cad=h.sos_cadastros;
+        const criadoEm=h.created_at?new Date(h.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
+        const resolvidoEm=h.resolvido_em?new Date(h.resolvido_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
+        const duracao=(()=>{
+          if(!h.created_at||!h.resolvido_em) return '—';
+          const ms=new Date(h.resolvido_em)-new Date(h.created_at);
+          const min=Math.floor(ms/60000);
+          if(min<60) return `${min} min`;
+          const hrs=Math.floor(min/60);
+          return `${hrs}h ${min%60}min`;
+        })();
+        return(
+          <div className="modal-overlay" onClick={()=>setHistModal(null)}>
+            <div className="modal-box" onClick={e=>e.stopPropagation()} style={{maxWidth:620}}>
+              {/* Header */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 22px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{fontSize:18}}>🛡️</span>
+                  <div>
+                    <div style={{fontSize:16,fontWeight:700,color:'#fff'}}>{cad?.nome||h.telefone}</div>
+                    <span className="badge b-green" style={{fontSize:10,marginTop:4}}>Resolvido</span>
+                  </div>
+                </div>
+                <button onClick={()=>setHistModal(null)} style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',cursor:'pointer',borderRadius:8,border:'none',background:'none',fontSize:18}}>✕</button>
+              </div>
+              {/* Body */}
+              <div className="scrollable" style={{flex:1,padding:'20px 22px',minHeight:0}}>
+                {/* Timeline */}
+                <div style={{marginBottom:22}}>
+                  <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:12}}>Linha do Tempo</div>
+                  <div style={{position:'relative',paddingLeft:24}}>
+                    <div style={{position:'absolute',left:7,top:6,bottom:6,width:2,background:'var(--border)'}}/>
+                    {[
+                      {icon:'🚨',color:'#dc2626',label:'Alerta Recebido',detail:`Código: "${h.codigo_usado||'—'}"`,time:criadoEm},
+                      h.atendido_por&&{icon:'🔔',color:'#fbbf24',label:'Atendimento Aceito',detail:`Operador: ${h.atendido_por}`,time:''},
+                      h.latitude&&{icon:'📍',color:'#3b82f6',label:'Localização Recebida',detail:`${Number(h.latitude).toFixed(5)}, ${Number(h.longitude).toFixed(5)}`,time:''},
+                      {icon:'✅',color:'#4ade80',label:'Caso Resolvido',detail:`Duração total: ${duracao}`,time:resolvidoEm},
+                    ].filter(Boolean).map((ev,i)=>(
+                      <div key={i} style={{display:'flex',gap:12,marginBottom:16,position:'relative'}}>
+                        <div style={{width:16,height:16,borderRadius:'50%',background:ev.color,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,flexShrink:0,zIndex:1,border:'2px solid var(--bg)'}}/>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{ev.label}</div>
+                          <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>{ev.detail}</div>
+                          {ev.time&&<div style={{fontSize:11,color:'var(--text-muted)',fontFamily:'var(--font-mono)',marginTop:2}}>{ev.time}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Dados da vítima */}
+                {cad&&(
+                  <div style={{marginBottom:22}}>
+                    <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Dados da Vítima</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                      {[
+                        ['Nome',cad.nome],
+                        ['Telefone',h.telefone],
+                        ['Endereço',cad.endereco],
+                        ['Referência',cad.referencia],
+                        ['Agressor',cad.agressor],
+                        cad.contato_confianca_nome&&['Contato Confiança',`${cad.contato_confianca_nome} — ${cad.contato_confianca_telefone||''}`],
+                      ].filter(Boolean).filter(([,v])=>v).map(([l,v])=>(
+                        <div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px'}}>
+                          <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:3}}>{l}</div>
+                          <div style={{fontSize:13,color:l==='Agressor'?'#f87171':'var(--text)',fontWeight:500,wordBreak:'break-word'}}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Notas */}
+                {h.notas&&(
+                  <div style={{marginBottom:22}}>
+                    <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Notas do Operador</div>
+                    <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:'14px 16px',fontSize:13,color:'var(--text)',lineHeight:1.7,whiteSpace:'pre-wrap'}}>{h.notas}</div>
+                  </div>
+                )}
+                {/* Sem cadastro */}
+                {!cad&&(
+                  <div style={{background:'rgba(251,191,36,.04)',border:'1px solid rgba(251,191,36,.15)',borderRadius:8,padding:'14px 16px',marginBottom:22}}>
+                    <div style={{fontSize:13,color:'#fbbf24',fontWeight:500}}>⚠️ Vítima não cadastrada no programa</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>Telefone: {h.telefone}</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Esta pessoa não possui cadastro no Mulher Segura. Os dados como nome, endereço e agressor não estão disponíveis.</div>
+                  </div>
+                )}
+                {/* Localização */}
+                {h.latitude&&(
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Localização Registrada</div>
+                    <a href={`https://www.google.com/maps?q=${h.latitude},${h.longitude}`} target="_blank" rel="noopener"
+                      style={{display:'flex',alignItems:'center',gap:8,background:'rgba(59,130,246,.06)',border:'1px solid rgba(59,130,246,.15)',borderRadius:8,padding:'12px 16px',textDecoration:'none',color:'#60a5fa',fontSize:13,fontWeight:500}}>
+                      📍 Ver no Google Maps — {Number(h.latitude).toFixed(5)}, {Number(h.longitude).toFixed(5)}
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {sel?(
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
           {/* Cabeçalho da vítima */}
