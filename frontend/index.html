@@ -453,7 +453,7 @@ function Logo(){
 }
 
 /* ─── MAPBOX (100% NATIVE LAYERS — circle + pulse) ───────────── */
-function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=null}){
+function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=null,heatmapData=null,heatmapMode=false}){
   const mapRef=useRef(null);
   const containerRef=useRef(null);
   const popupRef=useRef(null);
@@ -574,6 +574,23 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
         'circle-opacity':0.9,
       }});
 
+      // ── Heatmap source + layers ──
+      map.addSource('heatmap-data',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      map.addLayer({id:'heatmap-layer',type:'heatmap',source:'heatmap-data',maxzoom:16,paint:{
+        'heatmap-weight':['interpolate',['linear'],['get','weight'],0,0,1,1],
+        'heatmap-intensity':['interpolate',['linear'],['zoom'],10,1,16,3],
+        'heatmap-color':['interpolate',['linear'],['heatmap-density'],
+          0,'rgba(0,0,0,0)',
+          0.1,'rgba(5,150,105,0.2)',
+          0.3,'rgba(59,130,246,0.4)',
+          0.5,'rgba(217,119,6,0.6)',
+          0.7,'rgba(239,68,68,0.7)',
+          1,'rgba(220,38,38,0.9)',
+        ],
+        'heatmap-radius':['interpolate',['linear'],['zoom'],10,20,16,40],
+        'heatmap-opacity':0,
+      }},fullscreen?'inc-pulse1':undefined);
+
       // ══════ Animação Pulse (Dupla Onda + triggerRepaint) ══════
       let t=0;
       function animatePulse(){
@@ -673,6 +690,37 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
     };
     if(readyRef.current){apply();}else{map.once('load',apply);}
   },[showBases]);
+
+  // Update heatmap data
+  useEffect(()=>{
+    const map=mapRef.current;if(!map) return;
+    const apply=()=>{
+      const src=map.getSource('heatmap-data');if(!src) return;
+      if(heatmapData&&heatmapData.length>0){
+        src.setData({type:'FeatureCollection',features:heatmapData.filter(i=>i.lat&&i.lng).map((item,idx)=>({
+          type:'Feature',geometry:{type:'Point',coordinates:[item.lng,item.lat]},
+          properties:{weight:item.weight||1},
+        }))});
+      }else{src.setData({type:'FeatureCollection',features:[]});}
+    };
+    if(readyRef.current){apply();}else{map.once('load',apply);}
+  },[heatmapData]);
+
+  // Toggle heatmap vs markers visibility
+  useEffect(()=>{
+    const map=mapRef.current;if(!map) return;
+    const apply=()=>{
+      try{
+        const heatOpacity=heatmapMode?0.85:0;
+        const markerOpacity=heatmapMode?0:1;
+        map.setPaintProperty('heatmap-layer','heatmap-opacity',heatOpacity);
+        ['inc-pulse1','inc-pulse2','inc-glow','inc-main','inc-dot'].forEach(l=>{
+          try{map.setLayoutProperty(l,'visibility',heatmapMode?'none':'visible');}catch(e){}
+        });
+      }catch(e){}
+    };
+    if(readyRef.current){apply();}else{map.once('load',apply);}
+  },[heatmapMode]);
 
   // Resize
   useEffect(()=>{if(mapRef.current) setTimeout(()=>mapRef.current.resize(),150);});
@@ -1016,26 +1064,87 @@ function Central({sos}){
 
 /* ─── MAPA ─────────────────────────────────────────────────────── */
 function Mapa(){
+  const [modo,setModo]=useState('markers');
   const [f,setF]=useState('todos');
+  const [catHeat,setCatHeat]=useState('todos');
+
+  const isHeat=modo==='heatmap';
+
+  // Categorias disponíveis para heatmap
+  const HEAT_CATS=[
+    {id:'todos',label:'Todas',icon:'🌐'},
+    {id:'pichacao',label:'Pichação',icon:'🖊️'},
+    {id:'trafico_drogas',label:'Tráfico',icon:'💊'},
+    {id:'descarte_irregular',label:'Descarte Lixo',icon:'🗑️'},
+    {id:'furto_fios',label:'Furto Fios',icon:'⚡'},
+    {id:'depredacao',label:'Depredação',icon:'🔨'},
+    {id:'queda_arvore',label:'Queda Árvore',icon:'🌳'},
+    {id:'enchente_alagamento',label:'Enchente',icon:'🌊'},
+    {id:'buraco_via',label:'Buraco',icon:'🕳️'},
+    {id:'iluminacao_publica',label:'Iluminação',icon:'💡'},
+    {id:'incendio',label:'Incêndio',icon:'🔥'},
+  ];
+
+  // Markers: ocorrências filtradas por status
   const items=OC.filter(o=>f==='todos'||o.status===f);
-  const btns=[['todos','Todos'],['aberto','Abertos'],['em_atendimento','Em atendimento'],['resolvido','Resolvidos']];
+  const statusBtns=[['todos','Todos'],['aberto','Abertos'],['em_atendimento','Atendimento'],['resolvido','Resolvidos']];
+
+  // Heatmap: combina denúncias + ocorrências, filtra por categoria
+  const allPoints=[
+    ...DEN.filter(d=>d.latitude&&d.longitude).map(d=>({lat:Number(d.latitude),lng:Number(d.longitude),categoria:d.categoria,weight:1.2})),
+    ...OC.filter(o=>o.lat&&o.lng).map(o=>({lat:o.lat,lng:o.lng,categoria:o.categoria,weight:1})),
+    ...SOS.filter(s=>s.latitude&&s.longitude).map(s=>({lat:Number(s.latitude),lng:Number(s.longitude),categoria:'sos',weight:1.5})),
+  ];
+  const heatPoints=catHeat==='todos'?allPoints:allPoints.filter(p=>p.categoria===catHeat);
+  const totalPontos=heatPoints.length;
+
   return(
     <div style={{position:'relative',height:'100%'}}>
-      <div style={{position:'absolute',top:16,left:16,zIndex:10,display:'flex',gap:6}}>
-        {btns.map(([k,l])=>(
-          <button key={k} onClick={()=>setF(k)} className="btn" style={{
-            background:f===k?'var(--accent)':'rgba(18,18,18,0.9)',
-            border:`1px solid ${f===k?'var(--accent)':'var(--border)'}`,
-            color:f===k?'#fff':'var(--text-secondary)',
-            backdropFilter:'blur(12px)',fontSize:13,
-          }}>{l}</button>
-        ))}
+      {/* ── Barra superior: toggle modo + filtros ── */}
+      <div style={{position:'absolute',top:16,left:16,zIndex:10,display:'flex',flexDirection:'column',gap:8}}>
+        {/* Toggle markers / heatmap */}
+        <div style={{display:'flex',gap:4,background:'rgba(18,18,18,0.92)',backdropFilter:'blur(12px)',border:'1px solid var(--border)',borderRadius:8,padding:4}}>
+          <button onClick={()=>setModo('markers')} className="btn" style={{
+            background:!isHeat?'var(--accent)':'transparent',border:'none',
+            color:!isHeat?'#fff':'var(--text-secondary)',fontSize:12,padding:'6px 12px',
+          }}>📍 Markers</button>
+          <button onClick={()=>setModo('heatmap')} className="btn" style={{
+            background:isHeat?'#dc2626':'transparent',border:'none',
+            color:isHeat?'#fff':'var(--text-secondary)',fontSize:12,padding:'6px 12px',
+          }}>🔥 Heatmap</button>
+        </div>
+        {/* Filtros contextuais */}
+        {!isHeat?(
+          <div style={{display:'flex',gap:4}}>
+            {statusBtns.map(([k,l])=>(
+              <button key={k} onClick={()=>setF(k)} className="btn" style={{
+                background:f===k?'var(--accent)':'rgba(18,18,18,0.9)',
+                border:`1px solid ${f===k?'var(--accent)':'var(--border)'}`,
+                color:f===k?'#fff':'var(--text-secondary)',
+                backdropFilter:'blur(12px)',fontSize:12,padding:'5px 10px',
+              }}>{l}</button>
+            ))}
+          </div>
+        ):(
+          <div style={{display:'flex',flexWrap:'wrap',gap:4,maxWidth:480}}>
+            {HEAT_CATS.map(c=>(
+              <button key={c.id} onClick={()=>setCatHeat(c.id)} className="btn" style={{
+                background:catHeat===c.id?'rgba(220,38,38,0.8)':'rgba(18,18,18,0.9)',
+                border:`1px solid ${catHeat===c.id?'#dc2626':'var(--border)'}`,
+                color:catHeat===c.id?'#fff':'var(--text-secondary)',
+                backdropFilter:'blur(12px)',fontSize:11,padding:'4px 9px',
+              }}>{c.icon} {c.label}</button>
+            ))}
+          </div>
+        )}
       </div>
-      <div style={{position:'absolute',top:16,right:16,zIndex:10,background:'rgba(18,18,18,0.9)',backdropFilter:'blur(12px)',border:'1px solid var(--border)',borderRadius:8,padding:'14px 20px',textAlign:'center'}}>
-        <div className="mono" style={{fontSize:28,fontWeight:600,color:'#fff'}}>{items.length}</div>
-        <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px',marginTop:3}}>Ocorrências</div>
+      {/* ── Contador ── */}
+      <div style={{position:'absolute',top:16,right:16,zIndex:10,background:'rgba(18,18,18,0.92)',backdropFilter:'blur(12px)',border:'1px solid var(--border)',borderRadius:8,padding:'14px 20px',textAlign:'center'}}>
+        <div className="mono" style={{fontSize:28,fontWeight:600,color:isHeat?'#f87171':'#fff'}}>{isHeat?totalPontos:items.length}</div>
+        <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1px',marginTop:3}}>{isHeat?'Pontos no Mapa':'Ocorrências'}</div>
+        {isHeat&&catHeat!=='todos'&&<div style={{fontSize:11,color:'#f87171',marginTop:4,fontWeight:500}}>{HEAT_CATS.find(c=>c.id===catHeat)?.icon} {HEAT_CATS.find(c=>c.id===catHeat)?.label}</div>}
       </div>
-      <MapboxMap items={items} fullscreen={true}/>
+      <MapboxMap items={isHeat?[]:items} fullscreen={true} heatmapData={isHeat?heatPoints:null} heatmapMode={isHeat}/>
     </div>
   );
 }
