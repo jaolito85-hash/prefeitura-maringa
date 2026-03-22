@@ -1210,49 +1210,54 @@ function SOSMulher(){
       </div>
       {sel?(
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-          <div style={{flex:1,padding:20,overflowY:'auto',minHeight:0}}>
-            <div style={{maxWidth:700}}>
-              <div style={{background:'rgba(220,38,38,.04)',border:'1px solid rgba(220,38,38,.18)',borderRadius:10,padding:24,marginBottom:20}}>
-                <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:20}}>
-                  <div style={{width:50,height:50,borderRadius:12,background:'rgba(220,38,38,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🛡️</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:20,fontWeight:700,color:'#fff'}}>{sel.sos_cadastros?.nome||'Não identificada'}</div>
-                    <div style={{fontSize:13,color:'var(--text-secondary)',marginTop:3}}>Alerta ativo · {ago(sel.created_at)}</div>
-                  </div>
-                  <div style={{display:'flex',gap:8}}>
-                    <button className="btn btn-primary">📞 Ligar</button>
-                    <button className="btn btn-danger">Resolver</button>
-                    <button className="btn" style={{background:'var(--accent)',color:'#fff',border:'none'}}
-                      onClick={()=>handleTraceRoute(sel)}
-                      disabled={loadingRoute}>
-                      {loadingRoute?'Calculando...':'🗺️ Rota'}
-                    </button>
-                  </div>
+          {/* Info da vítima — cabeçalho fixo, não scrolla */}
+          <div style={{flexShrink:0,padding:'16px 20px',borderBottom:'1px solid var(--border)',background:'var(--surface)'}}>
+            <div style={{background:'rgba(220,38,38,.04)',border:'1px solid rgba(220,38,38,.18)',borderRadius:10,padding:20}}>
+              <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:16,flexWrap:'wrap'}}>
+                <div style={{width:44,height:44,borderRadius:10,background:'rgba(220,38,38,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>🛡️</div>
+                <div style={{flex:1,minWidth:180}}>
+                  <div style={{fontSize:18,fontWeight:700,color:'#fff'}}>{sel.sos_cadastros?.nome||'Não identificada'}</div>
+                  <div style={{fontSize:12,color:'var(--text-secondary)',marginTop:2}}>Alerta ativo · {ago(sel.created_at)}</div>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,fontSize:14}}>
-                  {[['Telefone',sel.telefone],['Código',sel.codigo_usado],['Endereço',sel.sos_cadastros?.endereco],['Agressor',sel.sos_cadastros?.agressor||'Não informado']].map(([l,v])=>(
-                    <div key={l}><div style={{color:'var(--text-muted)',fontSize:11,fontWeight:600,letterSpacing:'.5px',marginBottom:4,textTransform:'uppercase'}}>{l}</div><div style={{color:'var(--text)',fontWeight:500}}>{v}</div></div>
-                  ))}
+                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                  <button className="btn btn-primary" style={{fontSize:13,padding:'7px 14px'}}>📞 Ligar</button>
+                  <button className="btn btn-danger" style={{fontSize:13,padding:'7px 14px'}}>Resolver</button>
+                  <button className="btn" style={{background:'var(--accent)',color:'#fff',border:'none',fontSize:13,padding:'7px 14px'}}
+                    onClick={()=>handleTraceRoute(sel)}
+                    disabled={loadingRoute}>
+                    {loadingRoute?'Calculando...':'🗺️ Rota'}
+                  </button>
                 </div>
               </div>
-              {sel.sos_cadastros?.contato_confianca_nome&&(
-                <div className="card" style={{padding:18,marginBottom:16}}>
-                  <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:12}}>Contato de Confiança</div>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div><div style={{fontWeight:600,fontSize:14,color:'#fff'}}>{sel.sos_cadastros.contato_confianca_nome}</div><div style={{fontSize:13,color:'var(--text-muted)',marginTop:3}}>{sel.sos_cadastros.contato_confianca_telefone}</div></div>
-                    <button className="btn btn-outline">📞 Notificar</button>
-                  </div>
-                </div>
-              )}
-              <div className="card" style={{padding:18}}>
-                <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:12}}>Notas do Operador</div>
-                <textarea placeholder="Adicionar nota sobre o atendimento..." style={{width:'100%',minHeight:100,fontSize:14,lineHeight:1.6}}/>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,fontSize:13}}>
+                {[['Telefone',sel.telefone],['Código',sel.codigo_usado],['Endereço',sel.sos_cadastros?.endereco||'Não informado'],['Agressor',sel.sos_cadastros?.agressor||'Não informado']].map(([l,v])=>(
+                  <div key={l} style={{background:'rgba(0,0,0,.2)',borderRadius:8,padding:'10px 12px'}}><div style={{color:'var(--text-muted)',fontSize:10,fontWeight:600,letterSpacing:'.5px',marginBottom:4,textTransform:'uppercase'}}>{l}</div><div style={{color:'var(--text)',fontWeight:500,fontSize:13,wordBreak:'break-word'}}>{v}</div></div>
+                ))}
               </div>
             </div>
           </div>
-          <div style={{height:'45%',minHeight:220,flexShrink:0,borderTop:'1px solid var(--border)',position:'relative'}}>
-            <MapboxMap items={[{...sel,severidade:'critica',titulo:'SOS: '+sel.sos_cadastros?.nome}]} showBases={true} route={routeData}/>
-            {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
+          {/* Corpo: mapa (esquerda) + painel lateral (direita) */}
+          <div style={{flex:1,display:'flex',overflow:'hidden',minHeight:0}}>
+            {/* Mapa */}
+            <div style={{flex:1,position:'relative'}}>
+              <MapboxMap items={[{...sel,severidade:'critica',titulo:'SOS: '+sel.sos_cadastros?.nome}]} showBases={true} route={routeData}/>
+              {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
+            </div>
+            {/* Painel lateral */}
+            <div style={{width:280,flexShrink:0,borderLeft:'1px solid var(--border)',overflowY:'auto',background:'var(--surface)',display:'flex',flexDirection:'column',gap:12,padding:14}}>
+              {sel.sos_cadastros?.contato_confianca_nome&&(
+                <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:14}}>
+                  <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Contato de Confiança</div>
+                  <div style={{fontWeight:600,fontSize:13,color:'#fff'}}>{sel.sos_cadastros.contato_confianca_nome}</div>
+                  <div style={{fontSize:12,color:'var(--text-muted)',marginTop:3,marginBottom:10}}>{sel.sos_cadastros.contato_confianca_telefone}</div>
+                  <button className="btn btn-outline" style={{width:'100%',justifyContent:'center',fontSize:12,padding:'6px 10px'}}>📞 Notificar</button>
+                </div>
+              )}
+              <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:14,flex:1,display:'flex',flexDirection:'column'}}>
+                <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Notas do Operador</div>
+                <textarea placeholder="Adicionar nota sobre o atendimento..." style={{width:'100%',flex:1,minHeight:80,fontSize:13,lineHeight:1.6,background:'rgba(0,0,0,.2)',border:'1px solid var(--border)',borderRadius:6,padding:10,color:'var(--text)',resize:'vertical'}}/>
+              </div>
+            </div>
           </div>
         </div>
       ):(
