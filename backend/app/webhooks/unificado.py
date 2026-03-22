@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -175,7 +176,21 @@ async def receber_webhook_unificado(
         }, is_continuacao=False)
         return _enfileirar(event, "queue:sos")
 
-    # ── 2. CHECAR SESSAO ATIVA ──
+    # ── 2. CONSULTA DE PROTOCOLO — detecta MGA-XXXX-XXXXX antes da IA ──
+    protocolo_match = re.search(r"MGA-\d{4}-\d{4,6}", texto.upper()) if texto else None
+    if protocolo_match and not _buscar_sessao_ativa(telefone):
+        # Cidadão enviou um protocolo e NÃO tem sessão ativa → é uma consulta
+        protocolo_num = protocolo_match.group(0)
+        logger.info(f"🔍 Consulta de protocolo detectada: {protocolo_num} de {telefone}")
+
+        event = _montar_evento(dados, request, classificacao={
+            "canal": "consulta_protocolo",
+            "categoria": "consulta",
+            "protocolo_consulta": protocolo_num,
+        }, is_continuacao=False)
+        return _enfileirar(event, "queue:consultas")
+
+    # ── 3. CHECAR SESSAO ATIVA ──
     sessao = _buscar_sessao_ativa(telefone)
 
     if sessao:
@@ -197,7 +212,7 @@ async def receber_webhook_unificado(
         }, is_continuacao=True, sessao=sessao)
         return _enfileirar(event, fila)
 
-    # ── 3. MENSAGEM NOVA — classificar com IA ──
+    # ── 4. MENSAGEM NOVA — classificar com IA ──
     classificacao = await classificar_mensagem(
         texto=texto or "[Mídia sem legenda]",
         telefone=telefone,

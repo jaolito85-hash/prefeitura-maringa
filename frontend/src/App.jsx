@@ -25,6 +25,36 @@ export default function App() {
   const [ultimoSOS, setUltimoSOS] = useState(null)
   const [hora, setHora] = useState(new Date())
 
+  // ── Busca por protocolo ──
+  const [buscaProtocolo, setBuscaProtocolo] = useState('')
+  const [resultadoBusca, setResultadoBusca] = useState(null)
+  const [buscando, setBuscando] = useState(false)
+  const [erroBusca, setErroBusca] = useState(null)
+  const [mostrarResultado, setMostrarResultado] = useState(false)
+
+  const buscarProtocolo = async () => {
+    const termo = buscaProtocolo.trim().toUpperCase()
+    if (!termo) return
+
+    setBuscando(true)
+    setErroBusca(null)
+    setResultadoBusca(null)
+    setMostrarResultado(true)
+
+    try {
+      const data = await apiGet(`/api/protocolo/${encodeURIComponent(termo)}`)
+      setResultadoBusca(data)
+    } catch (error) {
+      setErroBusca(error.message?.includes('404')
+        ? `Protocolo ${termo} não encontrado.`
+        : error.message?.includes('400')
+        ? 'Formato inválido. Use MGA-2026-XXXXX.'
+        : 'Erro ao buscar. Tente novamente.')
+    } finally {
+      setBuscando(false)
+    }
+  }
+
   useEffect(() => {
     const timer = setInterval(() => setHora(new Date()), 1000)
     return () => clearInterval(timer)
@@ -75,6 +105,28 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-6">
+          {/* Barra de busca por protocolo */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Buscar protocolo (MGA-2026-...)"
+                value={buscaProtocolo}
+                onChange={(e) => setBuscaProtocolo(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && buscarProtocolo()}
+                className="w-64 px-3 py-1.5 pl-8 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">🔍</span>
+            </div>
+            <button
+              onClick={buscarProtocolo}
+              disabled={buscando || !buscaProtocolo.trim()}
+              className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {buscando ? '...' : 'Buscar'}
+            </button>
+          </div>
+
           <div className="flex items-center gap-2 text-sm">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
             <span className="text-green-400">Online</span>
@@ -160,6 +212,130 @@ export default function App() {
           {abaAtiva === 'recompensas' && <Recompensas />}
         </main>
       </div>
+
+      {/* ═══ Modal resultado da busca por protocolo ═══ */}
+      {mostrarResultado && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setMostrarResultado(false)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-white">Resultado da Busca</h2>
+              <button onClick={() => setMostrarResultado(false)} className="text-gray-400 hover:text-white text-xl">&times;</button>
+            </div>
+
+            {buscando && (
+              <div className="text-center py-8 text-gray-400">
+                <div className="animate-spin text-3xl mb-2">🔍</div>
+                <p>Buscando protocolo...</p>
+              </div>
+            )}
+
+            {erroBusca && (
+              <div className="bg-red-900/30 border border-red-800 rounded-lg p-4 text-center">
+                <p className="text-red-300">{erroBusca}</p>
+              </div>
+            )}
+
+            {resultadoBusca && (
+              <div>
+                {/* Badge do canal */}
+                <div className="flex items-center gap-3 mb-4">
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                    resultadoBusca.canal === 'denuncia' ? 'bg-yellow-600 text-white' :
+                    resultadoBusca.canal === 'ocorrencia' ? 'bg-orange-600 text-white' :
+                    resultadoBusca.canal === 'feedback' ? 'bg-blue-600 text-white' :
+                    resultadoBusca.canal === 'sos' ? 'bg-red-600 text-white' :
+                    'bg-gray-600 text-white'
+                  }`}>
+                    {resultadoBusca.canal === 'denuncia' ? '📋 Denúncia' :
+                     resultadoBusca.canal === 'ocorrencia' ? '🚨 Ocorrência' :
+                     resultadoBusca.canal === 'feedback' ? '💬 Feedback' :
+                     resultadoBusca.canal === 'sos' ? '🆘 SOS' :
+                     resultadoBusca.canal}
+                  </span>
+                  <span className="text-gray-400 text-sm font-mono">{resultadoBusca.protocolo}</span>
+                </div>
+
+                {/* Dados do registro */}
+                <div className="space-y-2 text-sm">
+                  {resultadoBusca.dados?.status && (
+                    <div className="flex justify-between py-2 border-b border-gray-800">
+                      <span className="text-gray-400">Status</span>
+                      <span className={`font-semibold ${
+                        resultadoBusca.dados.status === 'resolvido' || resultadoBusca.dados.status === 'resolved' ? 'text-green-400' :
+                        resultadoBusca.dados.status === 'active' ? 'text-red-400' :
+                        resultadoBusca.dados.status === 'novo' ? 'text-blue-400' :
+                        'text-yellow-400'
+                      }`}>
+                        {resultadoBusca.dados.status.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  {resultadoBusca.dados?.categoria && (
+                    <div className="flex justify-between py-2 border-b border-gray-800">
+                      <span className="text-gray-400">Categoria</span>
+                      <span className="text-white">{resultadoBusca.dados.categoria.replace('_', ' ')}</span>
+                    </div>
+                  )}
+                  {resultadoBusca.dados?.nome && (
+                    <div className="flex justify-between py-2 border-b border-gray-800">
+                      <span className="text-gray-400">Cidadão</span>
+                      <span className="text-white">{resultadoBusca.dados.nome}</span>
+                    </div>
+                  )}
+                  {resultadoBusca.dados?.bairro && (
+                    <div className="flex justify-between py-2 border-b border-gray-800">
+                      <span className="text-gray-400">Bairro</span>
+                      <span className="text-white">{resultadoBusca.dados.bairro}</span>
+                    </div>
+                  )}
+                  {resultadoBusca.dados?.endereco && (
+                    <div className="flex justify-between py-2 border-b border-gray-800">
+                      <span className="text-gray-400">Endereço</span>
+                      <span className="text-white">{resultadoBusca.dados.endereco}</span>
+                    </div>
+                  )}
+                  {resultadoBusca.dados?.mensagem && (
+                    <div className="py-2 border-b border-gray-800">
+                      <span className="text-gray-400 block mb-1">Mensagem</span>
+                      <span className="text-white text-xs leading-relaxed">{resultadoBusca.dados.mensagem}</span>
+                    </div>
+                  )}
+                  {resultadoBusca.dados?.cidadania_ativa && (
+                    <div className="flex justify-between py-2 border-b border-gray-800">
+                      <span className="text-gray-400">Cidadão Ativo</span>
+                      <span className="text-green-400 font-semibold">SIM - Elegível a recompensa</span>
+                    </div>
+                  )}
+                  {resultadoBusca.dados?.created_at && (
+                    <div className="flex justify-between py-2">
+                      <span className="text-gray-400">Data</span>
+                      <span className="text-white">{new Date(resultadoBusca.dados.created_at).toLocaleString('pt-BR')}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Botão para ir à aba correspondente */}
+                <button
+                  onClick={() => {
+                    const abaMap = { denuncia: 'denuncias', ocorrencia: 'ocorrencias', feedback: 'central', sos: 'sos' }
+                    setAbaAtiva(abaMap[resultadoBusca.canal] || 'central')
+                    setMostrarResultado(false)
+                  }}
+                  className="w-full mt-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all"
+                >
+                  Ir para aba {
+                    resultadoBusca.canal === 'denuncia' ? 'Denúncias' :
+                    resultadoBusca.canal === 'ocorrencia' ? 'Ocorrências' :
+                    resultadoBusca.canal === 'feedback' ? 'Central' :
+                    resultadoBusca.canal === 'sos' ? 'SOS Mulher' :
+                    'Central'
+                  }
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

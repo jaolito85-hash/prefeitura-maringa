@@ -42,7 +42,7 @@ MAX_FOTO_SIZE_BYTES = 5 * 1024 * 1024     # 5MB
 STORAGE_BUCKET = "evidencias"
 
 # SOS primeiro — prioridade maxima
-QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:feedbacks"]
+QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:feedbacks", "queue:consultas"]
 
 # ── Programa Cidadão Ativo ──
 # Categorias de denúncia elegíveis pra recompensa (Decreto 291/2026)
@@ -838,11 +838,153 @@ def processar_feedback(event: dict, sb: Client) -> None:
         # Feedback nao cria sessao — mensagem unica
 
 
+# ══════════════════════════════════════════════════════════════
+# PROCESSADOR — CONSULTA DE PROTOCOLO (via WhatsApp)
+# ══════════════════════════════════════════════════════════════
+
+def processar_consulta_protocolo(event: dict, sb: Client) -> None:
+    """
+    Cidadão enviou um número de protocolo pelo WhatsApp.
+    Busca em todas as tabelas e responde com o status amigável.
+    """
+    telefone = event.get("telefone", "desconhecido")
+    classificacao = event.get("classificacao", {})
+    protocolo = classificacao.get("protocolo_consulta", "").strip().upper()
+
+    if not protocolo:
+        enviar_whatsapp(telefone, "❌ Não consegui identificar o número do protocolo. "
+                        "O formato correto é MGA-2026-XXXXX.")
+        return
+
+    logger.info(f"🔍 Consulta protocolo: {protocolo} de {telefone}")
+
+    # ── Busca em denúncias ──
+    try:
+        result = sb.table("denuncias").select(
+            "protocolo, categoria, status, cidadania_ativa, created_at"
+        ).eq("protocolo", protocolo).limit(1).execute()
+
+        if result.data:
+            d = result.data[0]
+            msg = f"📋 *Denúncia {d['protocolo']}*\n"
+            msg += f"Categoria: {(d.get('categoria') or 'não classificada').replace('_', ' ').title()}\n\n"
+
+            status_map = {
+                "novo": "📋 *Recebida* — Sua denúncia foi registrada e aguarda análise.",
+                "em_analise": "🔍 *Em análise* — A equipe está verificando sua denúncia.",
+                "em_campo": "🚔 *Em campo* — Agentes foram ao local verificar.",
+                "resolvido": "✅ *Resolvida* — Sua denúncia foi tratada. Obrigado!",
+                "arquivado": "📁 *Arquivada* — Denúncia arquivada após análise.",
+            }
+            msg += status_map.get(d["status"], f"Status: {d['status']}")
+
+            if d.get("cidadania_ativa"):
+                # Buscar status da recompensa
+                try:
+                    rec = sb.table("recompensas").select(
+                        "status, valor"
+                    ).eq("protocolo", protocolo).limit(1).execute()
+                    if rec.data:
+                        r = rec.data[0]
+                        rec_status_map = {
+                            "pendente_validacao": "⏳ Aguardando validação pela equipe",
+                            "validada": "✅ Validada! Pagamento sendo processado",
+                            "aguardando_pagamento": "💳 Aprovada! Aguardando liberação do pagamento",
+                            "paga": f"💰 *PAGA!* R$ {r['valor']:.2f} enviado via PIX",
+                            "rejeitada": "❌ Não aprovada para recompensa",
+                        }
+                        msg += f"\n\n💰 *Cidadão Ativo:*\n{rec_status_map.get(r['status'], r['status'])}"
+                except Exception:
+                    pass
+
+            enviar_whatsapp(telefone, msg)
+            return
+    except Exception as exc:
+        logger.error(f"Erro busca denúncia: {exc}")
+
+    # ── Busca em ocorrências ──
+    try:
+        result = sb.table("ocorrencias").select(
+            "protocolo, categoria, status, severidade, total_relatos, created_at"
+        ).eq("protocolo", protocolo).limit(1).execute()
+
+        if result.data:
+            o = result.data[0]
+            msg = f"🚨 *Ocorrência {o['protocolo']}*\n"
+            msg += f"Categoria: {(o.get('categoria') or '').replace('_', ' ').title()}\n"
+            msg += f"Severidade: {'⚠️' * min(o.get('severidade', 1), 5)}\n"
+            msg += f"Relatos: {o.get('total_relatos', 1)} pessoa(s)\n\n"
+
+            status_map = {
+                "ativo": "🟡 *Ativa* — Em monitoramento.",
+                "em_atendimento": "🚔 *Em atendimento* — Equipe no local.",
+                "resolvido": "✅ *Resolvida* — Situação normalizada.",
+            }
+            msg += status_map.get(o["status"], f"Status: {o['status']}")
+            enviar_whatsapp(telefone, msg)
+            return
+    except Exception as exc:
+        logger.error(f"Erro busca ocorrência: {exc}")
+
+    # ── Busca em feedbacks ──
+    try:
+        result = sb.table("feedbacks").select(
+            "protocolo, categoria, status, departamento, created_at"
+        ).eq("protocolo", protocolo).limit(1).execute()
+
+        if result.data:
+            f = result.data[0]
+            msg = f"💬 *Feedback {f['protocolo']}*\n"
+            if f.get("departamento"):
+                msg += f"Departamento: {f['departamento']}\n"
+            msg += "\n"
+
+            status_map = {
+                "novo": "📬 *Recebido* — Seu feedback foi registrado.",
+                "lido": "👁️ *Lido* — Mensagem visualizada pela equipe.",
+                "respondido": "💬 *Respondido* — Encaminhado ao departamento.",
+                "encerrado": "✅ *Encerrado* — Obrigado pelo feedback!",
+            }
+            msg += status_map.get(f["status"], f"Status: {f['status']}")
+            enviar_whatsapp(telefone, msg)
+            return
+    except Exception as exc:
+        logger.error(f"Erro busca feedback: {exc}")
+
+    # ── Busca em SOS ──
+    try:
+        result = sb.table("sos_alertas").select(
+            "protocolo, status, created_at"
+        ).eq("protocolo", protocolo).limit(1).execute()
+
+        if result.data:
+            s = result.data[0]
+            status_map = {
+                "active": "🔴 *ATIVO* — Equipe acionada.",
+                "accepted": "🚔 *Aceito* — Viatura designada.",
+                "resolved": "✅ *Atendido* — Finalizado.",
+            }
+            msg = f"🆘 *Alerta SOS {s['protocolo']}*\n\n"
+            msg += status_map.get(s["status"], f"Status: {s['status']}")
+            msg += "\n\nSe está em perigo, ligue 190."
+            enviar_whatsapp(telefone, msg)
+            return
+    except Exception as exc:
+        logger.error(f"Erro busca SOS: {exc}")
+
+    # ── Não encontrou ──
+    msg = (f"😕 Não encontrei nenhum registro com o protocolo *{protocolo}*.\n\n"
+           f"Verifique se digitou corretamente. O formato é MGA-2026-XXXXX.\n\n"
+           f"Se precisar de ajuda, envie sua mensagem normalmente e vamos te atender!")
+    enviar_whatsapp(telefone, msg)
+
+
 PROCESSADORES = {
     "queue:sos": processar_sos,
     "queue:denuncias": processar_denuncia,
     "queue:ocorrencias": processar_ocorrencia,
     "queue:feedbacks": processar_feedback,
+    "queue:consultas": processar_consulta_protocolo,
 }
 
 

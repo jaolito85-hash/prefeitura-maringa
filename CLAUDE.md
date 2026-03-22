@@ -30,7 +30,7 @@ backend/
   app/
     main.py              # FastAPI entry point
     config.py            # Pydantic settings (.env)
-    api/                 # Endpoints REST: denuncias, ocorrencias, sos, feedbacks, dashboard
+    api/                 # Endpoints REST: denuncias, ocorrencias, sos, feedbacks, dashboard, protocolo
     webhooks/
       unificado.py       # Webhook demo (numero unico, classifica com IA)
       denuncias.py       # Webhook producao — canal denuncia
@@ -41,7 +41,7 @@ backend/
       classificador.py   # Classificador IA (OpenAI GPT-4o-mini)
       supabase_client.py # Singleton Supabase client
       webhook_queue.py   # Enfileirar eventos no Redis
-  worker.py              # Processa filas Redis: SOS > Denuncias > Ocorrencias > Feedbacks
+  worker.py              # Processa filas Redis: SOS > Denuncias > Ocorrencias > Feedbacks > Consultas
   Dockerfile             # python:3.11-slim
   requirements.txt
 
