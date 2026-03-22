@@ -193,6 +193,23 @@ async def receber_webhook_unificado(
     # ── 3. CHECAR SESSAO ATIVA ──
     sessao = _buscar_sessao_ativa(telefone)
 
+    # ── 3b. SAUDAÇÃO RÁPIDA — só se NÃO tem sessão ativa ──
+    # Se tem sessão, a mensagem pode ser resposta a uma pergunta (ex: "ok" = aceitar)
+    _SAUDACOES_RAPIDAS = {
+        "obrigado", "obrigada", "valeu", "muito obrigado", "muito obrigada",
+        "agradeço", "agradeco", "tchau", "até mais", "ate mais",
+        "bom dia", "boa tarde", "boa noite",
+        "obg", "vlw", "tmj", "brigado", "brigada",
+    }
+    if not sessao and texto and texto.strip().lower().rstrip("!.?") in _SAUDACOES_RAPIDAS:
+        logger.info(f"Saudação rápida detectada de {telefone}: {texto}")
+        event = _montar_evento(dados, request, classificacao={
+            "canal": "saudacao",
+            "categoria": "saudacao",
+            "resposta_whatsapp": "",
+        }, is_continuacao=False)
+        return _enfileirar(event, "queue:saudacoes")
+
     if sessao:
         # CONTINUACAO — mesmo protocolo, nao classifica de novo
         logger.info(f"Sessao ativa encontrada: canal={sessao['canal']} etapa={sessao['etapa']}")
@@ -222,6 +239,20 @@ async def receber_webhook_unificado(
     )
 
     canal = classificacao.get("canal", "feedback")
+
+    # ── 4b. SAUDAÇÃO — responde sem criar protocolo ──
+    if canal == "saudacao":
+        resposta = classificacao.get("resposta_whatsapp", "")
+        if not resposta:
+            push = dados["push_name"]
+            resposta = (f"Olá{', ' + push if push else ''}! 👋\n"
+                        f"Sou a Clara, assistente da Prefeitura de Maringá.\n\n"
+                        f"Como posso ajudar?\n"
+                        f"📢 Denúncia\n📍 Ocorrência urbana\n💬 Feedback\n🆘 SOS Mulher")
+        # Enfileira como saudacao pra responder sem criar registro
+        event = _montar_evento(dados, request, classificacao=classificacao, is_continuacao=False)
+        return _enfileirar(event, "queue:saudacoes")
+
     fila_map = {
         "denuncia": "queue:denuncias",
         "sos_mulher": "queue:sos",

@@ -1163,9 +1163,13 @@ function Denuncias(){
                   }catch(e){alert('Erro: '+e.message);}
                 }}>✓ Procedente</button>
                 <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}} onClick={async()=>{
+                  const destino=prompt('Encaminhar para qual órgão?\n\n1 - Polícia Civil\n2 - Guarda Municipal\n3 - Meio Ambiente\n4 - Fiscalização\n\nDigite o número:');
+                  const orgaos={'1':'Polícia Civil','2':'Guarda Municipal','3':'Meio Ambiente','4':'Fiscalização'};
+                  const orgao=orgaos[destino];
+                  if(!orgao){if(destino!==null)alert('Opção inválida.');return;}
                   try{
-                    const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'encaminhada',operador:'admin'})});
-                    if(res.ok){alert('✅ Denúncia encaminhada!');setSel(null);}
+                    const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'encaminhada',operador:'admin',notas:'Encaminhada para: '+orgao})});
+                    if(res.ok){alert('✅ Denúncia encaminhada para '+orgao+'!');setSel(null);}
                     else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
                   }catch(e){alert('Erro: '+e.message);}
                 }}>→ Encaminhar</button>

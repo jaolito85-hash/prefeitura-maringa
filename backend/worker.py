@@ -42,7 +42,7 @@ MAX_FOTO_SIZE_BYTES = 5 * 1024 * 1024     # 5MB
 STORAGE_BUCKET = "evidencias"
 
 # SOS primeiro — prioridade maxima
-QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:feedbacks", "queue:consultas"]
+QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:feedbacks", "queue:consultas", "queue:saudacoes"]
 
 # ── Programa Cidadão Ativo ──
 # Categorias de denúncia elegíveis pra recompensa (Decreto 291/2026)
@@ -56,6 +56,52 @@ CATEGORIAS_ELEGIVEIS = {
     "descarte_irregular": "lixo",
     "lixo": "lixo",
 }
+
+# Menu de categorias para denúncia genérica (quando cidadão diz "quero denunciar" sem dizer o quê)
+# Cada item: (número_opcao, categoria_worker, label_amigavel, valor_recompensa_display)
+MENU_CATEGORIAS = [
+    ("1", "trafico_drogas", "Tráfico de drogas", "R$ 300"),
+    ("2", "pichacao", "Pichação", "R$ 100"),
+    ("3", "vandalismo", "Vandalismo", "R$ 150"),
+    ("4", "depredacao", "Depredação de bens públicos", "R$ 150"),
+    ("5", "descarte_irregular", "Descarte irregular de lixo", "R$ 80"),
+    ("6", "roubo_furto", "Roubo ou furto", "—"),
+    ("7", "perturbacao_sossego", "Perturbação do sossego", "—"),
+    ("8", "outros_crimes", "Outro tipo de crime", "—"),
+]
+
+# Mapa rápido: número ou texto → categoria
+_MENU_LOOKUP = {}
+for _num, _cat, _label, _ in MENU_CATEGORIAS:
+    _MENU_LOOKUP[_num] = _cat
+    _MENU_LOOKUP[_cat] = _cat
+    # Adiciona versões simplificadas pra matching por texto
+    for _palavra in _label.lower().split():
+        if len(_palavra) > 3:  # ignora palavras curtas como "de", "ou"
+            _MENU_LOOKUP[_palavra] = _cat
+
+def _montar_menu_categorias() -> str:
+    """Monta a mensagem do menu de categorias para WhatsApp."""
+    linhas = ["📢 *Qual tipo de denúncia você gostaria de fazer?*\n"]
+    for num, _, label, valor in MENU_CATEGORIAS:
+        recomp = f" _(recompensa {valor})_" if valor != "—" else ""
+        linhas.append(f"{num}️⃣ {label}{recomp}")
+    linhas.append("\nResponda com o *número* da opção.")
+    return "\n".join(linhas)
+
+def _identificar_categoria_menu(texto: str) -> str | None:
+    """Tenta identificar a categoria a partir da resposta do cidadão ao menu."""
+    texto_limpo = texto.strip().lower().rstrip(".")
+    # Primeiro tenta por número exato
+    if texto_limpo in _MENU_LOOKUP:
+        return _MENU_LOOKUP[texto_limpo]
+    # Tenta match por palavras-chave
+    for palavra in texto_limpo.split():
+        palavra_limpa = palavra.strip(".,!?")
+        if palavra_limpa in _MENU_LOOKUP:
+            return _MENU_LOOKUP[palavra_limpa]
+    return None
+
 
 # Chave AES para criptografia (em produção, vem do .env)
 AES_KEY = os.environ.get("AES_KEY", "")
@@ -283,27 +329,31 @@ def _buscar_valor_recompensa(sb: Client, categoria_ia: str) -> float | None:
 
 def _criar_recompensa(sb: Client, denuncia_id: str, protocolo: str,
                       valor: float, cpf: str, chave_pix: str,
-                      tipo_pix: str) -> bool:
+                      tipo_pix: str, _pre_encrypted: bool = False) -> bool:
     """
     Cria o registro de recompensa vinculado à denúncia.
     Dados sensíveis são encriptados antes de salvar.
+    Se _pre_encrypted=True, os dados já vêm encriptados (reutilização).
     """
+    cpf_enc = cpf if _pre_encrypted else _encriptar_dado(cpf)
+    pix_enc = chave_pix if _pre_encrypted else _encriptar_dado(chave_pix)
+
     try:
         sb.table("recompensas").insert({
             "denuncia_id": denuncia_id,
             "protocolo": protocolo,
             "status": "pendente_validacao",
             "valor": valor,
-            "cpf_encrypted": _encriptar_dado(cpf),
-            "chave_pix_encrypted": _encriptar_dado(chave_pix),
+            "cpf_encrypted": cpf_enc,
+            "chave_pix_encrypted": pix_enc,
             "tipo_chave_pix": tipo_pix,
         }).execute()
 
         # Atualizar denúncia com flag e valor
         sb.table("denuncias").update({
             "cidadania_ativa": True,
-            "cpf_encrypted": _encriptar_dado(cpf),
-            "dados_bancarios_encrypted": _encriptar_dado(chave_pix),
+            "cpf_encrypted": cpf_enc,
+            "dados_bancarios_encrypted": pix_enc,
             "valor_recompensa": valor,
         }).eq("id", denuncia_id).execute()
 
@@ -352,6 +402,69 @@ def _resposta_nao(texto: str) -> bool:
     return t in ("nao", "não", "n", "nope", "não quero", "nao quero", "não aceito", "2")
 
 
+def _buscar_dados_anteriores(sb: Client, telefone: str) -> dict | None:
+    """
+    Verifica se esse telefone já tem CPF e PIX cadastrados de uma denúncia anterior.
+    Se sim, retorna os dados encriptados pra reutilizar (evita pedir de novo).
+    """
+    try:
+        result = sb.table("recompensas").select(
+            "cpf_encrypted, chave_pix_encrypted, tipo_chave_pix, denuncia_id"
+        ).order("created_at", desc=True).limit(10).execute()
+
+        if not result.data:
+            return None
+
+        # Procura uma recompensa vinculada a uma denúncia desse telefone
+        for recomp in result.data:
+            den = sb.table("denuncias").select("telefone").eq(
+                "id", recomp["denuncia_id"]).execute()
+            if den.data and den.data[0].get("telefone") == telefone:
+                if recomp.get("cpf_encrypted") and recomp.get("chave_pix_encrypted"):
+                    return {
+                        "cpf_encrypted": recomp["cpf_encrypted"],
+                        "chave_pix_encrypted": recomp["chave_pix_encrypted"],
+                        "tipo_chave_pix": recomp["tipo_chave_pix"],
+                    }
+        return None
+    except Exception as exc:
+        logger.error(f"Erro ao buscar dados anteriores: {exc}")
+        return None
+
+
+def _extrair_bairro_endereco(texto: str) -> tuple[str, str]:
+    """
+    Tenta separar bairro do endereço.
+    Ex: "Rua Marina 353 bairro Alvorada" → ("Alvorada", "Rua Marina 353")
+    Ex: "Rua Marina 353, Alvorada" → ("Alvorada", "Rua Marina 353")
+    Ex: "Zona 7" → ("Zona 7", "Zona 7")
+    """
+    texto_limpo = texto.strip()
+
+    # Tenta separar por "bairro"
+    import re
+    match = re.search(r'[,\s]+bairro\s+(.+)', texto_limpo, re.IGNORECASE)
+    if match:
+        bairro = match.group(1).strip().rstrip(".")
+        endereco = texto_limpo[:match.start()].strip().rstrip(",")
+        return (bairro, endereco)
+
+    # Tenta separar por vírgula (último trecho após vírgula = bairro)
+    if "," in texto_limpo:
+        partes = [p.strip() for p in texto_limpo.rsplit(",", 1)]
+        if len(partes) == 2 and partes[1]:
+            return (partes[1], partes[0])
+
+    # Tenta separar por " - " (traço)
+    if " - " in texto_limpo:
+        partes = [p.strip() for p in texto_limpo.rsplit(" - ", 1)]
+        if len(partes) == 2 and partes[1]:
+            return (partes[1], partes[0])
+
+    # Não conseguiu separar — usa texto inteiro como endereço, bairro vazio
+    return ("", texto_limpo)
+
+
 # ══════════════════════════════════════════════════════════════
 # PROCESSADORES — DENUNCIA
 # ══════════════════════════════════════════════════════════════
@@ -367,9 +480,19 @@ def processar_denuncia(event: dict, sb: Client) -> None:
         _continuar_denuncia(event, sb)
         return
 
-    # ── NOVA DENUNCIA ──
-    protocolo = gerar_protocolo(sb)
+    # ── DENÚNCIA GENÉRICA — envia menu de categorias ──
     categoria = classificacao.get("categoria", "outros_crimes")
+    if categoria == "generica":
+        menu = _montar_menu_categorias()
+        # Cria sessão aguardando escolha (sem criar registro ainda)
+        criar_sessao(sb, telefone, "denuncia", "aguardando_categoria", "",
+                     {"push_name": push_name, "mensagem_original": texto})
+        enviar_whatsapp(telefone, menu)
+        logger.info(f"Menu de categorias enviado para {telefone}")
+        return
+
+    # ── NOVA DENUNCIA (categoria já definida pela IA) ──
+    protocolo = gerar_protocolo(sb)
 
     insert_data = {
         "protocolo": protocolo,
@@ -422,14 +545,31 @@ def processar_denuncia(event: dict, sb: Client) -> None:
         # Denúncia completa — checar se é elegível pro Cidadão Ativo
         valor = _buscar_valor_recompensa(sb, categoria)
         if valor:
-            etapa = "aguardando_cidadania"
-            resposta = (f"✅ Denúncia registrada com sucesso!\n\n"
-                        f"💰 *Programa Cidadão Ativo*\n"
-                        f"Sua denúncia de *{categoria.replace('_', ' ')}* é elegível "
-                        f"a uma recompensa de *R$ {valor:.2f}*.\n\n"
-                        f"Deseja se cadastrar para receber? "
-                        f"Seus dados ficam protegidos e só o setor financeiro terá acesso.\n\n"
-                        f"Responda *SIM* ou *NÃO*")
+            # Verificar se já tem CPF/PIX de denúncia anterior (mesmo telefone)
+            dados_ant = _buscar_dados_anteriores(sb, telefone)
+            if dados_ant:
+                # Já tem dados! Cria recompensa automaticamente
+                _criar_recompensa(sb, registro_id, protocolo, valor,
+                                  dados_ant["cpf_encrypted"],
+                                  dados_ant["chave_pix_encrypted"],
+                                  dados_ant["tipo_chave_pix"],
+                                  _pre_encrypted=True)
+                etapa = "finalizado"
+                resposta = (f"✅ Denúncia registrada com sucesso!\n\n"
+                            f"💰 *Programa Cidadão Ativo*\n"
+                            f"Sua denúncia é elegível a *R$ {valor:.2f}*.\n"
+                            f"Já temos seus dados cadastrados de denúncia anterior — "
+                            f"recompensa vinculada automaticamente! 🎉\n\n"
+                            f"📋 Protocolo: {protocolo}")
+            else:
+                etapa = "aguardando_cidadania"
+                resposta = (f"✅ Denúncia registrada com sucesso!\n\n"
+                            f"💰 *Programa Cidadão Ativo*\n"
+                            f"Sua denúncia de *{categoria.replace('_', ' ')}* é elegível "
+                            f"a uma recompensa de *R$ {valor:.2f}*.\n\n"
+                            f"Deseja se cadastrar para receber? "
+                            f"Seus dados ficam protegidos e só o setor financeiro terá acesso.\n\n"
+                            f"Responda *SIM* ou *NÃO*")
         else:
             etapa = "finalizado"
             resposta = (f"✅ Denúncia completa registrada!\n\n"
@@ -453,6 +593,60 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
     etapa_atual = sessao.get("etapa", "") if sessao else ""
     protocolo = contexto.get("protocolo", "")
     categoria = contexto.get("categoria", "")
+    texto = event.get("texto", "")
+    push_name = event.get("push_name", "") or contexto.get("push_name", "")
+
+    # ══════════════════════════════════════════════════════════
+    # ETAPA MENU — cidadão está escolhendo a categoria
+    # (registro_id ainda não existe, será criado aqui)
+    # ══════════════════════════════════════════════════════════
+    if etapa_atual == "aguardando_categoria":
+        cat_escolhida = _identificar_categoria_menu(texto)
+        if not cat_escolhida:
+            # Não entendeu — reenvia menu
+            resposta = "Não entendi. Por favor, responda com o *número* da opção:\n\n" + _montar_menu_categorias()
+            criar_sessao(sb, telefone, "denuncia", "aguardando_categoria", "",
+                         contexto)
+            enviar_whatsapp(telefone, resposta)
+            return
+
+        # Categoria escolhida! Agora cria o registro da denúncia
+        protocolo = gerar_protocolo(sb)
+        mensagem_original = contexto.get("mensagem_original", texto)
+        # Procura o label amigável
+        cat_label = cat_escolhida.replace("_", " ")
+        for _, cat_id, label, _ in MENU_CATEGORIAS:
+            if cat_id == cat_escolhida:
+                cat_label = label
+                break
+
+        insert_data = {
+            "protocolo": protocolo,
+            "telefone": telefone,
+            "nome": push_name or None,
+            "categoria": cat_escolhida,
+            "mensagem": mensagem_original,
+            "status": "novo",
+        }
+        res = sb.table("denuncias").insert(insert_data).execute()
+        if not res.data:
+            logger.error("Falha ao criar denuncia após menu")
+            enviar_whatsapp(telefone, "Desculpe, ocorreu um erro. Tente novamente.")
+            return
+
+        registro_id = res.data[0]["id"]
+        logger.info(f"Denuncia criada via menu: {protocolo} ({cat_escolhida})")
+
+        etapa = "aguardando_midia"
+        resposta = (f"✅ Registrado como *{cat_label}*!\n\n"
+                    f"📸 Agora envie uma foto ou vídeo como evidência.\n"
+                    f"Isso fortalece muito a investigação.\n\n"
+                    f"📋 Protocolo: {protocolo}")
+
+        criar_sessao(sb, telefone, "denuncia", etapa, registro_id,
+                     {"protocolo": protocolo, "categoria": cat_escolhida})
+        enviar_whatsapp(telefone, resposta)
+        return
 
     if not registro_id:
         logger.error("Continuacao sem registro_id")
@@ -566,14 +760,25 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
         # Checar se é elegível ao Cidadão Ativo antes de finalizar
         valor = _buscar_valor_recompensa(sb, categoria)
         if valor:
-            nova_etapa = "aguardando_cidadania"
-            resposta = (f"📍 Localização registrada!\n\n"
-                        f"💰 *Programa Cidadão Ativo*\n"
-                        f"Sua denúncia de *{categoria.replace('_', ' ')}* é elegível "
-                        f"a uma recompensa de *R$ {valor:.2f}*.\n\n"
-                        f"Deseja se cadastrar para receber? "
-                        f"Seus dados ficam protegidos e só o setor financeiro terá acesso.\n\n"
-                        f"Responda *SIM* ou *NÃO*")
+            dados_ant = _buscar_dados_anteriores(sb, telefone)
+            if dados_ant:
+                _criar_recompensa(sb, registro_id, protocolo, valor,
+                                  dados_ant["cpf_encrypted"], dados_ant["chave_pix_encrypted"],
+                                  dados_ant["tipo_chave_pix"], _pre_encrypted=True)
+                nova_etapa = "finalizado"
+                resposta = (f"📍 Localização registrada!\n\n"
+                            f"💰 *Programa Cidadão Ativo* — Recompensa de *R$ {valor:.2f}* "
+                            f"vinculada automaticamente (dados já cadastrados)! 🎉\n\n"
+                            f"📋 Protocolo: {protocolo}")
+            else:
+                nova_etapa = "aguardando_cidadania"
+                resposta = (f"📍 Localização registrada!\n\n"
+                            f"💰 *Programa Cidadão Ativo*\n"
+                            f"Sua denúncia de *{categoria.replace('_', ' ')}* é elegível "
+                            f"a uma recompensa de *R$ {valor:.2f}*.\n\n"
+                            f"Deseja se cadastrar para receber? "
+                            f"Seus dados ficam protegidos e só o setor financeiro terá acesso.\n\n"
+                            f"Responda *SIM* ou *NÃO*")
         else:
             nova_etapa = "finalizado"
             resposta = (f"📍 Localização registrada!\n\n"
@@ -581,19 +786,33 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
                         f"📋 Protocolo: {protocolo}")
 
     elif texto and etapa_atual == "aguardando_endereco":
-        update_data["endereco"] = texto
-        update_data["bairro"] = texto  # IA pode melhorar depois
+        # Separar bairro do endereço
+        bairro, endereco = _extrair_bairro_endereco(texto)
+        update_data["endereco"] = endereco or texto
+        if bairro:
+            update_data["bairro"] = bairro
         # Checar se é elegível ao Cidadão Ativo antes de finalizar
         valor = _buscar_valor_recompensa(sb, categoria)
         if valor:
-            nova_etapa = "aguardando_cidadania"
-            resposta = (f"📍 Endereço registrado: {texto}\n\n"
-                        f"💰 *Programa Cidadão Ativo*\n"
-                        f"Sua denúncia de *{categoria.replace('_', ' ')}* é elegível "
-                        f"a uma recompensa de *R$ {valor:.2f}*.\n\n"
-                        f"Deseja se cadastrar para receber? "
-                        f"Seus dados ficam protegidos e só o setor financeiro terá acesso.\n\n"
-                        f"Responda *SIM* ou *NÃO*")
+            dados_ant = _buscar_dados_anteriores(sb, telefone)
+            if dados_ant:
+                _criar_recompensa(sb, registro_id, protocolo, valor,
+                                  dados_ant["cpf_encrypted"], dados_ant["chave_pix_encrypted"],
+                                  dados_ant["tipo_chave_pix"], _pre_encrypted=True)
+                nova_etapa = "finalizado"
+                resposta = (f"📍 Endereço registrado: {texto}\n\n"
+                            f"💰 *Programa Cidadão Ativo* — Recompensa de *R$ {valor:.2f}* "
+                            f"vinculada automaticamente (dados já cadastrados)! 🎉\n\n"
+                            f"📋 Protocolo: {protocolo}")
+            else:
+                nova_etapa = "aguardando_cidadania"
+                resposta = (f"📍 Endereço registrado: {texto}\n\n"
+                            f"💰 *Programa Cidadão Ativo*\n"
+                            f"Sua denúncia de *{categoria.replace('_', ' ')}* é elegível "
+                            f"a uma recompensa de *R$ {valor:.2f}*.\n\n"
+                            f"Deseja se cadastrar para receber? "
+                            f"Seus dados ficam protegidos e só o setor financeiro terá acesso.\n\n"
+                            f"Responda *SIM* ou *NÃO*")
         else:
             nova_etapa = "finalizado"
             resposta = (f"📍 Endereço registrado: {texto}\n\n"
@@ -999,12 +1218,37 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
     enviar_whatsapp(telefone, msg)
 
 
+# ══════════════════════════════════════════════════════════════
+# PROCESSADORES — SAUDAÇÃO (sem criar protocolo)
+# ══════════════════════════════════════════════════════════════
+
+def processar_saudacao(event: dict, sb: Client) -> None:
+    """Responde saudações/agradecimentos sem criar nenhum registro."""
+    telefone = event.get("telefone", "")
+    push_name = event.get("push_name", "")
+    classificacao = event.get("classificacao", {})
+
+    resposta = classificacao.get("resposta_whatsapp", "")
+    if not resposta:
+        resposta = (f"Olá{', ' + push_name if push_name else ''}! 👋\n"
+                    f"Sou a Clara, assistente da Prefeitura de Maringá.\n\n"
+                    f"Como posso ajudar?\n"
+                    f"📢 Fazer uma denúncia\n"
+                    f"📍 Reportar ocorrência urbana\n"
+                    f"💬 Enviar feedback\n"
+                    f"🆘 SOS Mulher")
+
+    enviar_whatsapp(telefone, resposta)
+    logger.info(f"Saudação respondida para {telefone}")
+
+
 PROCESSADORES = {
     "queue:sos": processar_sos,
     "queue:denuncias": processar_denuncia,
     "queue:ocorrencias": processar_ocorrencia,
     "queue:feedbacks": processar_feedback,
     "queue:consultas": processar_consulta_protocolo,
+    "queue:saudacoes": processar_saudacao,
 }
 
 
