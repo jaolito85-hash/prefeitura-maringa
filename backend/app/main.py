@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.api import denuncias, ocorrencias, sos, dashboard, feedbacks
+from app.api import denuncias, ocorrencias, sos, dashboard, feedbacks, recompensas
 from app.webhooks import denuncias as wh_denuncias
 from app.webhooks import sos_mulher as wh_sos
 from app.webhooks import ocorrencias as wh_ocorrencias
@@ -34,6 +34,7 @@ app.include_router(denuncias.router, prefix="/api/denuncias", tags=["Denúncias"
 app.include_router(ocorrencias.router, prefix="/api/ocorrencias", tags=["Ocorrências"])
 app.include_router(sos.router, prefix="/api/sos", tags=["SOS Mulher"])
 app.include_router(feedbacks.router, prefix="/api/feedbacks", tags=["Feedbacks"])
+app.include_router(recompensas.router, prefix="/api/recompensas", tags=["Recompensas"])
 
 # ---- Webhook UNIFICADO (demo com numero unico — IA classifica tudo) ----
 app.include_router(wh_unificado.router, prefix="/webhook", tags=["Webhook Unificado"])

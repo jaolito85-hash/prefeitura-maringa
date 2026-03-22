@@ -37,11 +37,17 @@ async def get_kpis():
     fb_result = sb.table("feedbacks").select("id", count="exact").gte("created_at", hoje).execute()
     feedbacks_hoje = fb_result.count or 0
 
+    # Recompensas aguardando pagamento
+    recomp_result = sb.table("recompensas").select("id", count="exact").eq(
+        "status", "aguardando_pagamento").execute()
+    recompensas_pendentes = recomp_result.count or 0
+
     return {
         "sos_ativos": sos_ativos,
         "denuncias_hoje": denuncias_hoje,
         "ocorrencias_abertas": ocorrencias_abertas,
         "feedbacks_hoje": feedbacks_hoje,
+        "recompensas_pendentes": recompensas_pendentes,
         "tempo_medio_resposta": "12min",  # TODO: calcular real
     }
 

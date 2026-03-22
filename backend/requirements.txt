@@ -10,3 +10,4 @@ pydantic-settings==2.3.0
 cryptography==42.0.8
 python-multipart==0.0.9
 unicodedata2==15.1.0
+reportlab==4.2.0

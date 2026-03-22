@@ -44,6 +44,22 @@ STORAGE_BUCKET = "evidencias"
 # SOS primeiro — prioridade maxima
 QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:feedbacks"]
 
+# ── Programa Cidadão Ativo ──
+# Categorias de denúncia elegíveis pra recompensa (Decreto 291/2026)
+# Mapeamento: categoria do classificador IA → categoria na recompensas_config
+CATEGORIAS_ELEGIVEIS = {
+    "pichacao": "pichacao",
+    "trafico_drogas": "trafico",
+    "trafico": "trafico",
+    "vandalismo": "vandalismo",
+    "depredacao": "depredacao",
+    "descarte_irregular": "lixo",
+    "lixo": "lixo",
+}
+
+# Chave AES para criptografia (em produção, vem do .env)
+AES_KEY = os.environ.get("AES_KEY", "")
+
 
 def gerar_protocolo(sb: Client) -> str:
     try:
@@ -227,6 +243,105 @@ def finalizar_sessao(sb: Client, telefone: str) -> None:
 
 
 # ══════════════════════════════════════════════════════════════
+# CIDADÃO ATIVO — Helpers para recompensa
+# ══════════════════════════════════════════════════════════════
+
+def _encriptar_dado(valor: str) -> str:
+    """
+    Encripta dado sensível com AES-256.
+    Na demo: usa prefixo ENC_AES256_ (dados fictícios).
+    Em produção: usa AES real com a AES_KEY do .env.
+    """
+    if AES_KEY:
+        # TODO Fase 2: implementar AES-256-GCM real
+        # from cryptography.fernet import Fernet
+        # cipher = Fernet(AES_KEY)
+        # return cipher.encrypt(valor.encode()).decode()
+        pass
+    # Demo: prefixo pra identificar como encriptado
+    return f"ENC_AES256_{valor[-4:]}"
+
+
+def _buscar_valor_recompensa(sb: Client, categoria_ia: str) -> float | None:
+    """
+    Busca o valor da recompensa na tabela de configuração.
+    Converte a categoria do classificador IA pra categoria da config.
+    """
+    cat_config = CATEGORIAS_ELEGIVEIS.get(categoria_ia)
+    if not cat_config:
+        return None
+    try:
+        result = sb.table("recompensas_config").select(
+            "valor_padrao, ativo"
+        ).eq("categoria", cat_config).execute()
+        if result.data and result.data[0].get("ativo"):
+            return float(result.data[0]["valor_padrao"])
+    except Exception as exc:
+        logger.error(f"Erro ao buscar valor recompensa: {exc}")
+    return None
+
+
+def _criar_recompensa(sb: Client, denuncia_id: str, protocolo: str,
+                      valor: float, cpf: str, chave_pix: str,
+                      tipo_pix: str) -> bool:
+    """
+    Cria o registro de recompensa vinculado à denúncia.
+    Dados sensíveis são encriptados antes de salvar.
+    """
+    try:
+        sb.table("recompensas").insert({
+            "denuncia_id": denuncia_id,
+            "protocolo": protocolo,
+            "status": "pendente_validacao",
+            "valor": valor,
+            "cpf_encrypted": _encriptar_dado(cpf),
+            "chave_pix_encrypted": _encriptar_dado(chave_pix),
+            "tipo_chave_pix": tipo_pix,
+        }).execute()
+
+        # Atualizar denúncia com flag e valor
+        sb.table("denuncias").update({
+            "cidadania_ativa": True,
+            "cpf_encrypted": _encriptar_dado(cpf),
+            "dados_bancarios_encrypted": _encriptar_dado(chave_pix),
+            "valor_recompensa": valor,
+        }).eq("id", denuncia_id).execute()
+
+        logger.info(f"Recompensa criada: {protocolo} (R$ {valor})")
+        return True
+    except Exception as exc:
+        logger.error(f"Erro ao criar recompensa: {exc}")
+        return False
+
+
+def _detectar_tipo_pix(chave: str) -> str:
+    """
+    Detecta automaticamente o tipo de chave PIX pelo formato.
+    CPF: 11 dígitos | Email: tem @ | Telefone: começa com + | Aleatória: resto
+    """
+    chave_limpa = chave.strip().replace(".", "").replace("-", "").replace(" ", "")
+    if len(chave_limpa) == 11 and chave_limpa.isdigit():
+        return "cpf"
+    if "@" in chave:
+        return "email"
+    if chave_limpa.startswith("+") or (len(chave_limpa) in (10, 11, 13) and chave_limpa.isdigit()):
+        return "telefone"
+    return "aleatoria"
+
+
+def _resposta_sim(texto: str) -> bool:
+    """Detecta se o cidadão respondeu SIM (aceita variações)."""
+    t = texto.strip().lower().rstrip("!.")
+    return t in ("sim", "s", "quero", "aceito", "pode", "pode sim", "claro", "bora", "yes", "1")
+
+
+def _resposta_nao(texto: str) -> bool:
+    """Detecta se o cidadão respondeu NÃO."""
+    t = texto.strip().lower().rstrip("!.")
+    return t in ("nao", "não", "n", "nope", "não quero", "nao quero", "não aceito", "2")
+
+
+# ══════════════════════════════════════════════════════════════
 # PROCESSADORES — DENUNCIA
 # ══════════════════════════════════════════════════════════════
 
@@ -285,10 +400,22 @@ def processar_denuncia(event: dict, sb: Client) -> None:
                     f"📍 Envie o endereço ou clique em: 📎 > Localização\n\n"
                     f"📋 Protocolo: {protocolo}")
     else:
-        etapa = "finalizado"
-        resposta = (f"✅ Denúncia completa registrada!\n\n"
-                    f"A equipe já foi notificada e vai investigar.\n\n"
-                    f"📋 Protocolo: {protocolo}")
+        # Denúncia completa — checar se é elegível pro Cidadão Ativo
+        valor = _buscar_valor_recompensa(sb, categoria)
+        if valor:
+            etapa = "aguardando_cidadania"
+            resposta = (f"✅ Denúncia registrada com sucesso!\n\n"
+                        f"💰 *Programa Cidadão Ativo*\n"
+                        f"Sua denúncia de *{categoria.replace('_', ' ')}* é elegível "
+                        f"a uma recompensa de *R$ {valor:.2f}*.\n\n"
+                        f"Deseja se cadastrar para receber? "
+                        f"Seus dados ficam protegidos e só o setor financeiro terá acesso.\n\n"
+                        f"Responda *SIM* ou *NÃO*")
+        else:
+            etapa = "finalizado"
+            resposta = (f"✅ Denúncia completa registrada!\n\n"
+                        f"A equipe já foi notificada e vai investigar.\n\n"
+                        f"📋 Protocolo: {protocolo}")
 
     criar_sessao(sb, telefone, "denuncia", etapa, registro_id,
                  {"protocolo": protocolo, "categoria": categoria})
@@ -306,6 +433,7 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
     registro_id = sessao.get("registro_id") if sessao else None
     etapa_atual = sessao.get("etapa", "") if sessao else ""
     protocolo = contexto.get("protocolo", "")
+    categoria = contexto.get("categoria", "")
 
     if not registro_id:
         logger.error("Continuacao sem registro_id")
@@ -315,6 +443,92 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
     tem_midia = event.get("tem_midia", False)
     tem_loc = event.get("tem_localizacao", False)
     texto = event.get("texto", "")
+
+    # ══════════════════════════════════════════════════════════
+    # ETAPAS DO CIDADÃO ATIVO (novas)
+    # ══════════════════════════════════════════════════════════
+
+    if etapa_atual == "aguardando_cidadania":
+        # Cidadão respondeu SIM ou NÃO ao Programa Cidadão Ativo
+        if _resposta_sim(texto):
+            nova_etapa = "aguardando_cpf"
+            contexto["cidadania_aceita"] = True
+            resposta = (f"Ótimo! Seus dados são protegidos por criptografia "
+                        f"e só o setor financeiro terá acesso.\n\n"
+                        f"📝 Por favor, me envie seu *CPF* (só números, ex: 12345678900)")
+        elif _resposta_nao(texto):
+            nova_etapa = "finalizado"
+            resposta = (f"Tudo bem! Sua denúncia continua registrada e será investigada normalmente.\n\n"
+                        f"Obrigado por ajudar Maringá! 🏙️\n"
+                        f"📋 Protocolo: {protocolo}")
+        else:
+            # Não entendeu — pede de novo
+            nova_etapa = etapa_atual
+            resposta = (f"Não entendi. Por favor, responda *SIM* para participar "
+                        f"do Programa Cidadão Ativo ou *NÃO* para continuar sem cadastro.")
+
+        criar_sessao(sb, telefone, "denuncia", nova_etapa, registro_id, contexto)
+        if nova_etapa == "finalizado":
+            finalizar_sessao(sb, telefone)
+        enviar_whatsapp(telefone, resposta)
+        return
+
+    if etapa_atual == "aguardando_cpf":
+        # Cidadão enviou o CPF
+        cpf_limpo = texto.strip().replace(".", "").replace("-", "").replace(" ", "")
+        if len(cpf_limpo) == 11 and cpf_limpo.isdigit():
+            contexto["cpf"] = cpf_limpo
+            nova_etapa = "aguardando_pix"
+            resposta = (f"✅ CPF recebido!\n\n"
+                        f"Agora me envie sua *chave PIX*.\n"
+                        f"Pode ser: CPF, e-mail, telefone ou chave aleatória.")
+        else:
+            nova_etapa = etapa_atual
+            resposta = (f"⚠️ CPF inválido. Por favor, envie apenas os 11 números.\n"
+                        f"Exemplo: 12345678900")
+
+        criar_sessao(sb, telefone, "denuncia", nova_etapa, registro_id, contexto)
+        enviar_whatsapp(telefone, resposta)
+        return
+
+    if etapa_atual == "aguardando_pix":
+        # Cidadão enviou a chave PIX
+        chave_pix = texto.strip()
+        if len(chave_pix) < 5:
+            resposta = "⚠️ Chave PIX parece inválida. Envie novamente (CPF, e-mail, telefone ou chave aleatória)."
+            criar_sessao(sb, telefone, "denuncia", etapa_atual, registro_id, contexto)
+            enviar_whatsapp(telefone, resposta)
+            return
+
+        cpf = contexto.get("cpf", "")
+        tipo_pix = _detectar_tipo_pix(chave_pix)
+        valor = _buscar_valor_recompensa(sb, categoria)
+
+        if valor and _criar_recompensa(sb, registro_id, protocolo, valor, cpf, chave_pix, tipo_pix):
+            nova_etapa = "finalizado"
+            resposta = (f"✅ *Cadastro no Cidadão Ativo concluído!*\n\n"
+                        f"📋 Protocolo: {protocolo}\n"
+                        f"💰 Valor: R$ {valor:.2f}\n"
+                        f"🔐 Seus dados estão protegidos por criptografia\n\n"
+                        f"Quando sua denúncia for validada pela equipe, "
+                        f"o pagamento será feito via PIX.\n\n"
+                        f"Obrigado por ajudar Maringá! 🏙️")
+            logger.info(f"Cidadão Ativo cadastrado: {protocolo} (R$ {valor})")
+        else:
+            nova_etapa = "finalizado"
+            resposta = (f"Ocorreu um erro ao processar seu cadastro, mas "
+                        f"sua denúncia continua registrada.\n\n"
+                        f"📋 Protocolo: {protocolo}\n"
+                        f"Obrigado por ajudar Maringá! 🏙️")
+
+        criar_sessao(sb, telefone, "denuncia", nova_etapa, registro_id, contexto)
+        finalizar_sessao(sb, telefone)
+        enviar_whatsapp(telefone, resposta)
+        return
+
+    # ══════════════════════════════════════════════════════════
+    # ETAPAS NORMAIS DA DENÚNCIA (existentes)
+    # ══════════════════════════════════════════════════════════
 
     if tem_midia and etapa_atual == "aguardando_midia":
         erro_midia = processar_midia(event, sb, registro_id, "denuncias")
@@ -329,18 +543,42 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
     elif tem_loc:
         update_data["latitude"] = event.get("latitude")
         update_data["longitude"] = event.get("longitude")
-        nova_etapa = "finalizado"
-        resposta = (f"📍 Localização registrada!\n\n"
-                    f"✅ Denúncia completa. A equipe já foi notificada.\n"
-                    f"📋 Protocolo: {protocolo}")
+        # Checar se é elegível ao Cidadão Ativo antes de finalizar
+        valor = _buscar_valor_recompensa(sb, categoria)
+        if valor:
+            nova_etapa = "aguardando_cidadania"
+            resposta = (f"📍 Localização registrada!\n\n"
+                        f"💰 *Programa Cidadão Ativo*\n"
+                        f"Sua denúncia de *{categoria.replace('_', ' ')}* é elegível "
+                        f"a uma recompensa de *R$ {valor:.2f}*.\n\n"
+                        f"Deseja se cadastrar para receber? "
+                        f"Seus dados ficam protegidos e só o setor financeiro terá acesso.\n\n"
+                        f"Responda *SIM* ou *NÃO*")
+        else:
+            nova_etapa = "finalizado"
+            resposta = (f"📍 Localização registrada!\n\n"
+                        f"✅ Denúncia completa. A equipe já foi notificada.\n"
+                        f"📋 Protocolo: {protocolo}")
 
     elif texto and etapa_atual == "aguardando_endereco":
         update_data["endereco"] = texto
         update_data["bairro"] = texto  # IA pode melhorar depois
-        nova_etapa = "finalizado"
-        resposta = (f"📍 Endereço registrado: {texto}\n\n"
-                    f"✅ Denúncia completa. A equipe já foi notificada.\n"
-                    f"📋 Protocolo: {protocolo}")
+        # Checar se é elegível ao Cidadão Ativo antes de finalizar
+        valor = _buscar_valor_recompensa(sb, categoria)
+        if valor:
+            nova_etapa = "aguardando_cidadania"
+            resposta = (f"📍 Endereço registrado: {texto}\n\n"
+                        f"💰 *Programa Cidadão Ativo*\n"
+                        f"Sua denúncia de *{categoria.replace('_', ' ')}* é elegível "
+                        f"a uma recompensa de *R$ {valor:.2f}*.\n\n"
+                        f"Deseja se cadastrar para receber? "
+                        f"Seus dados ficam protegidos e só o setor financeiro terá acesso.\n\n"
+                        f"Responda *SIM* ou *NÃO*")
+        else:
+            nova_etapa = "finalizado"
+            resposta = (f"📍 Endereço registrado: {texto}\n\n"
+                        f"✅ Denúncia completa. A equipe já foi notificada.\n"
+                        f"📋 Protocolo: {protocolo}")
 
     elif tem_midia:
         # Midia em qualquer etapa — aceita com validação

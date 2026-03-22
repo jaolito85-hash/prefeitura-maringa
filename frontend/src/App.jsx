@@ -7,6 +7,7 @@ import Central from './pages/Central'
 import Denuncias from './pages/Denuncias'
 import SOSMulher from './pages/SOSMulher'
 import Ocorrencias from './pages/Ocorrencias'
+import Recompensas from './pages/Recompensas'
 import AudioManager from './components/AudioManager'
 
 const ABAS = [
@@ -14,6 +15,7 @@ const ABAS = [
   { id: 'denuncias', icon: '📋', label: 'DENÚNCIAS' },
   { id: 'sos', icon: '🛡️', label: 'SOS MULHER' },
   { id: 'ocorrencias', icon: '🌳', label: 'OCORRÊNCIAS' },
+  { id: 'recompensas', icon: '💰', label: 'RECOMPENSAS' },
 ]
 
 export default function App() {
@@ -155,6 +157,7 @@ export default function App() {
           {abaAtiva === 'denuncias' && <Denuncias />}
           {abaAtiva === 'sos' && <SOSMulher />}
           {abaAtiva === 'ocorrencias' && <Ocorrencias />}
+          {abaAtiva === 'recompensas' && <Recompensas />}
         </main>
       </div>
     </div>

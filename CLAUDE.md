@@ -53,6 +53,7 @@ frontend/
       Denuncias.jsx      # Lista de denuncias com filtros, modal com midia
       SOSMulher.jsx      # Tela emergencia: fundo vermelho, sirene, dados vitima
       Ocorrencias.jsx    # Mapa fullscreen, sidebar incidentes, agrupamento
+      Recompensas.jsx    # Painel financeiro: recompensas Cidadao Ativo, pagamentos PIX
     components/
       AudioManager.jsx   # Web Audio API — sirene e bipes (sem MP3)
       Map/CityMap.jsx    # Mapa Leaflet com tiles CartoDB Dark
@@ -68,6 +69,8 @@ supabase/migrations/
   002_enable_realtime.sql
   003_seed_demo_data.sql  # <-- dados de demonstracao para a reuniao
   004_create_storage_bucket.sql  # Bucket "evidencias" pra fotos/videos
+  005_create_recompensas.sql     # Tabela recompensas + recompensas_config + indices
+  005b_seed_recompensas_demo.sql # Dados demo: 4 recompensas em diferentes status
 
 docker-compose.yml       # Dev: redis + backend + worker + frontend
 docker-compose.prod.yml  # Producao: Coolify/Traefik (sem portas expostas)

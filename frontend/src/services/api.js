@@ -40,3 +40,7 @@ export function apiGet(path, params) {
 export function apiPatch(path, body) {
   return request(path, { method: 'PATCH', body })
 }
+
+export function apiUrl(path, params) {
+  return buildUrl(path, params)
+}
