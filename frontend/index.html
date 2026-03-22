@@ -284,7 +284,7 @@ function useApiPolling(){
           fetch(API_URL+'/api/recompensas/kpis').then(r=>r.ok?r.json():{}).catch(()=>({})),
           fetch(API_URL+'/api/recompensas/config').then(r=>r.ok?r.json():[]).catch(()=>[]),
           fetch(API_URL+'/api/sos/alertas/historico').then(r=>r.ok?r.json():[]).catch(()=>[]),
-          fetch(API_URL+'/api/dashboard/relatorio').then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch(API_URL+'/api/relatorio').then(r=>r.ok?r.json():null).catch(()=>null),
         ]);
         OC=oc.map(o=>({...o,lat:o.latitude,lng:o.longitude}));
         DEN=den.map(d=>({...d,lat:d.latitude,lng:d.longitude}));
