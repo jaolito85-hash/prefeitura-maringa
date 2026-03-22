@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 import time
+import uuid
 from datetime import date, datetime, timezone, timedelta
 from typing import Any
 
@@ -32,6 +33,13 @@ SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 EVOLUTION_API_URL = os.environ.get("EVOLUTION_API_URL", "")
 EVOLUTION_API_KEY = os.environ.get("EVOLUTION_API_KEY", "")
 WA_INSTANCE_NAME = os.environ.get("WA_INSTANCE_NAME", "maringa-demo")
+
+# ── Limites de mídia ──
+MAX_FOTOS_POR_DENUNCIA = 5          # máx 5 fotos por registro
+MAX_VIDEOS_POR_DENUNCIA = 1         # máx 1 vídeo por registro
+MAX_VIDEO_SIZE_BYTES = 16 * 1024 * 1024   # 16MB
+MAX_FOTO_SIZE_BYTES = 5 * 1024 * 1024     # 5MB
+STORAGE_BUCKET = "evidencias"
 
 # SOS primeiro — prioridade maxima
 QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:feedbacks"]
@@ -69,6 +77,125 @@ def enviar_whatsapp(telefone: str, mensagem: str) -> bool:
     except Exception as exc:
         logger.error(f"Erro WhatsApp: {exc}")
         return False
+
+
+def download_media(message_id: str) -> bytes | None:
+    """Baixa a mídia de uma mensagem via Evolution API."""
+    if not EVOLUTION_API_URL or not EVOLUTION_API_KEY or not message_id:
+        return None
+    url = f"{EVOLUTION_API_URL}/chat/getBase64FromMediaMessage/{WA_INSTANCE_NAME}"
+    try:
+        import base64
+        response = httpx.post(
+            url,
+            json={"message": {"key": {"id": message_id}}, "convertToMp4": True},
+            headers={"Content-Type": "application/json", "apikey": EVOLUTION_API_KEY},
+            timeout=30.0,
+        )
+        if response.status_code in (200, 201):
+            data = response.json()
+            b64 = data.get("base64", "")
+            if b64:
+                # Remove prefixo data:image/...;base64, se houver
+                if ";base64," in b64:
+                    b64 = b64.split(";base64,")[1]
+                return base64.b64decode(b64)
+        logger.error(f"Download midia falhou: {response.status_code}")
+    except Exception as exc:
+        logger.error(f"Erro download midia: {exc}")
+    return None
+
+
+def upload_to_storage(sb: Client, file_bytes: bytes, registro_id: str,
+                      tipo_midia: str, mimetype: str | None) -> str | None:
+    """Faz upload para Supabase Storage e retorna a URL pública."""
+    ext_map = {
+        "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp",
+        "video/mp4": ".mp4", "video/3gpp": ".3gp", "video/quicktime": ".mov",
+    }
+    ext = ext_map.get(mimetype, ".jpg" if tipo_midia == "imagem" else ".mp4")
+    filename = f"{registro_id}/{uuid.uuid4().hex[:12]}{ext}"
+
+    try:
+        sb.storage.from_(STORAGE_BUCKET).upload(
+            path=filename,
+            file=file_bytes,
+            file_options={"content-type": mimetype or "application/octet-stream"},
+        )
+        public_url = sb.storage.from_(STORAGE_BUCKET).get_public_url(filename)
+        logger.info(f"Upload OK: {filename}")
+        return public_url
+    except Exception as exc:
+        logger.error(f"Erro upload storage: {exc}")
+        return None
+
+
+def processar_midia(event: dict, sb: Client, registro_id: str, tabela: str) -> str | None:
+    """
+    Pipeline completo: valida limites → download → upload → atualiza midia_urls.
+    Retorna mensagem de erro pro cidadão ou None se deu certo.
+    """
+    tipo_midia = event.get("tipo_midia")
+    file_length = event.get("file_length")
+    message_id = event.get("message_id")
+
+    if not tipo_midia or tipo_midia not in ("imagem", "video"):
+        return None  # Não é mídia processável
+
+    # ── 1. Validar tamanho ──
+    if file_length:
+        if tipo_midia == "video" and file_length > MAX_VIDEO_SIZE_BYTES:
+            mb = MAX_VIDEO_SIZE_BYTES // (1024 * 1024)
+            return f"⚠️ Vídeo muito grande! O limite é {mb}MB. Tente gravar um vídeo mais curto (até 30s)."
+        if tipo_midia == "imagem" and file_length > MAX_FOTO_SIZE_BYTES:
+            mb = MAX_FOTO_SIZE_BYTES // (1024 * 1024)
+            return f"⚠️ Foto muito grande! O limite é {mb}MB. Tente enviar uma foto com resolução menor."
+
+    # ── 2. Verificar limites de quantidade ──
+    try:
+        result = sb.table(tabela).select("midia_urls").eq("id", registro_id).execute()
+        urls_atuais = result.data[0].get("midia_urls") or [] if result.data else []
+    except Exception:
+        urls_atuais = []
+
+    fotos_atuais = sum(1 for u in urls_atuais if not any(u.endswith(e) for e in (".mp4", ".3gp", ".mov")))
+    videos_atuais = sum(1 for u in urls_atuais if any(u.endswith(e) for e in (".mp4", ".3gp", ".mov")))
+
+    if tipo_midia == "imagem" and fotos_atuais >= MAX_FOTOS_POR_DENUNCIA:
+        return f"📸 Limite de {MAX_FOTOS_POR_DENUNCIA} fotos atingido. Evidências suficientes para este registro."
+    if tipo_midia == "video" and videos_atuais >= MAX_VIDEOS_POR_DENUNCIA:
+        return f"🎥 Limite de {MAX_VIDEOS_POR_DENUNCIA} vídeo(s) atingido. Evidências suficientes para este registro."
+
+    # ── 3. Download da Evolution API ──
+    file_bytes = download_media(message_id)
+    if not file_bytes:
+        logger.warning(f"Não foi possível baixar mídia {message_id}")
+        return None  # Falha silenciosa — não bloqueia o fluxo
+
+    # ── 4. Validar tamanho real (fallback se fileLength não veio no payload) ──
+    real_size = len(file_bytes)
+    if tipo_midia == "video" and real_size > MAX_VIDEO_SIZE_BYTES:
+        mb = MAX_VIDEO_SIZE_BYTES // (1024 * 1024)
+        return f"⚠️ Vídeo muito grande ({real_size // (1024*1024)}MB)! O limite é {mb}MB."
+    if tipo_midia == "imagem" and real_size > MAX_FOTO_SIZE_BYTES:
+        mb = MAX_FOTO_SIZE_BYTES // (1024 * 1024)
+        return f"⚠️ Foto muito grande! O limite é {mb}MB."
+
+    # ── 5. Upload para Supabase Storage ──
+    mimetype = event.get("mimetype")
+    public_url = upload_to_storage(sb, file_bytes, registro_id, tipo_midia, mimetype)
+    if not public_url:
+        return None  # Falha silenciosa
+
+    # ── 6. Atualizar midia_urls no banco ──
+    novas_urls = urls_atuais + [public_url]
+    try:
+        sb.table(tabela).update({"midia_urls": novas_urls}).eq("id", registro_id).execute()
+        logger.info(f"Mídia salva: {tabela}/{registro_id} ({len(novas_urls)} total)")
+    except Exception as exc:
+        logger.error(f"Erro ao atualizar midia_urls: {exc}")
+
+    return None  # Sucesso
 
 
 def criar_sessao(sb: Client, telefone: str, canal: str, etapa: str,
@@ -138,6 +265,13 @@ def processar_denuncia(event: dict, sb: Client) -> None:
     tem_midia = event.get("tem_midia", False)
     tem_loc = event.get("tem_localizacao", False)
 
+    # Processar mídia se veio junto com a primeira mensagem
+    if tem_midia:
+        erro_midia = processar_midia(event, sb, registro_id, "denuncias")
+        if erro_midia:
+            enviar_whatsapp(telefone, erro_midia)
+            # Continua o fluxo mesmo com erro de mídia
+
     if not tem_midia:
         etapa = "aguardando_midia"
         resposta = (f"✅ Recebido, {push_name or 'cidadão'}! Sua denúncia de *{categoria.replace('_', ' ')}* "
@@ -147,7 +281,7 @@ def processar_denuncia(event: dict, sb: Client) -> None:
                     f"📋 Protocolo: {protocolo}")
     elif not tem_loc:
         etapa = "aguardando_endereco"
-        resposta = (f"✅ Foto recebida! Agora preciso da localização.\n\n"
+        resposta = (f"✅ Evidência recebida! Agora preciso da localização.\n\n"
                     f"📍 Envie o endereço ou clique em: 📎 > Localização\n\n"
                     f"📋 Protocolo: {protocolo}")
     else:
@@ -183,6 +317,10 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
     texto = event.get("texto", "")
 
     if tem_midia and etapa_atual == "aguardando_midia":
+        erro_midia = processar_midia(event, sb, registro_id, "denuncias")
+        if erro_midia:
+            enviar_whatsapp(telefone, erro_midia)
+            return
         update_data["status"] = "novo"
         nova_etapa = "aguardando_endereco"
         resposta = (f"📸 Evidência recebida! Obrigado.\n\n"
@@ -205,7 +343,11 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
                     f"📋 Protocolo: {protocolo}")
 
     elif tem_midia:
-        # Midia em qualquer etapa — aceita
+        # Midia em qualquer etapa — aceita com validação
+        erro_midia = processar_midia(event, sb, registro_id, "denuncias")
+        if erro_midia:
+            enviar_whatsapp(telefone, erro_midia)
+            return
         nova_etapa = etapa_atual
         resposta = f"📸 Evidência adicional recebida! Obrigado."
 
@@ -326,6 +468,12 @@ def processar_ocorrencia(event: dict, sb: Client) -> None:
     tem_loc = event.get("tem_localizacao", False)
     tem_midia = event.get("tem_midia", False)
 
+    # Processar mídia se veio junto
+    if tem_midia:
+        erro_midia = processar_midia(event, sb, registro_id, "ocorrencias_relatos")
+        if erro_midia:
+            enviar_whatsapp(telefone, erro_midia)
+
     if not tem_loc:
         etapa = "aguardando_endereco"
         resposta = (f"⚠️ Ocorrência de *{categoria.replace('_', ' ')}* registrada!\n\n"
@@ -388,8 +536,12 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
                     f"📋 Protocolo: {protocolo}")
 
     elif tem_midia:
+        erro_midia = processar_midia(event, sb, registro_id, "ocorrencias_relatos")
+        if erro_midia:
+            enviar_whatsapp(telefone, erro_midia)
+            return
         nova_etapa = etapa_atual
-        resposta = f"📸 Foto recebida! Obrigado pela evidência adicional."
+        resposta = f"📸 Evidência recebida! Obrigado."
 
     else:
         nova_etapa = etapa_atual

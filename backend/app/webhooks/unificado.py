@@ -53,6 +53,8 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
 
     texto = ""
     tipo_midia = None
+    file_length = None
+    mimetype = None
 
     if "conversation" in msg:
         texto = msg["conversation"]
@@ -61,18 +63,33 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
     elif "imageMessage" in msg:
         texto = msg["imageMessage"].get("caption", "")
         tipo_midia = "imagem"
+        file_length = msg["imageMessage"].get("fileLength")
+        mimetype = msg["imageMessage"].get("mimetype")
     elif "videoMessage" in msg:
         texto = msg["videoMessage"].get("caption", "")
         tipo_midia = "video"
+        file_length = msg["videoMessage"].get("fileLength")
+        mimetype = msg["videoMessage"].get("mimetype")
     elif "audioMessage" in msg:
         texto = ""
         tipo_midia = "audio"
+        file_length = msg["audioMessage"].get("fileLength")
+        mimetype = msg["audioMessage"].get("mimetype")
     elif "documentMessage" in msg:
         texto = msg["documentMessage"].get("caption", "")
         tipo_midia = "documento"
+        file_length = msg["documentMessage"].get("fileLength")
+        mimetype = msg["documentMessage"].get("mimetype")
     elif "locationMessage" in msg:
         texto = ""
         tipo_midia = "localizacao"
+
+    # Normaliza fileLength pra int (Evolution pode mandar como string)
+    if file_length is not None:
+        try:
+            file_length = int(file_length)
+        except (ValueError, TypeError):
+            file_length = None
 
     tem_localizacao = False
     latitude = None
@@ -93,6 +110,8 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
         "message_id": key.get("id"),
         "latitude": latitude,
         "longitude": longitude,
+        "file_length": file_length,
+        "mimetype": mimetype,
     }
 
 
@@ -217,6 +236,8 @@ def _montar_evento(dados: dict, request: Request, classificacao: dict,
         "latitude": dados.get("latitude"),
         "longitude": dados.get("longitude"),
         "message_id": dados.get("message_id"),
+        "file_length": dados.get("file_length"),
+        "mimetype": dados.get("mimetype"),
         "classificacao": classificacao,
         "is_continuacao": is_continuacao,
         "sessao": sessao,
