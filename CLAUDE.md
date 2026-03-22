@@ -2,6 +2,8 @@
 
 Plataforma de seguranca publica para a Prefeitura de Maringa. Recebe denuncias, ocorrencias e alertas SOS via WhatsApp, classifica com IA, e exibe em tempo real num dashboard operacional.
 
+> **CONTEXTO:** Sistema em demo ao vivo para reuniao de vendas B2G com a Prefeitura de Maringa-PR, embasada no Decreto 291/2026 (Programa Cidadao Ativo). Backend FastAPI rodando com dados reais de teste. Antes de qualquer operacao destrutiva no banco (DELETE, UPDATE em massa, migrations), confirmar com o usuario.
+
 ## Arquitetura
 
 ```
@@ -19,6 +21,7 @@ Dashboard (React)       Evolution API (responde ao cidadao)
 ```
 
 **Stack:** Python 3.11 / FastAPI / Redis / Supabase / React 18 / Mapbox GL / Nginx
+
 
 ## Estrutura do projeto
 
@@ -63,12 +66,13 @@ frontend/
 supabase/migrations/
   001_create_tables.sql  # 5 tabelas + audit_log + sequencia protocolo
   002_enable_realtime.sql
-  003_seed_demo_data.sql
+  003_seed_demo_data.sql  # <-- dados de demonstracao para a reuniao
   004_create_storage_bucket.sql  # Bucket "evidencias" pra fotos/videos
 
 docker-compose.yml       # Dev: redis + backend + worker + frontend
 docker-compose.prod.yml  # Producao: Coolify/Traefik (sem portas expostas)
 ```
+
 
 ## Banco de dados (Supabase PostgreSQL)
 
@@ -136,6 +140,9 @@ docker compose up --build
 # Producao (Coolify)
 docker compose -f docker-compose.prod.yml up -d
 
+# Ver logs ao vivo (util durante a demo)
+docker compose logs -f
+
 # Backend local (sem Docker)
 cd backend && pip install -r requirements.txt && uvicorn app.main:app --reload
 
@@ -144,6 +151,7 @@ cd backend && python worker.py
 
 # Frontend local
 cd frontend && npm install && npm run dev
+
 ```
 
 ## Variaveis de ambiente
