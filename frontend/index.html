@@ -1131,7 +1131,7 @@ function Central({sos}){
                     <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}}
                       onClick={async()=>{
                         try{
-                          const res=await fetch(API_URL+'/api/ocorrencias/'+f.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'em_atendimento'})});
+                          const res=await fetch(API_URL+'/api/ocorrencias/'+f.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'em_atendimento'})});
                           if(res.ok){alert('✅ Equipe acionada!');setSelFeed(null);}
                           else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
                         }catch(e){alert('Erro: '+e.message);}
@@ -1310,13 +1310,39 @@ function Ocorrencias(){
         {sel&&(
           <div className="card" style={{margin:16,padding:18,borderColor:'rgba(5,150,105,.25)',background:'rgba(5,150,105,.03)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
-              <div>
+              <div style={{flex:1,minWidth:0}}>
                 <div style={{fontWeight:600,fontSize:16,color:'#fff'}}>{sel.titulo}</div>
                 <div className="mono" style={{fontSize:12,color:'var(--text-muted)',marginTop:3}}>{sel.protocolo}</div>
               </div>
-              <div style={{display:'flex',gap:8}}>
-                <button className="btn btn-outline">Em andamento</button>
-                <button className="btn btn-primary">Resolver ✓</button>
+              <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0}}>
+                {sel.status==='aberto'&&(
+                  <button className="btn btn-outline" onClick={async()=>{
+                    try{
+                      const res=await fetch(API_URL+'/api/ocorrencias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'equipe_caminho'})});
+                      if(res.ok){setSel(prev=>({...prev,status:'equipe_caminho'}));}
+                      else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
+                    }catch(e){alert('Erro: '+e.message);}
+                  }}>🚔 Acionar Equipe</button>
+                )}
+                {sel.status==='equipe_caminho'&&(
+                  <button className="btn btn-outline" onClick={async()=>{
+                    try{
+                      const res=await fetch(API_URL+'/api/ocorrencias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'em_atendimento'})});
+                      if(res.ok){setSel(prev=>({...prev,status:'em_atendimento'}));}
+                      else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
+                    }catch(e){alert('Erro: '+e.message);}
+                  }}>🔧 Em Atendimento</button>
+                )}
+                {sel.status!=='resolvido'&&(
+                  <button className="btn btn-primary" onClick={async()=>{
+                    if(!confirm('Marcar ocorrência como resolvida?')) return;
+                    try{
+                      const res=await fetch(API_URL+'/api/ocorrencias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'resolvido'})});
+                      if(res.ok){setSel(prev=>({...prev,status:'resolvido'}));}
+                      else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
+                    }catch(e){alert('Erro: '+e.message);}
+                  }}>Resolver ✓</button>
+                )}
                 <button className="btn" style={{background:'var(--accent)',color:'#fff',border:'none'}}
                   onClick={()=>handleTraceRoute(sel)}
                   disabled={loadingRoute}>
@@ -1325,11 +1351,18 @@ function Ocorrencias(){
                 <button onClick={()=>setSel(null)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:18,padding:4}}>✕</button>
               </div>
             </div>
-            <div style={{display:'flex',gap:12,alignItems:'center'}}>
+            <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}>
+              <span className={`badge ${(S_OC[sel.status]||{}).badge||'b-gray'}`}>{(S_OC[sel.status]||{}).label||sel.status}</span>
               <span className="badge b-green">{sel.total_relatos} cidadãos</span>
+              <span className={`badge ${SEV[sel.severidade]?'b-warn':'b-gray'}`}>{SEV[sel.severidade]?.label||sel.severidade}</span>
               <span style={{fontSize:13,color:'var(--text-muted)'}}>{sel.bairro}</span>
-              <span className={`badge ${SEV[sel.severidade]?'b-warn':'b-gray'}`}>{SEV[sel.severidade]?.label}</span>
             </div>
+            {(sel.descricao||sel.endereco)&&(
+              <div style={{marginTop:10,fontSize:13,color:'var(--text-muted)',lineHeight:1.5}}>
+                {sel.descricao&&<div style={{marginBottom:4}}>{sel.descricao}</div>}
+                {sel.endereco&&<div style={{display:'flex',alignItems:'center',gap:4}}>📍 {sel.endereco}</div>}
+              </div>
+            )}
           </div>
         )}
       </div>
