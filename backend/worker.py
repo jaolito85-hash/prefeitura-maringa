@@ -1148,6 +1148,21 @@ def _continuar_cadastro_sos(event: dict, sb: Client, sessao: dict) -> None:
 # PROCESSADORES — OCORRENCIA
 # ══════════════════════════════════════════════════════════════
 
+def _severidade_por_categoria(categoria: str) -> str:
+    """Define severidade automática baseada na categoria da ocorrência."""
+    SEVERAS = {
+        "arvore_caida": "alta", "queda_arvore": "alta", "arvore": "alta",
+        "deslizamento": "critica", "desmoronamento": "critica", "enchente": "critica",
+        "alagamento": "alta", "inundacao": "critica",
+        "incendio": "critica", "fogo": "critica",
+        "desabamento": "critica", "colapso": "critica",
+        "vazamento_gas": "alta", "explosao": "critica",
+        "acidente": "alta", "acidente_transito": "alta",
+        "fio_partido": "alta", "poste_caido": "alta",
+    }
+    return SEVERAS.get(categoria, "baixa")
+
+
 def processar_ocorrencia(event: dict, sb: Client) -> None:
     is_continuacao = event.get("is_continuacao", False)
     telefone = event.get("telefone", "desconhecido")
@@ -1162,15 +1177,22 @@ def processar_ocorrencia(event: dict, sb: Client) -> None:
     protocolo = gerar_protocolo(sb)
     categoria = classificacao.get("categoria", "outros_urbanos")
     resumo = classificacao.get("resumo", texto[:200] if texto else "Ocorrência")
+    severidade = _severidade_por_categoria(categoria)
+
+    # Endereço só é preenchido se veio localização GPS; texto vai pro titulo/mensagem
+    tem_loc = event.get("tem_localizacao", False)
+    endereco_inicial = ""
+    if tem_loc and event.get("latitude"):
+        endereco_inicial = f"GPS: {event['latitude']:.4f}, {event['longitude']:.4f}"
 
     res = sb.table("ocorrencias").insert({
         "protocolo": protocolo,
         "categoria": categoria,
         "titulo": resumo,
-        "endereco": texto[:500] if texto else "",
-        "endereco_normalizado": texto[:500].lower() if texto else "",
+        "endereco": endereco_inicial,
+        "endereco_normalizado": endereco_inicial.lower(),
         "status": "aberto",
-        "severidade": "baixa",
+        "severidade": severidade,
         "total_relatos": 1,
         "latitude": event.get("latitude"),
         "longitude": event.get("longitude"),
@@ -1200,20 +1222,24 @@ def processar_ocorrencia(event: dict, sb: Client) -> None:
         if erro_midia:
             enviar_whatsapp(telefone, erro_midia)
 
+    # Emoji e urgência baseados na severidade
+    icone = "🚨" if severidade in ("alta", "critica") else "⚠️"
+    aviso_urgente = "\n🚨 *URGENTE* — Equipe de emergência sendo acionada." if severidade in ("alta", "critica") else ""
+
     if not tem_loc:
         etapa = "aguardando_endereco"
-        resposta = (f"⚠️ Ocorrência de *{categoria.replace('_', ' ')}* registrada!\n\n"
+        resposta = (f"{icone} Ocorrência de *{categoria.replace('_', ' ')}* registrada!{aviso_urgente}\n\n"
                     f"📍 Pode enviar a localização? Clique em: 📎 > Localização\n"
                     f"Ou me diga a rua e o bairro.\n\n"
                     f"📋 Protocolo: {protocolo}")
     elif not tem_midia:
         etapa = "aguardando_midia"
-        resposta = (f"⚠️ Ocorrência registrada com localização!\n\n"
+        resposta = (f"{icone} Ocorrência registrada com localização!{aviso_urgente}\n\n"
                     f"📸 Se puder, envie uma foto do problema.\n\n"
                     f"📋 Protocolo: {protocolo}")
     else:
         etapa = "finalizado"
-        resposta = (f"⚠️ Ocorrência completa registrada!\n\n"
+        resposta = (f"{icone} Ocorrência completa registrada!{aviso_urgente}\n\n"
                     f"A equipe responsável já foi notificada.\n\n"
                     f"📋 Protocolo: {protocolo}")
 
@@ -1235,6 +1261,8 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
     protocolo = contexto.get("protocolo", "")
 
     if not registro_id:
+        logger.error(f"Continuacao ocorrencia sem registro_id para {telefone}")
+        enviar_whatsapp(telefone, "⚠️ Ocorreu um erro. Por favor, envie sua mensagem novamente.")
         return
 
     tem_loc = event.get("tem_localizacao", False)
@@ -1242,9 +1270,12 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
     texto = event.get("texto", "")
 
     if tem_loc:
+        lat = event.get("latitude")
+        lng = event.get("longitude")
         sb.table("ocorrencias").update({
-            "latitude": event.get("latitude"),
-            "longitude": event.get("longitude"),
+            "latitude": lat,
+            "longitude": lng,
+            "endereco": f"GPS: {lat:.4f}, {lng:.4f}",
         }).eq("id", registro_id).execute()
         nova_etapa = "finalizado"
         resposta = (f"📍 Localização registrada!\n\n"
