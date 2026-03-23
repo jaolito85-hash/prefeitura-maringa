@@ -105,6 +105,10 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
         latitude = msg["locationMessage"].get("degreesLatitude")
         longitude = msg["locationMessage"].get("degreesLongitude")
 
+    # ── Extrair base64 da mídia (quando Webhook Base64 está ON na Evolution) ──
+    # A Evolution manda o base64 direto no payload — não precisa de segunda chamada
+    media_base64 = msg.get("base64", "") or ""
+
     return {
         "texto": texto,
         "telefone": phone,
@@ -118,6 +122,7 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
         "longitude": longitude,
         "file_length": file_length,
         "mimetype": mimetype,
+        "media_base64": media_base64,
     }
 
 
@@ -340,6 +345,7 @@ def _montar_evento(dados: dict, request: Request, classificacao: dict,
         "message_id": dados.get("message_id"),
         "file_length": dados.get("file_length"),
         "mimetype": dados.get("mimetype"),
+        "media_base64": dados.get("media_base64", ""),
         "texto_truncado": dados.get("texto_truncado", False),
         "classificacao": classificacao,
         "is_continuacao": is_continuacao,

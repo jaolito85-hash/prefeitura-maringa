@@ -150,24 +150,43 @@ def enviar_whatsapp(telefone: str, mensagem: str) -> bool:
         return False
 
 
-def download_media(message_id: str) -> bytes | None:
-    """Baixa a mídia de uma mensagem via Evolution API."""
+def download_media(message_id: str, media_base64: str = "") -> bytes | None:
+    """
+    Baixa a mídia de uma mensagem.
+    1º tenta usar o base64 que já veio no webhook (Webhook Base64 ON na Evolution)
+    2º fallback: chama getBase64FromMediaMessage na Evolution API
+    """
+    import base64
+
+    # ── 1. Usar base64 do webhook (mais rápido e confiável, especialmente pra vídeo) ──
+    if media_base64:
+        try:
+            b64 = media_base64
+            if ";base64," in b64:
+                b64 = b64.split(";base64,")[1]
+            resultado = base64.b64decode(b64)
+            if len(resultado) > 0:
+                logger.info(f"Mídia obtida do webhook base64 ({len(resultado)} bytes)")
+                return resultado
+        except Exception as exc:
+            logger.warning(f"Falha ao decodificar base64 do webhook: {exc}")
+
+    # ── 2. Fallback: chamar Evolution API ──
     if not EVOLUTION_API_URL or not EVOLUTION_API_KEY or not message_id:
         return None
     url = f"{EVOLUTION_API_URL}/chat/getBase64FromMediaMessage/{WA_INSTANCE_NAME}"
     try:
-        import base64
+        logger.info(f"Baixando mídia via API: {message_id}")
         response = httpx.post(
             url,
             json={"message": {"key": {"id": message_id}}, "convertToMp4": True},
             headers={"Content-Type": "application/json", "apikey": EVOLUTION_API_KEY},
-            timeout=120.0,  # 2 minutos — vídeo precisa de mais tempo pra converter
+            timeout=120.0,
         )
         if response.status_code in (200, 201):
             data = response.json()
             b64 = data.get("base64", "")
             if b64:
-                # Remove prefixo data:image/...;base64, se houver
                 if ";base64," in b64:
                     b64 = b64.split(";base64,")[1]
                 return base64.b64decode(b64)
@@ -237,8 +256,9 @@ def processar_midia(event: dict, sb: Client, registro_id: str, tabela: str) -> s
     if tipo_midia == "video" and videos_atuais >= MAX_VIDEOS_POR_DENUNCIA:
         return f"🎥 Limite de {MAX_VIDEOS_POR_DENUNCIA} vídeo(s) atingido. Evidências suficientes para este registro."
 
-    # ── 3. Download da Evolution API ──
-    file_bytes = download_media(message_id)
+    # ── 3. Download (usa base64 do webhook primeiro, fallback pra API) ──
+    media_base64 = event.get("media_base64", "")
+    file_bytes = download_media(message_id, media_base64)
     if not file_bytes:
         logger.warning(f"Não foi possível baixar mídia {message_id}")
         return ("⚠️ Não consegui receber seu arquivo. Isso pode acontecer com vídeos grandes.\n\n"
