@@ -114,6 +114,19 @@ def gerar_protocolo(sb: Client) -> str:
         return f"MGA-{date.today().year}-{str(uuid.uuid4())[:8].upper()}"
 
 
+AVISO_TRUNCAGEM = (
+    "⚠️ _Sua mensagem era muito longa e foi resumida. "
+    "Para melhor atendimento, envie textos mais curtos (até ~10 linhas)._\n\n"
+)
+
+
+def _com_aviso_truncagem(event: dict, resposta: str) -> str:
+    """Prefixa o aviso de truncagem na resposta se a mensagem foi truncada."""
+    if event.get("texto_truncado"):
+        return AVISO_TRUNCAGEM + resposta
+    return resposta
+
+
 def enviar_whatsapp(telefone: str, mensagem: str) -> bool:
     if not EVOLUTION_API_URL or not EVOLUTION_API_KEY:
         logger.warning("Evolution API nao configurada")
@@ -500,7 +513,7 @@ def processar_denuncia(event: dict, sb: Client) -> None:
         criar_sessao(sb, telefone, "denuncia", "aguardando_categoria", placeholder_id,
                      {"push_name": push_name, "mensagem_original": texto,
                       "_placeholder": True})
-        enviar_whatsapp(telefone, menu)
+        enviar_whatsapp(telefone, _com_aviso_truncagem(event, menu))
         logger.info(f"Menu de categorias enviado para {telefone}")
         return
 
@@ -595,7 +608,7 @@ def processar_denuncia(event: dict, sb: Client) -> None:
     if etapa == "finalizado":
         finalizar_sessao(sb, telefone)
 
-    enviar_whatsapp(telefone, resposta)
+    enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
 
 
 def _continuar_denuncia(event: dict, sb: Client) -> None:
@@ -1145,7 +1158,7 @@ def processar_ocorrencia(event: dict, sb: Client) -> None:
     if etapa == "finalizado":
         finalizar_sessao(sb, telefone)
 
-    enviar_whatsapp(telefone, resposta)
+    enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
 
 
 def _continuar_ocorrencia(event: dict, sb: Client) -> None:
@@ -1244,11 +1257,71 @@ def processar_feedback(event: dict, sb: Client) -> None:
                         f"Vamos encaminhar para o setor de *{categoria.replace('_', ' ')}*.\n\n"
                         f"📋 Protocolo: {protocolo}")
 
-        enviar_whatsapp(telefone, resposta)
+        enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
         # Feedback nao cria sessao — mensagem unica
 
 
 # ══════════════════════════════════════════════════════════════
+# ── HELPERS: Privacidade de protocolo ──────────────────────────
+
+def _verificar_dono_protocolo(sb: Client, protocolo: str, telefone: str) -> bool:
+    """
+    Verifica se o protocolo pertence ao telefone solicitante.
+    Checa denuncias, ocorrencias_relatos, feedbacks e sos_alertas.
+
+    Retorna True se o telefone é dono, False caso contrário.
+    Em caso de erro, retorna False (fail-safe: nega acesso).
+    """
+    # Checa denúncias
+    try:
+        r = sb.table("denuncias").select("telefone").eq("protocolo", protocolo).limit(1).execute()
+        if r.data and r.data[0].get("telefone") == telefone:
+            return True
+    except Exception:
+        pass
+
+    # Checa relatos de ocorrência (ocorrencia não tem telefone direto)
+    try:
+        # Primeiro pega o ID da ocorrência pelo protocolo
+        oc = sb.table("ocorrencias").select("id").eq("protocolo", protocolo).limit(1).execute()
+        if oc.data:
+            oc_id = oc.data[0]["id"]
+            rel = sb.table("ocorrencias_relatos").select("telefone").eq(
+                "ocorrencia_id", oc_id
+            ).eq("telefone", telefone).limit(1).execute()
+            if rel.data:
+                return True
+    except Exception:
+        pass
+
+    # Checa feedbacks
+    try:
+        r = sb.table("feedbacks").select("telefone").eq("protocolo", protocolo).limit(1).execute()
+        if r.data and r.data[0].get("telefone") == telefone:
+            return True
+    except Exception:
+        pass
+
+    # Checa SOS
+    try:
+        r = sb.table("sos_alertas").select("telefone").eq("protocolo", protocolo).limit(1).execute()
+        if r.data and r.data[0].get("telefone") == telefone:
+            return True
+    except Exception:
+        pass
+
+    return False
+
+
+def _msg_protocolo_privado(protocolo: str) -> str:
+    """Mensagem padrão quando cidadão tenta consultar protocolo de outro número."""
+    return (
+        f"🔒 O protocolo *{protocolo}* não está vinculado a este número.\n\n"
+        f"Por segurança, você só pode consultar protocolos abertos por este telefone.\n\n"
+        f"Se acredita que isso é um erro, envie sua mensagem normalmente e vamos te ajudar."
+    )
+
+
 # PROCESSADOR — CONSULTA DE PROTOCOLO (via WhatsApp)
 # ══════════════════════════════════════════════════════════════
 
@@ -1256,6 +1329,10 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
     """
     Cidadão enviou um número de protocolo pelo WhatsApp.
     Busca em todas as tabelas e responde com o status amigável.
+
+    PROTEÇÕES:
+    - Rate limit: se rate_limited=True, só avisa que excedeu o limite
+    - Privacidade: só mostra detalhes de protocolos do próprio número
     """
     telefone = event.get("telefone", "desconhecido")
     classificacao = event.get("classificacao", {})
@@ -1266,16 +1343,37 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
                         "O formato correto é MGA-2026-XXXXX.")
         return
 
+    # ── PROTEÇÃO 3: Consulta bloqueada por rate limit ──
+    if classificacao.get("rate_limited"):
+        minutos = classificacao.get("retry_after_minutos", 60)
+        enviar_whatsapp(telefone,
+            f"⏳ Você já fez várias consultas de protocolo recentemente.\n\n"
+            f"Por segurança, aguarde aproximadamente {minutos} minutos antes de consultar novamente.\n\n"
+            f"Se precisar de ajuda urgente, envie sua mensagem normalmente."
+        )
+        return
+
     logger.info(f"🔍 Consulta protocolo: {protocolo} de {telefone}")
+
+    # ── PROTEÇÃO 4: Privacidade — só consulta protocolos do próprio número ──
+    # Verifica se o protocolo pertence a esse telefone checando sessoes_conversa
+    protocolo_pertence_ao_telefone = _verificar_dono_protocolo(sb, protocolo, telefone)
 
     # ── Busca em denúncias ──
     try:
         result = sb.table("denuncias").select(
-            "protocolo, categoria, status, cidadania_ativa, created_at"
+            "protocolo, categoria, status, cidadania_ativa, created_at, telefone"
         ).eq("protocolo", protocolo).limit(1).execute()
 
         if result.data:
             d = result.data[0]
+
+            # ── PROTEÇÃO 4: Verifica se o protocolo pertence a esse telefone ──
+            dono_telefone = d.get("telefone", "")
+            if not protocolo_pertence_ao_telefone and dono_telefone != telefone:
+                enviar_whatsapp(telefone, _msg_protocolo_privado(protocolo))
+                return
+
             msg = f"📋 *Denúncia {d['protocolo']}*\n"
             msg += f"Categoria: {(d.get('categoria') or 'não classificada').replace('_', ' ').title()}\n\n"
 
@@ -1315,11 +1413,17 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
     # ── Busca em ocorrências ──
     try:
         result = sb.table("ocorrencias").select(
-            "protocolo, categoria, status, severidade, total_relatos, created_at"
+            "protocolo, id, categoria, status, severidade, total_relatos, created_at"
         ).eq("protocolo", protocolo).limit(1).execute()
 
         if result.data:
             o = result.data[0]
+
+            # ── PROTEÇÃO 4: Privacidade ──
+            if not protocolo_pertence_ao_telefone:
+                enviar_whatsapp(telefone, _msg_protocolo_privado(protocolo))
+                return
+
             msg = f"🚨 *Ocorrência {o['protocolo']}*\n"
             msg += f"Categoria: {(o.get('categoria') or '').replace('_', ' ').title()}\n"
             msg += f"Severidade: {'⚠️' * min(o.get('severidade', 1), 5)}\n"
@@ -1339,11 +1443,17 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
     # ── Busca em feedbacks ──
     try:
         result = sb.table("feedbacks").select(
-            "protocolo, categoria, status, departamento, created_at"
+            "protocolo, categoria, status, departamento, telefone, created_at"
         ).eq("protocolo", protocolo).limit(1).execute()
 
         if result.data:
             f = result.data[0]
+
+            # ── PROTEÇÃO 4: Privacidade ──
+            if not protocolo_pertence_ao_telefone and f.get("telefone") != telefone:
+                enviar_whatsapp(telefone, _msg_protocolo_privado(protocolo))
+                return
+
             msg = f"💬 *Feedback {f['protocolo']}*\n"
             if f.get("departamento"):
                 msg += f"Departamento: {f['departamento']}\n"
@@ -1364,11 +1474,16 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
     # ── Busca em SOS ──
     try:
         result = sb.table("sos_alertas").select(
-            "protocolo, status, created_at"
+            "protocolo, status, telefone, created_at"
         ).eq("protocolo", protocolo).limit(1).execute()
 
         if result.data:
             s = result.data[0]
+
+            # ── PROTEÇÃO 4: Privacidade ──
+            if not protocolo_pertence_ao_telefone and s.get("telefone") != telefone:
+                enviar_whatsapp(telefone, _msg_protocolo_privado(protocolo))
+                return
             status_map = {
                 "active": "🔴 *ATIVO* — Equipe acionada.",
                 "accepted": "🚔 *Aceito* — Viatura designada.",

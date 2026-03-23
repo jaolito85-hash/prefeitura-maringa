@@ -26,6 +26,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import settings
 from app.services.classificador import classificar_mensagem, detectar_sos_rapido
+from app.services.rate_limiter import (
+    checar_limite_consulta_protocolo,
+    checar_limite_diario,
+    truncar_mensagem,
+)
 from app.services.supabase_client import get_supabase
 from app.services.webhook_queue import enqueue_webhook, QueueUnavailableError
 from app.webhooks.common import require_evolution_apikey
@@ -152,6 +157,16 @@ async def receber_webhook_unificado(
 
     telefone = dados["telefone"]
     texto = dados["texto"]
+
+    # ── PROTEÇÃO 1: TRUNCAR MENSAGENS LONGAS (600 chars) ──
+    # Protege contra spam e economiza tokens da IA
+    if texto:
+        texto, foi_truncado = truncar_mensagem(texto)
+        if foi_truncado:
+            logger.info(f"Mensagem truncada de {telefone}: {len(dados['texto'])} → {len(texto)} chars")
+            dados["texto"] = texto  # Atualiza pra propagar o texto truncado
+            dados["texto_truncado"] = True  # Flag pra avisar o cidadão depois
+
     logger.info(f"Mensagem de {telefone}: {texto[:80] if texto else '[midia/localizacao]'}")
 
     # ── 1. CHECAR SESSAO ATIVA (ANTES de tudo) ──
@@ -160,6 +175,7 @@ async def receber_webhook_unificado(
     sessao = _buscar_sessao_ativa(telefone)
 
     # ── 2. SOS RAPIDO — so se NAO tem sessao ativa ──
+    # ⚠️ SOS é ANTES do rate limit — vida em risco NUNCA é bloqueada
     if not sessao and texto and detectar_sos_rapido(texto):
         logger.warning(f"🚨 SOS RAPIDO detectado de {telefone}!")
         # Limpa qualquer sessao expirada residual
@@ -181,16 +197,46 @@ async def receber_webhook_unificado(
         }, is_continuacao=False)
         return _enfileirar(event, "queue:sos")
 
+    # ── PROTEÇÃO 2: LIMITE DIÁRIO (30 msgs/dia) ──
+    # Colocado DEPOIS do SOS — emergência nunca é bloqueada
+    limite_dia = checar_limite_diario(telefone)
+    if not limite_dia.allowed:
+        horas = limite_dia.retry_after // 3600
+        logger.warning(f"🚫 Limite diário: {telefone} bloqueado ({limite_dia.current}/{limite_dia.limit})")
+        # Não enfileira, não processa — só retorna 202 (não revelar pro spammer)
+        return {
+            "status": "rate_limited",
+            "reason": "daily_limit",
+            "retry_after_hours": max(horas, 1),
+        }
+
     # ── 3. CONSULTA DE PROTOCOLO — detecta MGA-XXXX-XXXXX antes da IA ──
     protocolo_match = re.search(r"MGA-\d{4}-\d{4,6}", texto.upper()) if texto else None
     if protocolo_match and not sessao:
         protocolo_num = protocolo_match.group(0)
         logger.info(f"🔍 Consulta de protocolo detectada: {protocolo_num} de {telefone}")
 
+        # ── PROTEÇÃO 3: LIMITE DE CONSULTAS (3/hora) ──
+        # Evita brute-force de protocolos alheios
+        limite_consulta = checar_limite_consulta_protocolo(telefone)
+        if not limite_consulta.allowed:
+            minutos = limite_consulta.retry_after // 60
+            logger.warning(f"🚫 Limite consulta protocolo: {telefone} ({limite_consulta.current}/{limite_consulta.limit})")
+            # Enfileira como consulta bloqueada — worker envia msg educada
+            event = _montar_evento(dados, request, classificacao={
+                "canal": "consulta_protocolo",
+                "categoria": "consulta_bloqueada",
+                "protocolo_consulta": protocolo_num,
+                "rate_limited": True,
+                "retry_after_minutos": max(minutos, 1),
+            }, is_continuacao=False)
+            return _enfileirar(event, "queue:consultas")
+
         event = _montar_evento(dados, request, classificacao={
             "canal": "consulta_protocolo",
             "categoria": "consulta",
             "protocolo_consulta": protocolo_num,
+            "telefone_solicitante": telefone,  # PROTEÇÃO 4: pra validar privacidade no worker
         }, is_continuacao=False)
         return _enfileirar(event, "queue:consultas")
 
@@ -286,6 +332,7 @@ def _montar_evento(dados: dict, request: Request, classificacao: dict,
         "message_id": dados.get("message_id"),
         "file_length": dados.get("file_length"),
         "mimetype": dados.get("mimetype"),
+        "texto_truncado": dados.get("texto_truncado", False),
         "classificacao": classificacao,
         "is_continuacao": is_continuacao,
         "sessao": sessao,
