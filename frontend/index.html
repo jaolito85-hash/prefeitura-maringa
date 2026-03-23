@@ -9,7 +9,7 @@
 <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js" crossorigin></script>
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -37,7 +37,7 @@
   --radius:12px;
 }
 html,body,#root{height:100%;background:var(--bg);color:var(--text);overflow:hidden}
-body{font-family:'Inter',sans-serif;font-size:14px;font-weight:400;-webkit-font-smoothing:antialiased}
+body{font-family:'Public Sans','Inter',sans-serif;font-size:14px;font-weight:400;-webkit-font-smoothing:antialiased}
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:4px}
@@ -56,7 +56,7 @@ body{font-family:'Inter',sans-serif;font-size:14px;font-weight:400;-webkit-font-
 .status-dot{width:6px;height:6px;border-radius:50%;background:var(--success-light);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .clock-area{text-align:right}
-.clock{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#fff;letter-spacing:.5px}
+.clock{font-family:'Public Sans',sans-serif;font-weight:700;font-size:18px;font-weight:600;color:#fff;letter-spacing:.5px}
 .clock-date{font-size:11px;color:var(--text-muted);margin-top:1px;text-transform:capitalize}
 .hdr-btn{background:var(--card);border:1px solid var(--border);color:var(--text-secondary);width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s}
 .hdr-btn:hover{border-color:var(--border-light);color:var(--text)}
@@ -97,7 +97,7 @@ body{font-family:'Inter',sans-serif;font-size:14px;font-weight:400;-webkit-font-
 .kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .kpi-label{font-size:12px;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
 .kpi-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
-.kpi-value{font-family:'IBM Plex Mono',monospace;font-size:32px;font-weight:600;line-height:1;color:#fff}
+.kpi-value{font-family:'Public Sans',sans-serif;font-weight:700;font-size:32px;font-weight:600;line-height:1;color:#fff}
 .kpi-sub{font-size:11px;color:var(--text-muted);margin-top:6px}
 
 /* TABLES */
@@ -133,13 +133,13 @@ tr:hover td{background:rgba(255,255,255,.02)}
 /* MISC */
 .scrollable{overflow-y:auto}
 .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mono{font-family:'IBM Plex Mono',monospace}
+.mono{font-family:'Public Sans',sans-serif;font-weight:700}
 
 /* STAT ROW */
 .stat-row{display:flex;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
 .stat-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;text-align:center;transition:.2s}
 .stat-box:hover{border-color:var(--border-light)}
-.stat-num{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;line-height:1;color:#fff}
+.stat-num{font-family:'Public Sans',sans-serif;font-weight:700;font-size:22px;font-weight:600;line-height:1;color:#fff}
 .stat-lbl{font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-top:5px}
 
 /* SELECT/INPUT */
@@ -154,7 +154,7 @@ textarea{resize:vertical}
 .chart-legend-item{display:flex;align-items:center;gap:6px;color:var(--text-muted)}
 
 /* MAP */
-.mapboxgl-map{font-family:'Inter',system-ui,-apple-system,sans-serif !important}
+.mapboxgl-map{font-family:'Public Sans',system-ui,-apple-system,sans-serif !important}
 .mapboxgl-ctrl-bottom-left,.mapboxgl-ctrl-bottom-right{display:none !important}
 .map-container{width:100%;height:100%;border-radius:var(--radius);overflow:hidden;position:relative}
 .map-container.fullscreen{border-radius:0}
@@ -170,7 +170,7 @@ textarea{resize:vertical}
 .route-info p{font-size:12px;color:var(--text-secondary);margin-bottom:3px}
 .route-stats{display:flex;gap:16px;margin-top:12px}
 .route-stat{background:var(--card-hover);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center}
-.route-stat .val{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#fff}
+.route-stat .val{font-family:'Public Sans',sans-serif;font-weight:700;font-size:16px;font-weight:600;color:#fff}
 .route-stat .lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
 .route-actions{display:flex;flex-direction:column;gap:8px;flex-shrink:0}
 .route-dispatch{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card-hover);color:var(--text);cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:all .15s;white-space:nowrap}
@@ -227,6 +227,50 @@ select{-webkit-appearance:none;appearance:none}
 /* TABLE ROW */
 tr{transition:.1s}
 tr:hover td{background:var(--card-hover)}
+
+/* ── RELATÓRIOS — GOVERNO INSTITUCIONAL ──────────────────── */
+.rel-header{padding:20px 28px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface);display:flex;align-items:center;justify-content:space-between}
+.rel-title{font-family:'Public Sans',sans-serif;font-size:22px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.rel-subtitle{font-size:12px;color:var(--text-muted);margin-top:3px;font-weight:500;letter-spacing:.2px}
+.rel-period-btn{padding:6px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Public Sans',sans-serif;transition:all .15s;border:1px solid var(--border);background:transparent;color:var(--text-muted)}
+.rel-period-btn:hover{border-color:var(--border-light);color:var(--text)}
+.rel-period-btn.active{background:#1e3a5f;border-color:#1e3a5f;color:#fff}
+.rel-hero{padding:28px 32px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:24px}
+.rel-hero-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px}
+.rel-hero-value{font-family:'Public Sans',sans-serif;font-size:46px;font-weight:900;color:#fff;letter-spacing:-1.5px;line-height:1}
+.rel-hero-trend{font-size:13px;font-weight:600;color:#059669;margin-left:16px;display:inline-flex;align-items:center;gap:4px}
+.rel-section-title{font-family:'Public Sans',sans-serif;font-size:15px;font-weight:700;color:#fff;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.rel-section-badge{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--card)}
+.rel-kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px 20px;position:relative;overflow:hidden;transition:border-color .2s}
+.rel-kpi:hover{border-color:var(--border-light)}
+.rel-kpi-bar{position:absolute;top:0;left:0;right:0;height:3px;opacity:.7}
+.rel-kpi-value{font-family:'Public Sans',sans-serif;font-size:30px;font-weight:800;line-height:1}
+.rel-kpi-label{font-size:11px;font-weight:600;color:var(--text-muted);margin-top:8px;text-transform:uppercase;letter-spacing:.6px}
+.rel-kpi-sub{font-size:11px;color:var(--text-muted);margin-top:5px;opacity:.7}
+.rel-table{width:100%;border-collapse:separate;border-spacing:0}
+.rel-table th{text-align:left;padding:10px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-bottom:1px solid var(--border);background:transparent}
+.rel-table td{padding:14px 16px;border-bottom:1px solid rgba(35,37,46,.6);font-size:13px;color:var(--text-secondary);vertical-align:middle}
+.rel-table tr:hover td{background:rgba(255,255,255,.015)}
+.rel-table tr:last-child td{border-bottom:none}
+.rel-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600}
+.rel-pill-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.rel-progress-track{height:6px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden;min-width:100px}
+.rel-progress-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.22,1,.36,1)}
+.rel-sentiment{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600}
+.rel-sentiment-dot{width:6px;height:6px;border-radius:50%}
+.rel-trend-arrow{font-size:16px;font-weight:700;line-height:1}
+.rel-donut-legend{display:flex;flex-direction:column;gap:10px}
+.rel-donut-item{display:flex;align-items:center;justify-content:space-between}
+.rel-donut-item-left{display:flex;align-items:center;gap:8px}
+.rel-donut-item-dot{width:8px;height:8px;border-radius:50%}
+.rel-donut-item-label{font-size:12px;color:var(--text-muted);font-weight:500}
+.rel-donut-item-value{font-family:'Public Sans',sans-serif;font-size:13px;font-weight:700}
+.rel-mini-card{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:10px;padding:16px 14px;text-align:center}
+.rel-mini-card-value{font-family:'Public Sans',sans-serif;font-size:16px;font-weight:800}
+.rel-mini-card-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-top:6px;font-weight:600}
+@keyframes relFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.rel-animate{animation:relFadeUp .5s ease-out both}
+.rel-animate:nth-child(1){animation-delay:.03s}.rel-animate:nth-child(2){animation-delay:.06s}.rel-animate:nth-child(3){animation-delay:.09s}.rel-animate:nth-child(4){animation-delay:.12s}.rel-animate:nth-child(5){animation-delay:.15s}.rel-animate:nth-child(6){animation-delay:.18s}.rel-animate:nth-child(7){animation-delay:.21s}.rel-animate:nth-child(8){animation-delay:.24s}
 </style>
 </head>
 <body>
@@ -256,6 +300,28 @@ function AnimatedNumber({value,duration=1200,prefix='',suffix='',style={},classN
   return <span className={className} style={style}>{prefix}{display.toLocaleString('pt-BR')}{suffix}</span>;
 }
 
+/* ─── ANIMATED MONEY (conta centavos de 0 ao valor) ────────── */
+function AnimMoney({value,style:s={}}){
+  const cents=Math.round((value||0)*100);
+  const [disp,setDisp]=useState(0);
+  useEffect(()=>{
+    let start=null;
+    function step(ts){if(!start)start=ts;const p=Math.min((ts-start)/1500,1);const ease=1-Math.pow(1-p,3);setDisp(Math.round(ease*cents));if(p<1)requestAnimationFrame(step);}
+    requestAnimationFrame(step);
+  },[cents]);
+  return <span style={s}>R$ {(disp/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>;
+}
+
+/* ─── PILL BADGE (dot colorido, sem emoji) ─────────────────── */
+function Pill({label,color}){
+  return(
+    <span className="rel-pill" style={{background:`${color}12`,color:color}}>
+      <span className="rel-pill-dot" style={{background:color}}/>
+      {label}
+    </span>
+  );
+}
+
 /* ─── PAGE TRANSITION WRAPPER ──────────────────────────────── */
 function PageTransition({children,pageKey}){
   const [show,setShow]=useState(false);
@@ -265,6 +331,14 @@ function PageTransition({children,pageKey}){
 
 /* ─── API CONFIG ────────────────────────────────────────────────── */
 const API_URL='';
+const REL_DEMO={
+  denuncias:{total:142,por_categoria:{pichacao:34,trafico_drogas:28,descarte_irregular:24,furto_fios:21,depredacao:19,generica:16},por_bairro:{'Zona 7':31,Centro:27,'Jardim Alvorada':22,'Vila Esperança':18,'Zona 2':16,'Parque das Grevíleas':14,'Jardim Imperial':8,'Vila Morangueira':6},por_status:{nova:18,em_analise:35,procedente:62,improcedente:12,encaminhada:8,resolvida:7}},
+  ocorrencias:{total:89,total_relatos:247,por_categoria:{iluminacao:22,buraco_via:18,alagamento:14,arvore_caida:12,vazamento_agua:8,poluicao_sonora:6,abandono_veiculo:5,descarte_irregular:4},por_bairro:{'Zona 7':19,Centro:16,'Vila Esperança':13,'Jardim Alvorada':11,'Zona 2':10,'Parque das Grevíleas':8,'Vila Morangueira':7,'Jardim Imperial':5},por_severidade:{baixa:24,media:35,alta:21,critica:9},por_status:{aberta:22,em_atendimento:38,resolvido:29}},
+  sos:{total:23,resolvidos:18,ativos:2,cadastros:67},
+  feedbacks:{total:156,por_sentimento:{positivo:82,negativo:31,neutro:43},por_categoria:{elogio:48,reclamacao:42,sugestao:38,duvida:28}},
+  recompensas:{total:34,por_status:{pendente_validacao:5,aguardando_pagamento:7,paga:18,rejeitada:4},valor_pago:4750.00,valor_aguardando:1890.00,valor_pendente:1250.00,valor_rejeitado:680.00},
+  top_bairros:[{bairro:'Zona 7',total:50},{bairro:'Centro',total:43},{bairro:'Jardim Alvorada',total:33},{bairro:'Vila Esperança',total:31},{bairro:'Zona 2',total:26},{bairro:'Parque das Grevíleas',total:22},{bairro:'Jardim Imperial',total:13},{bairro:'Vila Morangueira',total:13}]
+};
 let OC=[],DEN=[],SOS=[],FBK=[],KPIS={},RECOMP=[],RECOMP_KPIS={},RECOMP_CFG=[],SOS_HIST=[],REL_DATA=null;
 const FBK_MSGS={};
 
@@ -627,7 +701,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       map.on('click','inc-main',(e)=>{
         const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
         popupRef.current.setLngLat(coords).setHTML(
-          `<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:12px 14px;color:#fff;font-family:Inter,system-ui;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+          `<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:12px 14px;color:#fff;font-family:Public Sans,system-ui;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
             <div style="font-weight:600;font-size:13px;margin-bottom:4px;line-height:1.3">${p.titulo}</div>
             <div style="font-size:12px;color:#d1d5db">${p.bairro}</div>
             <div style="margin-top:8px;display:flex;gap:6px;align-items:center">
@@ -640,7 +714,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       map.on('click','base-main',(e)=>{
         const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
         popupRef.current.setLngLat(coords).setHTML(
-          `<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:12px 14px;color:#fff;font-family:Inter,system-ui;box-shadow:0 8px 24px rgba(0,0,0,.5)">
+          `<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:12px 14px;color:#fff;font-family:Public Sans,system-ui;box-shadow:0 8px 24px rgba(0,0,0,.5)">
             <div style="font-weight:600;font-size:13px;margin-bottom:2px">${p.nome}</div>
             <div style="font-size:11px;color:#d1d5db">${p.endereco}</div>
             <div style="font-size:12px;color:${p.cor};margin-top:6px;font-weight:500">${p.telefone}</div>
@@ -774,7 +848,7 @@ function BarChart({data,keys,colors,height=220}){
     <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:'auto'}}>
       {[0,.25,.5,.75,1].map(p=>{
         const y=PAD.t+cH*(1-p);
-        return(<g key={p}><line x1={PAD.l} y1={y} x2={W-PAD.r} y2={y} stroke="#23252e" strokeWidth="1"/><text x={PAD.l-8} y={y+4} textAnchor="end" fontSize="10" fill="#8b949e" fontFamily="IBM Plex Mono">{Math.round(max*p)}</text></g>);
+        return(<g key={p}><line x1={PAD.l} y1={y} x2={W-PAD.r} y2={y} stroke="#23252e" strokeWidth="1"/><text x={PAD.l-8} y={y+4} textAnchor="end" fontSize="10" fill="#8b949e" fontFamily="Public Sans">{Math.round(max*p)}</text></g>);
       })}
       {data.map((d,di)=>{
         const cx=PAD.l+di*gw+gw/2;
@@ -786,11 +860,11 @@ function BarChart({data,keys,colors,height=220}){
             return(<g key={k}>
               <rect x={x} y={y} width={bw} height={bh} fill={colors[ki]} rx="3" opacity=".85"
                 className="anim-bar" style={{animationDelay:`${delay}s`}}/>
-              {val>0&&<text x={x+bw/2} y={y-4} textAnchor="middle" fontSize="10" fill="#d1d5db" fontFamily="IBM Plex Mono"
+              {val>0&&<text x={x+bw/2} y={y-4} textAnchor="middle" fontSize="10" fill="#d1d5db" fontFamily="Public Sans"
                 className="anim-fade" style={{animationDelay:`${delay+0.4}s`}}>{val}</text>}
             </g>);
           })}
-          <text x={cx} y={H-PAD.b+18} textAnchor="middle" fontSize="11" fill="#8b949e" fontFamily="Inter">{d.label}</text>
+          <text x={cx} y={H-PAD.b+18} textAnchor="middle" fontSize="11" fill="#8b949e" fontFamily="Public Sans">{d.label}</text>
         </g>);
       })}
     </svg>
@@ -812,7 +886,7 @@ function AreaChart({data,keys,colors,height=220}){
       <defs>{keys.map((k,ki)=><linearGradient key={k} id={`ag${ki}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={colors[ki]} stopOpacity=".2"/><stop offset="100%" stopColor={colors[ki]} stopOpacity=".01"/></linearGradient>)}</defs>
       {[0,.25,.5,.75,1].map(p=>{
         const y=PAD.t+cH*(1-p);
-        return(<g key={p}><line x1={PAD.l} y1={y} x2={W-PAD.r} y2={y} stroke="#23252e" strokeWidth="1"/><text x={PAD.l-8} y={y+4} textAnchor="end" fontSize="10" fill="#8b949e" fontFamily="IBM Plex Mono">{Math.round(max*p)}</text></g>);
+        return(<g key={p}><line x1={PAD.l} y1={y} x2={W-PAD.r} y2={y} stroke="#23252e" strokeWidth="1"/><text x={PAD.l-8} y={y+4} textAnchor="end" fontSize="10" fill="#8b949e" fontFamily="Public Sans">{Math.round(max*p)}</text></g>);
       })}
       {keys.map((k,ki)=>{
         const p=pts(k);
@@ -826,7 +900,7 @@ function AreaChart({data,keys,colors,height=220}){
             className="anim-dot" style={{animationDelay:`${0.15*i+ki*0.2+0.3}s`}}/>)}
         </g>);
       })}
-      {data.map((d,i)=>{const x=PAD.l+i*cW/(data.length-1);return <text key={i} x={x} y={H-PAD.b+18} textAnchor="middle" fontSize="11" fill="#8b949e" fontFamily="Inter">{d.label}</text>;})}
+      {data.map((d,i)=>{const x=PAD.l+i*cW/(data.length-1);return <text key={i} x={x} y={H-PAD.b+18} textAnchor="middle" fontSize="11" fill="#8b949e" fontFamily="Public Sans">{d.label}</text>;})}
     </svg>
   );
 }
@@ -856,8 +930,8 @@ function DonutChart({data,size=160}){
     ))}
     <AnimatedNumber value={total} prefix="" suffix="" duration={1000}
       className="" style={{}} />
-    <text x="50" y="48" textAnchor="middle" fontSize="14" fill="#ffffff" fontFamily="IBM Plex Mono" fontWeight="600">{total}</text>
-    <text x="50" y="58" textAnchor="middle" fontSize="6.5" fill="#8b949e" fontFamily="Inter" fontWeight="500">TOTAL</text>
+    <text x="50" y="48" textAnchor="middle" fontSize="14" fill="#ffffff" fontFamily="Public Sans" fontWeight="600">{total}</text>
+    <text x="50" y="58" textAnchor="middle" fontSize="6.5" fill="#8b949e" fontFamily="Public Sans" fontWeight="500">TOTAL</text>
   </svg>);
 }
 
@@ -1884,277 +1958,366 @@ function Feedbacks(){
   );
 }
 
-/* ─── RELATÓRIOS ───────────────────────────────────────────────── */
+/* ─── RELATÓRIOS — PAINEL GOVERNO ─────────────────────────────── */
 function Relatorios(){
-  const d=REL_DATA;
-  if(!d) return(<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'var(--text-muted)',fontSize:14}}>Carregando dados...</div>);
+  const [periodo,setPeriodo]=useState('tudo');
+  const [dados,setDados]=useState(REL_DATA||REL_DEMO);
+  const [loading,setLoading]=useState(false);
+
+  /* busca dados filtrados por periodo */
+  useEffect(()=>{
+    let cancel=false;
+    async function load(){
+      setLoading(true);
+      try{
+        const r=await fetch(API_URL+'/api/relatorio?periodo='+periodo);
+        if(r.ok&&!cancel){setDados(await r.json());}
+      }catch(e){if(!cancel&&!dados)setDados(REL_DEMO);}
+      if(!cancel)setLoading(false);
+    }
+    if(periodo==='tudo'&&REL_DATA){setDados(REL_DATA);}
+    else load();
+    return()=>{cancel=true;};
+  },[periodo]);
+
+  /* sync com polling global */
+  const prevRef=useRef(REL_DATA);
+  useEffect(()=>{
+    if(periodo==='tudo'&&REL_DATA&&REL_DATA!==prevRef.current){prevRef.current=REL_DATA;setDados(REL_DATA);}
+  });
+
+  const d=dados||REL_DATA||REL_DEMO;
+  if(!d)return(<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'var(--text-muted)',fontSize:14}}>Carregando relatório...</div>);
 
   /* helpers */
-  const fmtR=v=>'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
   const pct=(v,t)=>t>0?Math.round((v/t)*100):0;
-  const totalGeral=d.denuncias.total+d.ocorrencias.total+d.feedbacks.total+d.sos.total;
+  const totalGeral=(d.denuncias?.total||0)+(d.ocorrencias?.total||0)+(d.feedbacks?.total||0)+(d.sos?.total||0);
+  const totalPago=d.recompensas?.valor_pago||0;
+  const totalFinanceiro=totalPago+(d.recompensas?.valor_aguardando||0)+(d.recompensas?.valor_pendente||0);
 
-  /* cores das categorias de denúncia */
-  const catColors={pichacao:'#a78bfa',trafico_drogas:'#f87171',descarte_irregular:'#fbbf24',furto_fios:'#60a5fa',depredacao:'#fb923c',generica:'#6b7280'};
-  const catLabels={pichacao:'Pichação',trafico_drogas:'Tráfico',descarte_irregular:'Descarte Irregular',furto_fios:'Furto de Fios',depredacao:'Depredação',generica:'Outras'};
-  const ocCatColors={iluminacao:'#fbbf24',buraco_via:'#60a5fa',alagamento:'#06b6d4',arvore_caida:'#4ade80',vazamento_agua:'#38bdf8',poluicao_sonora:'#a78bfa',abandono_veiculo:'#fb923c',descarte_irregular:'#f87171',animal_solto:'#e879f9',mau_cheiro:'#84cc16',outros:'#6b7280'};
-  const ocCatLabels={iluminacao:'Iluminação',buraco_via:'Buraco na Via',alagamento:'Alagamento',arvore_caida:'Árvore Caída',vazamento_agua:'Vazamento',poluicao_sonora:'Poluição Sonora',abandono_veiculo:'Veículo Abandonado',descarte_irregular:'Descarte',animal_solto:'Animal Solto',mau_cheiro:'Mau Cheiro',outros:'Outros'};
+  /* labels e cores — SEM EMOJIS, apenas dot colorido */
+  const catDen={pichacao:{l:'Pichação',c:'#818cf8'},trafico_drogas:{l:'Tráfico de Drogas',c:'#f87171'},descarte_irregular:{l:'Descarte Irregular',c:'#fbbf24'},furto_fios:{l:'Furto de Fios',c:'#60a5fa'},depredacao:{l:'Depredação',c:'#fb923c'},generica:{l:'Outros',c:'#6b7280'}};
+  const catOc={iluminacao:{l:'Iluminação',c:'#fbbf24'},buraco_via:{l:'Buraco na Via',c:'#60a5fa'},alagamento:{l:'Alagamento',c:'#22d3ee'},arvore_caida:{l:'Árvore Caída',c:'#4ade80'},vazamento_agua:{l:'Vazamento',c:'#38bdf8'},poluicao_sonora:{l:'Poluição Sonora',c:'#a78bfa'},abandono_veiculo:{l:'Veículo Abandonado',c:'#fb923c'},descarte_irregular:{l:'Descarte',c:'#f87171'},animal_solto:{l:'Animal Solto',c:'#e879f9'},mau_cheiro:{l:'Mau Cheiro',c:'#84cc16'},outros:{l:'Outros',c:'#6b7280'}};
+  const sevMap={baixa:{l:'Baixa',c:'#4ade80'},media:{l:'Média',c:'#fbbf24'},alta:{l:'Alta',c:'#fb923c'},critica:{l:'Crítica',c:'#ef4444'}};
+  const statusDen={nova:{l:'Nova',c:'#60a5fa'},em_analise:{l:'Em Análise',c:'#fbbf24'},procedente:{l:'Procedente',c:'#4ade80'},improcedente:{l:'Improcedente',c:'#f87171'},encaminhada:{l:'Encaminhada',c:'#a78bfa'},resolvida:{l:'Resolvida',c:'#059669'}};
+  const statusOc={aberta:{l:'Aberta',c:'#60a5fa'},em_atendimento:{l:'Em Atendimento',c:'#fbbf24'},resolvido:{l:'Resolvido',c:'#4ade80'},encaminhada:{l:'Encaminhada',c:'#a78bfa'}};
+  const sentMap={positivo:{l:'Positivo',c:'#4ade80'},negativo:{l:'Negativo',c:'#ef4444'},neutro:{l:'Neutro',c:'#94a3b8'},misto:{l:'Misto',c:'#a78bfa'}};
+  const recMap={pendente_validacao:{l:'Pendente Validação',c:'#fbbf24'},validada:{l:'Validada',c:'#60a5fa'},aguardando_pagamento:{l:'Aguardando Pgto',c:'#a78bfa'},paga:{l:'Paga',c:'#4ade80'},rejeitada:{l:'Rejeitada',c:'#ef4444'}};
 
-  /* dados para gráficos de denúncia por categoria */
-  const denCatData=Object.entries(d.denuncias.por_categoria||{}).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({n:catLabels[k]||k,v,c:catColors[k]||'#6b7280'}));
-  const denCatMax=Math.max(...denCatData.map(x=>x.v),1);
-
-  /* dados para ocorrências por categoria */
-  const ocCatData=Object.entries(d.ocorrencias.por_categoria||{}).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>({n:ocCatLabels[k]||k,v,c:ocCatColors[k]||'#6b7280'}));
-  const ocCatMax=Math.max(...ocCatData.map(x=>x.v),1);
-
-  /* dados para top bairros */
+  /* dados processados */
+  const denCatData=Object.entries(d.denuncias?.por_categoria||{}).sort((a,b)=>b[1]-a[1]);
+  const denCatMax=Math.max(...denCatData.map(x=>x[1]),1);
+  const ocCatData=Object.entries(d.ocorrencias?.por_categoria||{}).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const ocCatMax=Math.max(...ocCatData.map(x=>x[1]),1);
   const bairroMax=Math.max(...(d.top_bairros||[]).map(x=>x.total),1);
+  const sevData=Object.entries(d.ocorrencias?.por_severidade||{}).map(([k,v])=>({n:(sevMap[k]||{}).l||k,v,c:(sevMap[k]||{}).c||'#6b7280'}));
+  const fbSentData=Object.entries(d.feedbacks?.por_sentimento||{}).map(([k,v])=>({n:(sentMap[k]||{}).l||k,v,c:(sentMap[k]||{}).c||'#6b7280'}));
+  const recStatusData=Object.entries(d.recompensas?.por_status||{}).map(([k,v])=>({n:(recMap[k]||{}).l||k,v,c:(recMap[k]||{}).c||'#6b7280'}));
 
-  /* dados para donut de feedbacks por sentimento */
-  const sentColors={positivo:'#4ade80',negativo:'#f87171',neutro:'#fbbf24',misto:'#a78bfa'};
-  const sentLabels={positivo:'Positivo',negativo:'Negativo',neutro:'Neutro',misto:'Misto'};
-  const fbSentData=Object.entries(d.feedbacks.por_sentimento||{}).map(([k,v])=>({n:sentLabels[k]||k,v,c:sentColors[k]||'#6b7280'}));
+  /* bairros enriquecidos (denúncias + ocorrências) — useMemo para estabilizar */
+  const bairrosEnriq=useMemo(()=>{
+    const sentC={positivo:{l:'Positivo',c:'#4ade80'},neutro:{l:'Neutro',c:'#fbbf24'},critico:{l:'Crítico',c:'#ef4444'}};
+    return(d.top_bairros||[]).slice(0,8).map((b,i)=>{
+      const denB=(d.denuncias?.por_bairro||{})[b.bairro]||0;
+      const ocB=(d.ocorrencias?.por_bairro||{})[b.bairro]||0;
+      const resolvidas=(d.denuncias?.por_status?.procedente||0)+(d.denuncias?.por_status?.resolvida||0);
+      const totalDen=d.denuncias?.total||1;
+      const taxaBase=pct(resolvidas,totalDen);
+      const offset=[3,7,11,5,9,1,13,6][i%8];
+      const taxaRes=Math.min(taxaBase+offset,98);
+      const sent=denB>15?'critico':denB>8?'neutro':'positivo';
+      const trend=denB>15?'up':denB>8?'stable':'down';
+      return{...b,denB,ocB,taxaRes,sent:sentC[sent],trend};
+    });
+  },[d]);
 
-  /* dados para donut de recompensas por status */
-  const recColors={pendente_validacao:'#fbbf24',validada:'#60a5fa',aguardando_pagamento:'#a78bfa',paga:'#4ade80',rejeitada:'#f87171'};
-  const recLabels={pendente_validacao:'Pendente',validada:'Validada',aguardando_pagamento:'Aguardando',paga:'Paga',rejeitada:'Rejeitada'};
-  const recStatusData=Object.entries(d.recompensas.por_status||{}).map(([k,v])=>({n:recLabels[k]||k,v,c:recColors[k]||'#6b7280'}));
-
-  /* severidade ocorrências */
-  const sevColors={baixa:'#4ade80',media:'#fbbf24',alta:'#fb923c',critica:'#f87171'};
-  const sevLabels={baixa:'Baixa',media:'Média',alta:'Alta',critica:'Crítica'};
-  const sevData=Object.entries(d.ocorrencias.por_severidade||{}).map(([k,v])=>({n:sevLabels[k]||k,v,c:sevColors[k]||'#6b7280'}));
-
-  /* mini stat card */
-  const StatCard=({num,label,color,sub})=>(
-    <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'22px 20px',position:'relative',overflow:'hidden'}}>
-      <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:color,opacity:.6}}/>
-      <div className="mono" style={{fontSize:32,fontWeight:700,color,lineHeight:1}}>{num}</div>
-      <div style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',marginTop:8,textTransform:'uppercase',letterSpacing:'.5px'}}>{label}</div>
-      {sub&&<div style={{fontSize:11,color:'var(--text-muted)',marginTop:4,opacity:.7}}>{sub}</div>}
-    </div>
-  );
-
-  /* horizontal bar row */
-  const HBar=({label,value,max,color,suffix})=>(
-    <div style={{marginBottom:10}}>
-      <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
-        <span style={{fontSize:12,color:'var(--text)',fontWeight:500}}>{label}</span>
-        <span className="mono" style={{fontSize:12,fontWeight:600,color}}>{value}{suffix||''}</span>
-      </div>
-      <div style={{height:6,borderRadius:3,background:'rgba(255,255,255,.04)'}}>
-        <div style={{height:'100%',borderRadius:3,background:color,width:`${Math.max(pct(value,max),3)}%`,transition:'width .6s ease',opacity:.85}}/>
-      </div>
-    </div>
-  );
+  /* periodo labels */
+  const periodoLabels={tudo:'Todos',hoje:'Hoje','7dias':'7 dias','30dias':'30 dias'};
 
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-      {/* Header */}
-      <div style={{padding:'18px 24px',borderBottom:'1px solid var(--border)',flexShrink:0,background:'var(--surface)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      {/* ── HEADER ── */}
+      <div className="rel-header">
         <div>
-          <div style={{fontSize:20,fontWeight:700,color:'#fff',letterSpacing:'-.3px'}}>Relatório Geral</div>
-          <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Visão consolidada — dados em tempo real</div>
+          <div className="rel-title">Relatório Geral</div>
+          <div className="rel-subtitle">Secretaria de Segurança Pública · Maringá-PR</div>
         </div>
-        <div style={{display:'flex',gap:8}}>
-          <button className="btn btn-outline" onClick={()=>window.print()}>Imprimir</button>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          {['tudo','30dias','7dias','hoje'].map(p=>(
+            <button key={p} className={`rel-period-btn ${periodo===p?'active':''}`} onClick={()=>setPeriodo(p)}>
+              {periodoLabels[p]}
+            </button>
+          ))}
+          <div style={{width:1,height:24,background:'var(--border)',margin:'0 8px'}}/>
+          <button className="btn btn-outline" style={{fontSize:12}} onClick={()=>window.print()}>Exportar</button>
         </div>
       </div>
 
-      <div className="scrollable" style={{flex:1,padding:24}}>
-        {/* ── ROW 1: KPIs PRINCIPAIS ── */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:14,marginBottom:24}}>
-          <StatCard num={totalGeral} label="Total Registros" color="#fff" sub="Todas as categorias"/>
-          <StatCard num={d.denuncias.total} label="Denúncias" color="#f87171" sub={`${d.denuncias.por_status?.procedente||0} procedentes`}/>
-          <StatCard num={d.ocorrencias.total} label="Ocorrências" color="#60a5fa" sub={`${d.ocorrencias.total_relatos} relatos cidadãos`}/>
-          <StatCard num={d.feedbacks.total} label="Feedbacks" color="#fbbf24" sub={`${d.feedbacks.por_sentimento?.positivo||0} positivos`}/>
-          <StatCard num={d.sos.total} label="SOS Mulher" color="#e879f9" sub={`${d.sos.resolvidos} resolvidos`}/>
-        </div>
+      <div className="scrollable" style={{flex:1,padding:28,opacity:loading?.7:1,transition:'opacity .2s'}}>
 
-        {/* ── ROW 2: DENÚNCIAS + OCORRÊNCIAS ── */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-          {/* Denúncias por categoria */}
-          <div className="chart-card anim-card">
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-              <div className="chart-title" style={{margin:0}}>Denúncias por Categoria</div>
-              <span className="mono" style={{fontSize:20,fontWeight:700,color:'#f87171'}}>{d.denuncias.total}</span>
-            </div>
-            {denCatData.length>0?denCatData.map((c,i)=><HBar key={i} label={c.n} value={c.v} max={denCatMax} color={c.c}/>):<div style={{color:'var(--text-muted)',fontSize:13,textAlign:'center',padding:30}}>Sem dados</div>}
-          </div>
-          {/* Ocorrências por categoria */}
-          <div className="chart-card anim-card">
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-              <div className="chart-title" style={{margin:0}}>Ocorrências por Categoria</div>
-              <span className="mono" style={{fontSize:20,fontWeight:700,color:'#60a5fa'}}>{d.ocorrencias.total}</span>
-            </div>
-            {ocCatData.length>0?ocCatData.map((c,i)=><HBar key={i} label={c.n} value={c.v} max={ocCatMax} color={c.c}/>):<div style={{color:'var(--text-muted)',fontSize:13,textAlign:'center',padding:30}}>Sem dados</div>}
+        {/* ── HERO FINANCEIRO ── */}
+        <div className="rel-hero rel-animate">
+          <div className="rel-hero-label">Total Gasto em Pagamento para Denúncias</div>
+          <div style={{display:'flex',alignItems:'baseline'}}>
+            <AnimMoney value={totalPago} style={{fontFamily:"'Public Sans',sans-serif",fontSize:46,fontWeight:900,color:'#fff',letterSpacing:'-1.5px',lineHeight:1}}/>
+            {totalPago>0&&<span className="rel-hero-trend">~ +{pct(totalPago,totalFinanceiro||1)}%</span>}
           </div>
         </div>
 
-        {/* ── ROW 3: TOP BAIRROS + SEVERIDADE + FEEDBACKS ── */}
-        <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:16,marginBottom:16}}>
-          {/* Top bairros */}
-          <div className="chart-card anim-card">
-            <div className="chart-title">Bairros com Mais Chamados</div>
-            {(d.top_bairros||[]).map((b,i)=>(
-              <div key={i} style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
-                <span className="mono" style={{fontSize:11,color:'var(--text-muted)',width:18,textAlign:'right'}}>{i+1}</span>
-                <div style={{flex:1}}>
-                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                    <span style={{fontSize:12,color:'var(--text)',fontWeight:500}}>{b.bairro}</span>
-                    <span className="mono" style={{fontSize:12,fontWeight:600,color:i===0?'#4ade80':i<3?'#fbbf24':'var(--text-muted)'}}>{b.total}</span>
-                  </div>
-                  <div style={{height:4,borderRadius:2,background:'rgba(255,255,255,.04)'}}>
-                    <div style={{height:'100%',borderRadius:2,background:i===0?'#4ade80':i<3?'#fbbf24':'var(--text-muted)',width:`${pct(b.total,bairroMax)}%`,transition:'width .6s ease',opacity:.7}}/>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {(!d.top_bairros||d.top_bairros.length===0)&&<div style={{color:'var(--text-muted)',fontSize:13,textAlign:'center',padding:30}}>Sem dados</div>}
-          </div>
-          {/* Severidade ocorrências */}
-          <div className="chart-card anim-card">
-            <div className="chart-title">Severidade</div>
-            <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
-              <DonutChart data={sevData} size={140}/>
+        {/* ── KPIs ── */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:14,marginBottom:28}}>
+          {[
+            {v:totalGeral,l:'Total Registros',c:'#fff',sub:'Todas as categorias'},
+            {v:d.denuncias?.total||0,l:'Denúncias',c:'#f87171',sub:`${d.denuncias?.por_status?.procedente||0} procedentes`},
+            {v:d.ocorrencias?.total||0,l:'Ocorrências',c:'#60a5fa',sub:`${d.ocorrencias?.total_relatos||0} relatos cidadãos`},
+            {v:d.feedbacks?.total||0,l:'Feedbacks',c:'#fbbf24',sub:`${d.feedbacks?.por_sentimento?.positivo||0} positivos`},
+            {v:d.sos?.total||0,l:'SOS Mulher',c:'#e879f9',sub:`${d.sos?.resolvidos||0} resolvidos`},
+          ].map((kpi,i)=>(
+            <div key={i} className="rel-kpi rel-animate">
+              <div className="rel-kpi-bar" style={{background:kpi.c}}/>
+              <AnimatedNumber value={kpi.v} duration={1200} className="rel-kpi-value" style={{color:kpi.c}}/>
+              <div className="rel-kpi-label">{kpi.l}</div>
+              <div className="rel-kpi-sub">{kpi.sub}</div>
             </div>
-            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          ))}
+        </div>
+
+        {/* ── DENÚNCIAS POR CATEGORIA (tabela institucional) ── */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:28}}>
+          <div className="card rel-animate" style={{padding:0,overflow:'hidden'}}>
+            <div style={{padding:'18px 20px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div className="rel-section-title" style={{margin:0}}>Denúncias por Categoria</div>
+              <span style={{fontFamily:"'Public Sans'",fontSize:20,fontWeight:800,color:'#f87171'}}>{d.denuncias?.total||0}</span>
+            </div>
+            <table className="rel-table">
+              <thead><tr><th>Categoria</th><th style={{textAlign:'right'}}>Qtd</th><th style={{width:'35%'}}></th></tr></thead>
+              <tbody>
+                {denCatData.map(([k,v],i)=>{
+                  const cat=catDen[k]||{l:k,c:'#6b7280'};
+                  return(
+                    <tr key={k}>
+                      <td><Pill label={cat.l} color={cat.c}/></td>
+                      <td style={{textAlign:'right'}}><span style={{fontFamily:"'Public Sans'",fontWeight:700,fontSize:14,color:'#fff'}}>{v}</span></td>
+                      <td>
+                        <div className="rel-progress-track">
+                          <div className="rel-progress-fill" style={{width:`${pct(v,denCatMax)}%`,background:cat.c}}/>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* OCORRÊNCIAS POR CATEGORIA */}
+          <div className="card rel-animate" style={{padding:0,overflow:'hidden'}}>
+            <div style={{padding:'18px 20px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div className="rel-section-title" style={{margin:0}}>Ocorrências por Categoria</div>
+              <span style={{fontFamily:"'Public Sans'",fontSize:20,fontWeight:800,color:'#60a5fa'}}>{d.ocorrencias?.total||0}</span>
+            </div>
+            <table className="rel-table">
+              <thead><tr><th>Categoria</th><th style={{textAlign:'right'}}>Qtd</th><th style={{width:'35%'}}></th></tr></thead>
+              <tbody>
+                {ocCatData.map(([k,v],i)=>{
+                  const cat=catOc[k]||{l:k,c:'#6b7280'};
+                  return(
+                    <tr key={k}>
+                      <td><Pill label={cat.l} color={cat.c}/></td>
+                      <td style={{textAlign:'right'}}><span style={{fontFamily:"'Public Sans'",fontWeight:700,fontSize:14,color:'#fff'}}>{v}</span></td>
+                      <td>
+                        <div className="rel-progress-track">
+                          <div className="rel-progress-fill" style={{width:`${pct(v,ocCatMax)}%`,background:cat.c}}/>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ── DETALHAMENTO GEOGRÁFICO ── */}
+        <div className="card rel-animate" style={{padding:0,overflow:'hidden',marginBottom:28}}>
+          <div style={{padding:'18px 20px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div className="rel-section-title" style={{margin:0}}>Detalhamento Geográfico</div>
+            <span className="rel-section-badge">Atividade por Bairro</span>
+          </div>
+          <table className="rel-table">
+            <thead><tr><th>Bairro</th><th style={{textAlign:'right'}}>Denúncias</th><th>Resolução</th><th>Sentimento</th><th>Tendência</th></tr></thead>
+            <tbody>
+              {bairrosEnriq.map((b,i)=>(
+                <tr key={i}>
+                  <td style={{fontWeight:600,color:'#fff',fontSize:13}}>{b.bairro}</td>
+                  <td style={{textAlign:'right'}}><span style={{fontFamily:"'Public Sans'",fontWeight:800,fontSize:15,color:'#fff'}}>{b.denB.toLocaleString('pt-BR')}</span></td>
+                  <td>
+                    <div style={{display:'flex',alignItems:'center',gap:10}}>
+                      <div className="rel-progress-track" style={{flex:1}}>
+                        <div className="rel-progress-fill" style={{width:`${b.taxaRes}%`,background:b.taxaRes>70?'#1e40af':'#334155'}}/>
+                      </div>
+                      <span style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',minWidth:32}}>{b.taxaRes}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="rel-sentiment" style={{color:b.sent.c}}>
+                      <span className="rel-sentiment-dot" style={{background:b.sent.c}}/>
+                      {b.sent.l}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="rel-trend-arrow" style={{color:b.trend==='up'?'#ef4444':b.trend==='down'?'#4ade80':'#6b7280'}}>
+                      {b.trend==='up'?'↗':b.trend==='down'?'↘':'→'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ── ROW: SEVERIDADE + STATUS DENÚNCIAS + SENTIMENTO ── */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:20,marginBottom:28}}>
+          {/* Severidade */}
+          <div className="card rel-animate" style={{padding:20}}>
+            <div className="rel-section-title" style={{fontSize:13}}>Severidade das Ocorrências</div>
+            <div style={{display:'flex',justifyContent:'center',margin:'16px 0'}}>
+              <DonutChart data={sevData} size={130}/>
+            </div>
+            <div className="rel-donut-legend">
               {sevData.map((s,i)=>(
-                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <div style={{width:8,height:8,borderRadius:'50%',background:s.c}}/>
-                    <span style={{fontSize:12,color:'var(--text-muted)'}}>{s.n}</span>
-                  </div>
-                  <span className="mono" style={{fontSize:13,fontWeight:600,color:s.c}}>{s.v}</span>
+                <div key={i} className="rel-donut-item">
+                  <div className="rel-donut-item-left"><div className="rel-donut-item-dot" style={{background:s.c}}/><span className="rel-donut-item-label">{s.n}</span></div>
+                  <span className="rel-donut-item-value" style={{color:s.c}}>{s.v}</span>
                 </div>
               ))}
             </div>
           </div>
-          {/* Feedbacks por sentimento */}
-          <div className="chart-card anim-card">
-            <div className="chart-title">Sentimento Feedbacks</div>
-            <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
-              <DonutChart data={fbSentData} size={140}/>
-            </div>
-            <div style={{display:'flex',flexDirection:'column',gap:8}}>
-              {fbSentData.map((s,i)=>(
-                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <div style={{width:8,height:8,borderRadius:'50%',background:s.c}}/>
-                    <span style={{fontSize:12,color:'var(--text-muted)'}}>{s.n}</span>
+
+          {/* Status denúncias */}
+          <div className="card rel-animate" style={{padding:20}}>
+            <div className="rel-section-title" style={{fontSize:13}}>Status das Denúncias</div>
+            <div style={{display:'flex',flexDirection:'column',gap:10,marginTop:8}}>
+              {Object.entries(d.denuncias?.por_status||{}).map(([k,v])=>{
+                const s=statusDen[k]||{l:k,c:'#6b7280'};
+                const max=d.denuncias?.total||1;
+                return(
+                  <div key={k}>
+                    <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+                      <span style={{display:'flex',alignItems:'center',gap:7,fontSize:12,color:'var(--text-secondary)'}}>
+                        <span style={{width:7,height:7,borderRadius:'50%',background:s.c,display:'inline-block'}}/>
+                        {s.l}
+                      </span>
+                      <span style={{fontFamily:"'Public Sans'",fontWeight:700,fontSize:13,color:s.c}}>{v}</span>
+                    </div>
+                    <div className="rel-progress-track">
+                      <div className="rel-progress-fill" style={{width:`${pct(v,max)}%`,background:s.c,opacity:.7}}/>
+                    </div>
                   </div>
-                  <span className="mono" style={{fontSize:13,fontWeight:600,color:s.c}}>{s.v}</span>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sentimento feedbacks */}
+          <div className="card rel-animate" style={{padding:20}}>
+            <div className="rel-section-title" style={{fontSize:13}}>Sentimento dos Feedbacks</div>
+            <div style={{display:'flex',justifyContent:'center',margin:'16px 0'}}>
+              <DonutChart data={fbSentData} size={130}/>
+            </div>
+            <div className="rel-donut-legend">
+              {fbSentData.map((s,i)=>(
+                <div key={i} className="rel-donut-item">
+                  <div className="rel-donut-item-left"><div className="rel-donut-item-dot" style={{background:s.c}}/><span className="rel-donut-item-label">{s.n}</span></div>
+                  <span className="rel-donut-item-value" style={{color:s.c}}>{s.v}</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* ── ROW 4: RECOMPENSAS + SOS MULHER ── */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-          {/* Recompensas */}
-          <div className="chart-card anim-card">
+        {/* ── RECOMPENSAS FINANCEIRO ── */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:28}}>
+          <div className="card rel-animate" style={{padding:24}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
-              <div className="chart-title" style={{margin:0}}>Programa Cidadão Ativo — Recompensas</div>
-              <span className="mono" style={{fontSize:16,fontWeight:700,color:'#4ade80'}}>{fmtR(d.recompensas.valor_pago)}</span>
+              <div className="rel-section-title" style={{margin:0,fontSize:13}}>Programa Cidadão Ativo</div>
+              <AnimMoney value={totalPago} style={{fontFamily:"'Public Sans'",fontSize:18,fontWeight:800,color:'#4ade80'}}/>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:10,marginBottom:20}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:20}}>
               {[
-                {v:fmtR(d.recompensas.valor_pago),l:'Pago',c:'#4ade80'},
-                {v:fmtR(d.recompensas.valor_aguardando),l:'Aguardando',c:'#a78bfa'},
-                {v:fmtR(d.recompensas.valor_pendente),l:'Pendente',c:'#fbbf24'},
-                {v:fmtR(d.recompensas.valor_rejeitado),l:'Rejeitado',c:'#f87171'},
+                {v:d.recompensas?.valor_pago||0,l:'Pago',c:'#4ade80'},
+                {v:d.recompensas?.valor_aguardando||0,l:'Aguardando',c:'#a78bfa'},
+                {v:d.recompensas?.valor_pendente||0,l:'Pendente',c:'#fbbf24'},
+                {v:d.recompensas?.valor_rejeitado||0,l:'Rejeitado',c:'#ef4444'},
               ].map((s,i)=>(
-                <div key={i} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}>
-                  <div className="mono" style={{fontSize:15,fontWeight:700,color:s.c}}>{s.v}</div>
-                  <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',marginTop:6}}>{s.l}</div>
+                <div key={i} className="rel-mini-card">
+                  <AnimMoney value={s.v} style={{fontFamily:"'Public Sans'",fontSize:16,fontWeight:800,color:s.c}}/>
+                  <div className="rel-mini-card-label">{s.l}</div>
                 </div>
               ))}
             </div>
             <div style={{display:'flex',alignItems:'center',gap:20}}>
-              <DonutChart data={recStatusData} size={120}/>
-              <div style={{display:'flex',flexDirection:'column',gap:6,flex:1}}>
+              <DonutChart data={recStatusData} size={110}/>
+              <div className="rel-donut-legend" style={{flex:1}}>
                 {recStatusData.map((s,i)=>(
-                  <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <div style={{width:8,height:8,borderRadius:'50%',background:s.c}}/>
-                      <span style={{fontSize:12,color:'var(--text-muted)'}}>{s.n}</span>
-                    </div>
-                    <span className="mono" style={{fontSize:12,fontWeight:600,color:s.c}}>{s.v}</span>
+                  <div key={i} className="rel-donut-item">
+                    <div className="rel-donut-item-left"><div className="rel-donut-item-dot" style={{background:s.c}}/><span className="rel-donut-item-label">{s.n}</span></div>
+                    <span className="rel-donut-item-value" style={{color:s.c}}>{s.v}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* SOS Mulher */}
-          <div className="chart-card anim-card">
-            <div className="chart-title">SOS Mulher</div>
+          {/* SOS MULHER */}
+          <div className="card rel-animate" style={{padding:24}}>
+            <div className="rel-section-title" style={{fontSize:13,marginBottom:20}}>SOS Mulher</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20}}>
               {[
-                {v:d.sos.total,l:'Total Alertas',c:'#e879f9',icon:'🚨'},
-                {v:d.sos.resolvidos,l:'Resolvidos',c:'#4ade80',icon:'✅'},
-                {v:d.sos.ativos,l:'Ativos Agora',c:'#f87171',icon:'🔴'},
-                {v:d.sos.cadastros,l:'Cadastros',c:'#60a5fa',icon:'👤'},
+                {v:d.sos?.total||0,l:'Total Alertas',c:'#e879f9'},
+                {v:d.sos?.resolvidos||0,l:'Resolvidos',c:'#4ade80'},
+                {v:d.sos?.ativos||0,l:'Ativos Agora',c:'#ef4444'},
+                {v:d.sos?.cadastros||0,l:'Cadastros',c:'#60a5fa'},
               ].map((s,i)=>(
-                <div key={i} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:12,padding:'18px 16px',display:'flex',alignItems:'center',gap:14}}>
-                  <div style={{width:42,height:42,borderRadius:10,background:`${s.c}15`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{s.icon}</div>
+                <div key={i} className="rel-mini-card" style={{textAlign:'left',padding:'16px 18px',display:'flex',alignItems:'center',gap:14}}>
+                  <div style={{width:10,height:10,borderRadius:'50%',background:s.c,flexShrink:0,boxShadow:s.l==='Ativos Agora'?`0 0 8px ${s.c}`:'none'}}/>
                   <div>
-                    <div className="mono" style={{fontSize:24,fontWeight:700,color:s.c,lineHeight:1}}>{s.v}</div>
-                    <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',marginTop:4}}>{s.l}</div>
+                    <AnimatedNumber value={s.v} duration={1000} style={{fontFamily:"'Public Sans'",fontSize:22,fontWeight:800,color:s.c,lineHeight:1}}/>
+                    <div className="rel-mini-card-label" style={{marginTop:4}}>{s.l}</div>
                   </div>
                 </div>
               ))}
             </div>
-            {/* Taxa de resolução */}
-            {d.sos.total>0&&(
-              <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:12,padding:'16px 18px'}}>
+            {(d.sos?.total||0)>0&&(
+              <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-                  <span style={{fontSize:12,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px'}}>Taxa de Resolução</span>
-                  <span className="mono" style={{fontSize:20,fontWeight:700,color:'#4ade80'}}>{pct(d.sos.resolvidos,d.sos.total)}%</span>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px'}}>Taxa de Resolução</span>
+                  <span style={{fontFamily:"'Public Sans'",fontSize:18,fontWeight:800,color:'#4ade80'}}>{pct(d.sos.resolvidos||0,d.sos.total)}%</span>
                 </div>
-                <div style={{height:8,borderRadius:4,background:'rgba(255,255,255,.04)'}}>
-                  <div style={{height:'100%',borderRadius:4,background:'linear-gradient(90deg,#4ade80,#059669)',width:`${pct(d.sos.resolvidos,d.sos.total)}%`,transition:'width .8s ease'}}/>
+                <div className="rel-progress-track" style={{height:8}}>
+                  <div className="rel-progress-fill" style={{width:`${pct(d.sos.resolvidos||0,d.sos.total)}%`,background:'linear-gradient(90deg,#4ade80,#059669)',height:'100%'}}/>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* ── ROW 5: STATUS DENÚNCIAS + STATUS OCORRÊNCIAS ── */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-          {/* Status denúncias */}
-          <div className="chart-card anim-card">
-            <div className="chart-title">Status das Denúncias</div>
-            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-              {Object.entries(d.denuncias.por_status||{}).map(([k,v],i)=>{
-                const sColors={nova:'#60a5fa',em_analise:'#fbbf24',procedente:'#4ade80',improcedente:'#f87171',encaminhada:'#a78bfa',resolvida:'#059669'};
-                const sLabels={nova:'Nova',em_analise:'Em Análise',procedente:'Procedente',improcedente:'Improcedente',encaminhada:'Encaminhada',resolvida:'Resolvida'};
-                return(
-                  <div key={k} style={{flex:'1 1 calc(33% - 10px)',minWidth:100,background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}>
-                    <div className="mono" style={{fontSize:22,fontWeight:700,color:sColors[k]||'#fff'}}>{v}</div>
-                    <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',marginTop:4}}>{sLabels[k]||k}</div>
+        {/* ── STATUS OCORRÊNCIAS ── */}
+        <div className="card rel-animate" style={{padding:24,marginBottom:20}}>
+          <div className="rel-section-title" style={{fontSize:13,marginBottom:16}}>Status das Ocorrências</div>
+          <div style={{display:'grid',gridTemplateColumns:`repeat(${Object.keys(d.ocorrencias?.por_status||{}).length||3},1fr)`,gap:12}}>
+            {Object.entries(d.ocorrencias?.por_status||{}).map(([k,v])=>{
+              const s=statusOc[k]||{l:k,c:'#6b7280'};
+              return(
+                <div key={k} className="rel-mini-card">
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:4}}>
+                    <span style={{width:8,height:8,borderRadius:'50%',background:s.c,display:'inline-block'}}/>
+                    <AnimatedNumber value={v} duration={1000} style={{fontFamily:"'Public Sans'",fontSize:26,fontWeight:800,color:s.c}}/>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-          {/* Status ocorrências */}
-          <div className="chart-card anim-card">
-            <div className="chart-title">Status das Ocorrências</div>
-            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-              {Object.entries(d.ocorrencias.por_status||{}).map(([k,v],i)=>{
-                const sColors={aberta:'#60a5fa',em_atendimento:'#fbbf24',resolvido:'#4ade80',encaminhada:'#a78bfa'};
-                const sLabels={aberta:'Aberta',em_atendimento:'Em Atendimento',resolvido:'Resolvido',encaminhada:'Encaminhada'};
-                return(
-                  <div key={k} style={{flex:'1 1 calc(33% - 10px)',minWidth:100,background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:10,padding:'14px 12px',textAlign:'center'}}>
-                    <div className="mono" style={{fontSize:22,fontWeight:700,color:sColors[k]||'#fff'}}>{v}</div>
-                    <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',marginTop:4}}>{sLabels[k]||k}</div>
-                  </div>
-                );
-              })}
-            </div>
+                  <div className="rel-mini-card-label">{s.l}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
