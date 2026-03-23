@@ -552,7 +552,6 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
   const popupRef=useRef(null);
   const readyRef=useRef(false);
   const pulseRef=useRef(null);
-  const baseMarkersRef=useRef([]);
   const [basesVisible,setBasesVisible]=useState(showBases);
 
   const sevStops=['critica','#dc2626','alta','#ef4444','media','#d97706','baixa','#059669'];
@@ -567,6 +566,12 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
         tipo:item.tipo||item.categoria||'ocorrencia',
       }};
     })};
+  }
+
+  function basesToGeoJSON(){
+    return{type:'FeatureCollection',features:BASES.map(b=>({type:'Feature',geometry:{type:'Point',coordinates:[b.lng,b.lat]},properties:{
+      id:b.id,nome:b.nome,endereco:b.endereco,telefone:b.telefone,cor:b.cor,tipo:b.tipo,
+    }}))};
   }
 
   useEffect(()=>{
@@ -613,21 +618,21 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
         'circle-stroke-width':0,
       }});
 
-      // Halo estático suave (tamanho por severidade)
+      // Halo estático suave
       map.addLayer({id:'inc-glow',type:'circle',source:'incidents',paint:{
-        'circle-radius':['match',['get','severidade'],'critica',20,'alta',16,'media',13,'baixa',10,13],
+        'circle-radius':15,
         'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
         'circle-opacity':0.1,
         'circle-blur':1,
       }});
 
-      // Círculo principal do incidente (tamanho por severidade + borda branca)
+      // Círculo principal do incidente (mesmo tamanho, cor por severidade)
       map.addLayer({id:'inc-main',type:'circle',source:'incidents',paint:{
-        'circle-radius':['match',['get','severidade'],'critica',12,'alta',10,'media',8,'baixa',6,8],
+        'circle-radius':9,
         'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
         'circle-opacity':0.95,
-        'circle-stroke-width':['match',['get','severidade'],'critica',3,'alta',2.5,'media',2,'baixa',1.5,2],
-        'circle-stroke-color':'rgba(255,255,255,0.7)',
+        'circle-stroke-width':2.5,
+        'circle-stroke-color':'rgba(255,255,255,0.6)',
       }});
 
       // Ponto central branco
@@ -637,29 +642,31 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
         'circle-opacity':0.9,
       }});
 
-      // ── Bases: HTML Markers (ícones distintos por tipo) ──
-      var baseIcons={gcm:{emoji:'\u{1F6E1}\uFE0F',bg:'#1e40af'},samu:{emoji:'\u{1F3E5}',bg:'#dc2626'},bombeiros:{emoji:'\u{1F692}',bg:'#ea580c'},pm:{emoji:'\u2B50',bg:'#ca8a04'}};
-      baseMarkersRef.current=[];
-      BASES.forEach(function(base){
-        var info=baseIcons[base.tipo]||{emoji:'\u{1F4CD}',bg:'#6b7280'};
-        var el=document.createElement('div');
-        el.style.cssText='width:32px;height:32px;border-radius:6px;background:'+info.bg+';display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid rgba(255,255,255,0.6);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.4);transition:transform .15s;';
-        el.textContent=info.emoji;
-        el.title=base.nome;
-        el.onmouseenter=function(){el.style.transform='scale(1.15)';};
-        el.onmouseleave=function(){el.style.transform='scale(1)';};
-        var marker=new mapboxgl.Marker({element:el,anchor:'center'})
-          .setLngLat([base.lng,base.lat])
-          .setPopup(new mapboxgl.Popup({offset:18,maxWidth:'260px',closeButton:false}).setHTML(
-            '<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:14px 16px;color:#fff;font-family:Public Sans,system-ui;box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:180px">'+
-            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">'+info.emoji+'</span><span style="font-weight:700;font-size:14px">'+base.nome+'</span></div>'+
-            '<div style="font-size:11px;color:#9ca3af;line-height:1.4">'+base.endereco+'</div>'+
-            '<div style="font-size:13px;color:'+base.cor+';margin-top:8px;font-weight:600">'+base.telefone+'</div>'+
-            '</div>'
-          ));
-        if(showBases) marker.addTo(map);
-        baseMarkersRef.current.push(marker);
+      // ── Bases: Symbol layer nativo (Canvas icons — fixos no zoom/pitch) ──
+      var baseTypeDefs={gcm:{bg:'#1e40af',label:'G'},samu:{bg:'#dc2626',label:'S'},bombeiros:{bg:'#ea580c',label:'B'},pm:{bg:'#ca8a04',label:'P'}};
+      Object.keys(baseTypeDefs).forEach(function(tipo){
+        var def=baseTypeDefs[tipo];
+        var sz=32,ratio=window.devicePixelRatio||1;
+        var cv=document.createElement('canvas');cv.width=sz*ratio;cv.height=sz*ratio;
+        var cx=cv.getContext('2d');cx.scale(ratio,ratio);
+        // Rounded rect
+        var rd=5;cx.beginPath();cx.moveTo(rd,0);cx.lineTo(sz-rd,0);cx.quadraticCurveTo(sz,0,sz,rd);
+        cx.lineTo(sz,sz-rd);cx.quadraticCurveTo(sz,sz,sz-rd,sz);cx.lineTo(rd,sz);cx.quadraticCurveTo(0,sz,0,sz-rd);
+        cx.lineTo(0,rd);cx.quadraticCurveTo(0,0,rd,0);cx.closePath();
+        cx.fillStyle=def.bg;cx.fill();cx.strokeStyle='rgba(255,255,255,0.7)';cx.lineWidth=2;cx.stroke();
+        // Label
+        cx.font='bold 16px system-ui,sans-serif';cx.textAlign='center';cx.textBaseline='middle';
+        cx.fillStyle='#ffffff';cx.fillText(def.label,sz/2,sz/2+1);
+        var imgData=cx.getImageData(0,0,cv.width,cv.height);
+        map.addImage('base-'+tipo,{width:cv.width,height:cv.height,data:imgData.data},{pixelRatio:ratio});
       });
+      map.addSource('bases',{type:'geojson',data:showBases?basesToGeoJSON():{type:'FeatureCollection',features:[]}});
+      map.addLayer({id:'base-icons',type:'symbol',source:'bases',layout:{
+        'icon-image':['match',['get','tipo'],'gcm','base-gcm','samu','base-samu','bombeiros','base-bombeiros','pm','base-pm','base-gcm'],
+        'icon-size':1,
+        'icon-allow-overlap':true,
+        'icon-ignore-placement':true,
+      }});
 
       // ── Heatmap source + layers ──
       map.addSource('heatmap-data',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
@@ -715,17 +722,27 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
           </div>`
         ).addTo(map);
       });
-      // Popups das bases já estão nos HTML Markers
-      map.on('mouseenter','inc-main',()=>{map.getCanvas().style.cursor='pointer';});
-      map.on('mouseleave','inc-main',()=>{map.getCanvas().style.cursor='';});
+      // Popup das bases (symbol layer)
+      map.on('click','base-icons',(e)=>{
+        const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
+        popupRef.current.setLngLat(coords).setHTML(
+          `<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:14px 16px;color:#fff;font-family:Public Sans,system-ui;box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:180px">
+            <div style="font-weight:700;font-size:14px;margin-bottom:3px">${p.nome}</div>
+            <div style="font-size:11px;color:#9ca3af;line-height:1.4">${p.endereco}</div>
+            <div style="font-size:13px;color:${p.cor};margin-top:8px;font-weight:600">${p.telefone}</div>
+          </div>`
+        ).addTo(map);
+      });
+      ['inc-main','base-icons'].forEach(layer=>{
+        map.on('mouseenter',layer,()=>{map.getCanvas().style.cursor='pointer';});
+        map.on('mouseleave',layer,()=>{map.getCanvas().style.cursor='';});
+      });
 
       readyRef.current=true;
     });
     mapRef.current=map;
     return()=>{
       if(pulseRef.current) cancelAnimationFrame(pulseRef.current);
-      baseMarkersRef.current.forEach(m=>m.remove());
-      baseMarkersRef.current=[];
       map.remove();mapRef.current=null;readyRef.current=false;
     };
   },[]);
@@ -754,13 +771,16 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
     if(readyRef.current){apply();}else{map.once('load',apply);}
   },[items]);
 
-  // Toggle base HTML markers visibility
+  // Toggle base symbol layer visibility
   useEffect(()=>{
-    const map=mapRef.current;if(!map||!readyRef.current) return;
-    baseMarkersRef.current.forEach(m=>{
-      if(basesVisible){if(!m._map) m.addTo(map);}
-      else{if(m._map) m.remove();}
-    });
+    const map=mapRef.current;if(!map) return;
+    const apply=()=>{
+      try{
+        const src=map.getSource('bases');if(!src) return;
+        src.setData(basesVisible?basesToGeoJSON():{type:'FeatureCollection',features:[]});
+      }catch(e){}
+    };
+    if(readyRef.current){apply();}else{map.once('load',apply);}
   },[basesVisible]);
 
   // Update heatmap data
@@ -815,29 +835,29 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
         <div style={{fontWeight:700,marginBottom:6,textTransform:'uppercase',letterSpacing:1,fontSize:9}}>Legenda</div>
         <div style={{display:'flex',flexDirection:'column',gap:4}}>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:12,height:12,borderRadius:'50%',background:'#dc2626',border:'2px solid rgba(255,255,255,0.7)',flexShrink:0}}/>Cr\u00edtica
+            <span style={{width:8,height:8,borderRadius:'50%',background:'#dc2626',border:'2px solid rgba(255,255,255,0.6)',flexShrink:0}}/>Cr\u00edtica
           </div>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:10,height:10,borderRadius:'50%',background:'#ef4444',border:'2px solid rgba(255,255,255,0.7)',flexShrink:0}}/>Alta
+            <span style={{width:8,height:8,borderRadius:'50%',background:'#ef4444',border:'2px solid rgba(255,255,255,0.6)',flexShrink:0}}/>Alta
           </div>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:8,height:8,borderRadius:'50%',background:'#d97706',border:'1.5px solid rgba(255,255,255,0.7)',flexShrink:0}}/>M\u00e9dia
+            <span style={{width:8,height:8,borderRadius:'50%',background:'#d97706',border:'2px solid rgba(255,255,255,0.6)',flexShrink:0}}/>M\u00e9dia
           </div>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:6,height:6,borderRadius:'50%',background:'#059669',border:'1.5px solid rgba(255,255,255,0.7)',flexShrink:0}}/>Baixa
+            <span style={{width:8,height:8,borderRadius:'50%',background:'#059669',border:'2px solid rgba(255,255,255,0.6)',flexShrink:0}}/>Baixa
           </div>
           <div style={{height:1,background:'#1e2a3a',margin:'2px 0'}}/>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:14,height:14,borderRadius:3,background:'#1e40af',fontSize:8,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{'\u{1F6E1}\uFE0F'}</span>GCM
+            <span style={{width:14,height:14,borderRadius:3,background:'#1e40af',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'#fff',fontSize:9,fontWeight:700}}>G</span>GCM
           </div>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:14,height:14,borderRadius:3,background:'#dc2626',fontSize:8,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{'\u{1F3E5}'}</span>SAMU
+            <span style={{width:14,height:14,borderRadius:3,background:'#dc2626',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'#fff',fontSize:9,fontWeight:700}}>S</span>SAMU
           </div>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:14,height:14,borderRadius:3,background:'#ea580c',fontSize:8,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{'\u{1F692}'}</span>Bombeiros
+            <span style={{width:14,height:14,borderRadius:3,background:'#ea580c',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'#fff',fontSize:9,fontWeight:700}}>B</span>Bombeiros
           </div>
           <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:14,height:14,borderRadius:3,background:'#ca8a04',fontSize:8,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{'\u2B50'}</span>PM
+            <span style={{width:14,height:14,borderRadius:3,background:'#ca8a04',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'#fff',fontSize:9,fontWeight:700}}>P</span>PM
           </div>
         </div>
       </div>
