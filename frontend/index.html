@@ -420,10 +420,24 @@ const STA_FBK={
 
 /* ─── BASES DE OPERAÇÃO ───────────────────────────────────────── */
 const BASES=[
+  /* ── GCM ─────────────────────────────────────────────────────── */
   {id:'gcm',nome:'GCM Central',tipo:'gcm',lat:-23.4236,lng:-51.9383,endereco:'Rua Fernão Dias, 688 — Zona 9',telefone:'(44) 3221-8696',cor:'#2563eb'},
+  {id:'gcm-sul',nome:'GCM Base Zona Sul',tipo:'gcm',lat:-23.4363,lng:-51.9335,endereco:'Av. Cerro Azul, 2990 — Vila Emília',telefone:'(44) 3293-8750',cor:'#2563eb'},
+  {id:'gcm-olimpica',nome:'GCM Vila Olímpica',tipo:'gcm',lat:-23.4155,lng:-51.9210,endereco:'Av. Duque de Caxias, 1368 — Zona 7',telefone:'(44) 3220-5750',cor:'#2563eb'},
+  /* ── SAMU ────────────────────────────────────────────────────── */
   {id:'samu',nome:'SAMU 192',tipo:'samu',lat:-23.4010,lng:-51.9560,endereco:'Av. Dr. Vladimir Babkov — Parque Industrial',telefone:'192',cor:'#dc2626'},
-  {id:'bombeiros',nome:'5º BBM — Bombeiros',tipo:'bombeiros',lat:-23.4180,lng:-51.9250,endereco:'Rua Marquês de Abrantes, 78 — Zona 7',telefone:'193',cor:'#dc2626'},
+  /* ── BOMBEIROS ───────────────────────────────────────────────── */
+  {id:'bombeiros',nome:'5º BBM — Prevenção',tipo:'bombeiros',lat:-23.4180,lng:-51.9250,endereco:'Rua Marquês de Abrantes, 78 — Zona 7',telefone:'193',cor:'#dc2626'},
+  {id:'bomb-central',nome:'5º BBM — Quartel Central',tipo:'bombeiros',lat:-23.4183,lng:-51.9489,endereco:'Av. Guaíra, 63 — Zona 7',telefone:'(44) 3218-6180',cor:'#dc2626'},
+  {id:'bomb-velho',nome:'Bombeiros — Maringá Velho',tipo:'bombeiros',lat:-23.4242,lng:-51.9682,endereco:'Rua Castro Alves, 1559 — Zona 6',telefone:'(44) 3262-0548',cor:'#dc2626'},
+  {id:'bomb-iguatemi',nome:'Bombeiros — Iguatemi',tipo:'bombeiros',lat:-23.3720,lng:-51.9580,endereco:'Rua Pion. Manoel Frigo, s/n — Iguatemi',telefone:'(44) 3276-1255',cor:'#dc2626'},
+  /* ── PM / POLÍCIA ────────────────────────────────────────────── */
   {id:'pm',nome:'PM — 4º BPM',tipo:'pm',lat:-23.4195,lng:-51.9340,endereco:'Av. Carneiro Leão — Centro',telefone:'190',cor:'#d97706'},
+  {id:'pm-sede',nome:'4º BPM — Sede',tipo:'pm',lat:-23.4273,lng:-51.8999,endereco:'Rua Mitsuzo Taguchi, 99 — Vila Nova',telefone:'(44) 3261-5100',cor:'#d97706'},
+  {id:'pc-9sdp',nome:'9ª SDP — Delegacia Regional',tipo:'pm',lat:-23.4106,lng:-51.9555,endereco:'Av. Mandacaru, 560 — Vila Progresso',telefone:'(44) 3309-3100',cor:'#d97706'},
+  {id:'pc-3dp',nome:'3º Distrito Policial',tipo:'pm',lat:-23.4073,lng:-51.9190,endereco:'Av. Jinroku Kubota, 87 — Jd. Alvorada',telefone:'(44) 3267-5224',cor:'#d97706'},
+  {id:'pc-4dp',nome:'4º Distrito Policial',tipo:'pm',lat:-23.4316,lng:-51.9157,endereco:'Av. Monteiro Lobato, 1230 — Zona 08',telefone:'(44) 3227-6953',cor:'#d97706'},
+  {id:'pc-cidada',nome:'Delegacia Cidadã',tipo:'pm',lat:-23.4511,lng:-51.9766,endereco:'Rua Pion. Thiago Netto, 331 — Centro Cívico',telefone:'(44) 3309-3100',cor:'#d97706'},
 ];
 
 function nearestBase(lat,lng,tipo){
