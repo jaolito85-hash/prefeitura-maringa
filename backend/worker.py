@@ -557,7 +557,13 @@ def processar_denuncia(event: dict, sb: Client) -> None:
     if tem_loc and event.get("latitude"):
         insert_data["latitude"] = event["latitude"]
         insert_data["longitude"] = event["longitude"]
-        insert_data["bairro"] = f"GPS: {event['latitude']:.4f}, {event['longitude']:.4f}"
+        endereco_geo, bairro_geo = _geocodificar_sync(event["latitude"], event["longitude"])
+        if endereco_geo:
+            insert_data["endereco"] = endereco_geo
+        if bairro_geo:
+            insert_data["bairro"] = bairro_geo
+        else:
+            insert_data["bairro"] = f"GPS: {event['latitude']:.4f}, {event['longitude']:.4f}"
 
     res = sb.table("denuncias").insert(insert_data).execute()
 
@@ -823,9 +829,17 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
                     f"📍 Agora me diz o endereço ou envia sua localização: 📎 > Localização")
 
     elif tem_loc:
-        update_data["latitude"] = event.get("latitude")
-        update_data["longitude"] = event.get("longitude")
-        update_data["bairro"] = f"GPS: {event.get('latitude', 0):.4f}, {event.get('longitude', 0):.4f}"
+        lat = event.get("latitude")
+        lng = event.get("longitude")
+        update_data["latitude"] = lat
+        update_data["longitude"] = lng
+        endereco_geo, bairro_geo = _geocodificar_sync(lat, lng)
+        if endereco_geo:
+            update_data["endereco"] = endereco_geo
+        if bairro_geo:
+            update_data["bairro"] = bairro_geo
+        else:
+            update_data["bairro"] = f"GPS: {lat:.4f}, {lng:.4f}"
         # Checar se é elegível ao Cidadão Ativo antes de finalizar
         valor = _buscar_valor_recompensa(sb, categoria)
         if valor:
@@ -1068,7 +1082,8 @@ def _continuar_cadastro_sos(event: dict, sb: Client, sessao: dict) -> None:
         if tem_loc:
             lat = event.get("latitude")
             lng = event.get("longitude")
-            contexto["endereco"] = f"GPS: {lat}, {lng}"
+            endereco_geo, bairro_geo = _geocodificar_sync(lat, lng)
+            contexto["endereco"] = endereco_geo or f"GPS: {lat}, {lng}"
         elif len(texto) < 5:
             enviar_whatsapp(telefone, "Por favor, informe seu endereço completo (rua, número, bairro):")
             return
@@ -1177,10 +1192,13 @@ def _normalizar_endereco(endereco: str) -> str:
 
 
 def _geocodificar_sync(latitude: float, longitude: float) -> tuple[str | None, str | None]:
-    """Converte coordenadas GPS em endereço legível via Mapbox Geocoding API."""
+    """Converte coordenadas GPS em endereço legível via Mapbox Geocoding API.
+    Retorna (endereco, bairro) ou (None, None) se falhar."""
+    if not latitude or not longitude:
+        return None, None
     url = (
         f"https://api.mapbox.com/geocoding/v5/mapbox.places/{longitude},{latitude}.json"
-        f"?access_token={MAPBOX_TOKEN}&language=pt-BR&types=address,poi&limit=1"
+        f"?access_token={MAPBOX_TOKEN}&language=pt-BR&types=address,neighborhood,locality,place&limit=1"
     )
     try:
         resp = httpx.get(url, timeout=5.0)
@@ -1191,9 +1209,16 @@ def _geocodificar_sync(latitude: float, longitude: float) -> tuple[str | None, s
                 endereco = feat.get("place_name", "")
                 bairro = ""
                 for ctx in feat.get("context", []):
-                    if "neighborhood" in ctx.get("id", "") or "locality" in ctx.get("id", ""):
+                    if "neighborhood" in ctx.get("id", ""):
                         bairro = ctx.get("text", "")
                         break
+                    elif "locality" in ctx.get("id", ""):
+                        bairro = ctx.get("text", "")
+                if not bairro:
+                    for ctx in feat.get("context", []):
+                        if "place" in ctx.get("id", ""):
+                            bairro = ctx.get("text", "")
+                            break
                 return endereco, bairro
     except Exception as e:
         logger.error(f"Erro geocodificação: {e}")
