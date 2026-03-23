@@ -1561,8 +1561,14 @@ PROCESSADORES = {
 def conectar():
     while True:
         try:
-            r = redis_lib.Redis.from_url(REDIS_URL, decode_responses=True,
-                                         socket_connect_timeout=5, socket_timeout=5)
+            r = redis_lib.Redis.from_url(
+                REDIS_URL,
+                decode_responses=True,
+                socket_connect_timeout=10,
+                socket_timeout=30,        # Precisa ser MAIOR que o timeout do blpop (5s)
+                retry_on_timeout=True,    # Reconecta automaticamente em vez de crashar
+                health_check_interval=15, # Ping periódico pra manter conexão viva
+            )
             r.ping()
             sb = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
             logger.info("Conectado ao Redis e Supabase!")
@@ -1593,9 +1599,9 @@ def main():
             else:
                 logger.warning(f"Sem processador: {fila}")
 
-        except redis_lib.exceptions.ConnectionError as exc:
-            logger.error(f"Redis off: {exc}")
-            time.sleep(3)
+        except (redis_lib.exceptions.ConnectionError, redis_lib.exceptions.TimeoutError) as exc:
+            logger.error(f"Redis conexão/timeout: {exc}. Reconectando...")
+            time.sleep(2)
             r, sb = conectar()
         except json.JSONDecodeError as exc:
             logger.error(f"JSON invalido: {exc}")
