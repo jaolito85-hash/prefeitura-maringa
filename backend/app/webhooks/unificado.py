@@ -147,6 +147,14 @@ async def receber_webhook_unificado(
     request: Request,
     _: str | None = Depends(require_evolution_apikey),
 ):
+    # ── FILTRAR TIPO DE EVENTO ──
+    # Evolution API manda varios tipos: messages.upsert (mensagem real),
+    # messages.update (status leitura), etc. So queremos mensagens reais.
+    event_type = payload.get("event", "") if isinstance(payload, dict) else ""
+    if event_type and event_type not in ("messages.upsert", "send.message"):
+        logger.debug(f"Evento ignorado: {event_type}")
+        return {"status": "ignored", "reason": f"event_type:{event_type}"}
+
     dados = _extrair_dados_evolution(payload)
 
     if dados["from_me"]:

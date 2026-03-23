@@ -623,6 +623,25 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
     texto = event.get("texto", "")
     push_name = event.get("push_name", "") or contexto.get("push_name", "")
 
+    logger.info(f"Continuando denuncia: tel={telefone} etapa={etapa_atual} texto={texto[:50] if texto else '[vazio]'}")
+
+    # Proteção: se algo crashar, o cidadão recebe uma mensagem em vez de ficar no vácuo
+    try:
+        _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
+                                       registro_id, etapa_atual, protocolo,
+                                       categoria, texto, push_name)
+    except Exception as exc:
+        logger.exception(f"ERRO em _continuar_denuncia para {telefone}: {exc}")
+        enviar_whatsapp(telefone,
+                        "⚠️ Ocorreu um erro ao processar sua mensagem. "
+                        "Por favor, tente enviar novamente.")
+
+
+def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
+                                    registro_id, etapa_atual, protocolo,
+                                    categoria, texto, push_name) -> None:
+    """Lógica real da continuação — separada pra ter try/except no caller."""
+
     # ══════════════════════════════════════════════════════════
     # ETAPA MENU — cidadão está escolhendo a categoria
     # (registro_id ainda não existe, será criado aqui)
