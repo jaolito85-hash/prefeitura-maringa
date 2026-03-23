@@ -161,7 +161,7 @@ def download_media(message_id: str) -> bytes | None:
             url,
             json={"message": {"key": {"id": message_id}}, "convertToMp4": True},
             headers={"Content-Type": "application/json", "apikey": EVOLUTION_API_KEY},
-            timeout=30.0,
+            timeout=120.0,  # 2 minutos — vídeo precisa de mais tempo pra converter
         )
         if response.status_code in (200, 201):
             data = response.json()
@@ -241,7 +241,8 @@ def processar_midia(event: dict, sb: Client, registro_id: str, tabela: str) -> s
     file_bytes = download_media(message_id)
     if not file_bytes:
         logger.warning(f"Não foi possível baixar mídia {message_id}")
-        return None  # Falha silenciosa — não bloqueia o fluxo
+        return ("⚠️ Não consegui receber seu arquivo. Isso pode acontecer com vídeos grandes.\n\n"
+                "💡 Dica: tente enviar novamente ou grave um vídeo mais curto (até 30s).")
 
     # ── 4. Validar tamanho real (fallback se fileLength não veio no payload) ──
     real_size = len(file_bytes)
@@ -273,7 +274,7 @@ def criar_sessao(sb: Client, telefone: str, canal: str, etapa: str,
                  registro_id: str, contexto: dict) -> None:
     """Cria ou atualiza sessao de conversa pra esse telefone."""
     try:
-        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=120)).isoformat()  # 2h — demo-safe
         sb.table("sessoes_conversa").upsert({
             "telefone": telefone,
             "canal": canal,
