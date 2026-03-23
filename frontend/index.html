@@ -564,14 +564,11 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
         sevLabel:sev.label,sevColor:sev.c,dotColor:sev.dot,
         severidade:item.severidade||'baixa',
         tipo:item.tipo||item.categoria||'ocorrencia',
+        protocolo:item.protocolo||'',
+        total_relatos:item.total_relatos||1,
+        endereco:item.endereco||'',
       }};
     })};
-  }
-
-  function basesToGeoJSON(){
-    return{type:'FeatureCollection',features:BASES.map(b=>({type:'Feature',geometry:{type:'Point',coordinates:[b.lng,b.lat]},properties:{
-      id:b.id,nome:b.nome,endereco:b.endereco,telefone:b.telefone,cor:b.cor,tipo:b.tipo,
-    }}))};
   }
 
   useEffect(()=>{
@@ -601,72 +598,43 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // ── Incidents source ──
       map.addSource('incidents',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
 
-      // Pulse ring 1 — onda externa (animada via JS)
+      // Pulse halo — onda externa (animada via JS, tamanho por severidade)
       map.addLayer({id:'inc-pulse1',type:'circle',source:'incidents',paint:{
-        'circle-radius':16,
+        'circle-radius':['match',['get','severidade'],'critica',18,'alta',14,'media',11,'baixa',8,10],
         'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
-        'circle-opacity':0.25,
-        'circle-stroke-width':1.5,
-        'circle-stroke-color':['match',['get','severidade'],...sevStops,'#8b949e'],
-        'circle-stroke-opacity':0.3,
-      }});
-      // Pulse ring 2 — onda interna (fase invertida)
-      map.addLayer({id:'inc-pulse2',type:'circle',source:'incidents',paint:{
-        'circle-radius':12,
-        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
-        'circle-opacity':0.18,
-        'circle-stroke-width':0,
+        'circle-opacity':0.3,
+        'circle-blur':0.8,
       }});
 
-      // Halo estático suave
-      map.addLayer({id:'inc-glow',type:'circle',source:'incidents',paint:{
-        'circle-radius':15,
-        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
-        'circle-opacity':0.1,
-        'circle-blur':1,
-      }});
-
-      // Círculo principal do incidente (mesmo tamanho, cor por severidade)
+      // Círculo principal (tamanho e cor por severidade)
       map.addLayer({id:'inc-main',type:'circle',source:'incidents',paint:{
-        'circle-radius':9,
+        'circle-radius':['match',['get','severidade'],'critica',8,'alta',7,'media',6,'baixa',5,5],
         'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
-        'circle-opacity':0.95,
-        'circle-stroke-width':2.5,
-        'circle-stroke-color':'rgba(255,255,255,0.6)',
-      }});
-
-      // Ponto central branco
-      map.addLayer({id:'inc-dot',type:'circle',source:'incidents',paint:{
-        'circle-radius':3,
-        'circle-color':'#ffffff',
         'circle-opacity':0.9,
+        'circle-stroke-width':2,
+        'circle-stroke-color':'#ffffff',
+        'circle-stroke-opacity':0.6,
       }});
 
-      // ── Bases: Symbol layer nativo (Canvas icons — fixos no zoom/pitch) ──
-      var baseTypeDefs={gcm:{bg:'#1e40af',label:'G'},samu:{bg:'#dc2626',label:'S'},bombeiros:{bg:'#ea580c',label:'B'},pm:{bg:'#ca8a04',label:'P'}};
-      Object.keys(baseTypeDefs).forEach(function(tipo){
-        var def=baseTypeDefs[tipo];
-        var sz=32,ratio=window.devicePixelRatio||1;
-        var cv=document.createElement('canvas');cv.width=sz*ratio;cv.height=sz*ratio;
-        var cx=cv.getContext('2d');cx.scale(ratio,ratio);
-        // Rounded rect
-        var rd=5;cx.beginPath();cx.moveTo(rd,0);cx.lineTo(sz-rd,0);cx.quadraticCurveTo(sz,0,sz,rd);
-        cx.lineTo(sz,sz-rd);cx.quadraticCurveTo(sz,sz,sz-rd,sz);cx.lineTo(rd,sz);cx.quadraticCurveTo(0,sz,0,sz-rd);
-        cx.lineTo(0,rd);cx.quadraticCurveTo(0,0,rd,0);cx.closePath();
-        cx.fillStyle=def.bg;cx.fill();cx.strokeStyle='rgba(255,255,255,0.7)';cx.lineWidth=2;cx.stroke();
-        // Label
-        cx.font='bold 16px system-ui,sans-serif';cx.textAlign='center';cx.textBaseline='middle';
-        cx.fillStyle='#ffffff';cx.fillText(def.label,sz/2,sz/2+1);
-        var imgData=cx.getImageData(0,0,cv.width,cv.height);
-        map.addImage('base-'+tipo,{width:cv.width,height:cv.height,data:imgData.data},{pixelRatio:ratio});
+      // ── Bases: HTML Marker circles (apenas cor, sem texto/icone) ──
+      var baseCores={gcm:'#2563eb',samu:'#ef4444',bombeiros:'#991b1b',pm:'#78350f'};
+      var baseMarkersArr=[];
+      BASES.forEach(function(b){
+        var cor=baseCores[b.tipo]||'#2563eb';
+        var el=document.createElement('div');
+        el.style.cssText='width:20px;height:20px;border-radius:50%;background:'+cor+';border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;';
+        var mk=new mapboxgl.Marker({element:el}).setLngLat([b.lng,b.lat]);
+        mk.setPopup(new mapboxgl.Popup({offset:14,maxWidth:'250px'}).setHTML(
+          '<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:12px 14px;color:#fff;font-family:Public Sans,system-ui;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,.5)">'+
+          '<div style="font-weight:700;font-size:14px;margin-bottom:3px">'+b.nome+'</div>'+
+          '<div style="font-size:11px;color:#9ca3af;line-height:1.4">'+b.endereco+'</div>'+
+          '<div style="font-size:13px;color:'+cor+';margin-top:8px;font-weight:600">'+b.telefone+'</div></div>'
+        ));
+        if(showBases) mk.addTo(map);
+        baseMarkersArr.push(mk);
       });
-      map.addSource('bases',{type:'geojson',data:showBases?basesToGeoJSON():{type:'FeatureCollection',features:[]}});
-      map.addLayer({id:'base-icons',type:'symbol',source:'bases',layout:{
-        'icon-image':['match',['get','tipo'],'gcm','base-gcm','samu','base-samu','bombeiros','base-bombeiros','pm','base-pm','base-gcm'],
-        'icon-size':1,
-        'icon-allow-overlap':true,
-        'icon-ignore-placement':true,
-      }});
+      map._baseMarkers=baseMarkersArr;
+      map._basesShown=!!showBases;
 
       // ── Heatmap source + layers ──
       map.addSource('heatmap-data',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
@@ -685,23 +653,18 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
         'heatmap-opacity':0,
       }},fullscreen?'inc-pulse1':undefined);
 
-      // ══════ Animação Pulse (Dupla Onda + triggerRepaint) ══════
-      let t=0;
+      // ══════ Animação Pulse (halo pulsante por severidade) ══════
+      let pulsePhase=0;
       function animatePulse(){
-        t+=0.025;
-        const p1=(Math.sin(t*2.5)+1)/2;
-        const r1=12+p1*5;
-        const o1=0.15-p1*0.11;
-        const s1=0.12-p1*0.09;
-        const p2=(Math.sin(t*2.5+Math.PI)+1)/2;
-        const r2=11+p2*3;
-        const o2=0.1-p2*0.06;
+        pulsePhase=(pulsePhase+1)%120;
+        const scale=1+0.3*Math.sin(pulsePhase*Math.PI/60);
+        const opac=0.15+0.15*Math.sin(pulsePhase*Math.PI/60);
         try{
-          map.setPaintProperty('inc-pulse1','circle-radius',r1);
-          map.setPaintProperty('inc-pulse1','circle-opacity',Math.max(0.02,o1));
-          map.setPaintProperty('inc-pulse1','circle-stroke-opacity',Math.max(0.02,s1));
-          map.setPaintProperty('inc-pulse2','circle-radius',r2);
-          map.setPaintProperty('inc-pulse2','circle-opacity',Math.max(0.02,o2));
+          map.setPaintProperty('inc-pulse1','circle-radius',[
+            'match',['get','severidade'],
+            'critica',18*scale,'alta',14*scale,'media',11*scale,'baixa',8*scale,10*scale
+          ]);
+          map.setPaintProperty('inc-pulse1','circle-opacity',opac);
         }catch(e){}
         map.triggerRepaint();
         pulseRef.current=requestAnimationFrame(animatePulse);
@@ -711,38 +674,31 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // ── Popups ──
       map.on('click','inc-main',(e)=>{
         const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
+        const sevCores={critica:'#ef4444',alta:'#f97316',media:'#eab308',baixa:'#22c55e'};
+        const sevCor=sevCores[p.severidade]||'#6b7280';
+        const sevLabel=(p.severidade||'baixa').charAt(0).toUpperCase()+(p.severidade||'baixa').slice(1);
         popupRef.current.setLngLat(coords).setHTML(
           `<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:12px 14px;color:#fff;font-family:Public Sans,system-ui;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5)">
-            <div style="font-weight:600;font-size:13px;margin-bottom:4px;line-height:1.3">${p.titulo}</div>
-            <div style="font-size:12px;color:#d1d5db">${p.bairro}</div>
-            <div style="margin-top:8px;display:flex;gap:6px;align-items:center">
-              <span style="width:8px;height:8px;border-radius:50%;background:${p.dotColor};box-shadow:0 0 6px ${p.dotColor}"></span>
-              <span style="font-size:11px;color:${p.sevColor};font-weight:500">${p.sevLabel}</span>
+            <div style="font-weight:600;font-size:14px;margin-bottom:4px;line-height:1.3">${p.titulo}</div>
+            <div style="font-size:12px;color:#9ca3af;margin-bottom:6px">${p.protocolo||''}</div>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <span style="background:${sevCor};color:#fff;padding:2px 8px;border-radius:10px;font-size:11px">${sevLabel}</span>
+              <span style="background:#374151;color:#d1d5db;padding:2px 8px;border-radius:10px;font-size:11px">\u{1F465} ${p.total_relatos||1}</span>
             </div>
+            <div style="font-size:12px;color:#d1d5db">${p.endereco||p.bairro||''}</div>
           </div>`
         ).addTo(map);
       });
-      // Popup das bases (symbol layer)
-      map.on('click','base-icons',(e)=>{
-        const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
-        popupRef.current.setLngLat(coords).setHTML(
-          `<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:14px 16px;color:#fff;font-family:Public Sans,system-ui;box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:180px">
-            <div style="font-weight:700;font-size:14px;margin-bottom:3px">${p.nome}</div>
-            <div style="font-size:11px;color:#9ca3af;line-height:1.4">${p.endereco}</div>
-            <div style="font-size:13px;color:${p.cor};margin-top:8px;font-weight:600">${p.telefone}</div>
-          </div>`
-        ).addTo(map);
-      });
-      ['inc-main','base-icons'].forEach(layer=>{
-        map.on('mouseenter',layer,()=>{map.getCanvas().style.cursor='pointer';});
-        map.on('mouseleave',layer,()=>{map.getCanvas().style.cursor='';});
-      });
+      // Cursor pointer nas ocorrências
+      map.on('mouseenter','inc-main',()=>{map.getCanvas().style.cursor='pointer';});
+      map.on('mouseleave','inc-main',()=>{map.getCanvas().style.cursor='';});
 
       readyRef.current=true;
     });
     mapRef.current=map;
     return()=>{
       if(pulseRef.current) cancelAnimationFrame(pulseRef.current);
+      if(map._baseMarkers) map._baseMarkers.forEach(mk=>mk.remove());
       map.remove();mapRef.current=null;readyRef.current=false;
     };
   },[]);
@@ -771,16 +727,13 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
     if(readyRef.current){apply();}else{map.once('load',apply);}
   },[items]);
 
-  // Toggle base symbol layer visibility
+  // Toggle base markers visibility
   useEffect(()=>{
-    const map=mapRef.current;if(!map) return;
-    const apply=()=>{
-      try{
-        const src=map.getSource('bases');if(!src) return;
-        src.setData(basesVisible?basesToGeoJSON():{type:'FeatureCollection',features:[]});
-      }catch(e){}
-    };
-    if(readyRef.current){apply();}else{map.once('load',apply);}
+    const map=mapRef.current;if(!map||!map._baseMarkers) return;
+    map._baseMarkers.forEach(mk=>{
+      if(basesVisible){mk.addTo(map);}else{mk.remove();}
+    });
+    map._basesShown=basesVisible;
   },[basesVisible]);
 
   // Update heatmap data
@@ -805,7 +758,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       try{
         const heatOpacity=heatmapMode?0.85:0;
         map.setPaintProperty('heatmap-layer','heatmap-opacity',heatOpacity);
-        ['inc-pulse1','inc-pulse2','inc-glow','inc-main','inc-dot'].forEach(l=>{
+        ['inc-pulse1','inc-main'].forEach(l=>{
           try{map.setLayoutProperty(l,'visibility',heatmapMode?'none':'visible');}catch(e){}
         });
       }catch(e){}
@@ -831,36 +784,6 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
           {basesVisible?'\u{1F441}\uFE0F Bases vis\u00edveis':'\u{1F441}\uFE0F Mostrar bases'}
         </button>
       )}
-      <div style={{position:'absolute',bottom:16,right:16,zIndex:5,background:'rgba(19,25,38,0.92)',backdropFilter:'blur(12px)',border:'1px solid #1e2a3a',borderRadius:10,padding:'10px 14px',fontSize:10,color:'#94a3b8',pointerEvents:'none'}}>
-        <div style={{fontWeight:700,marginBottom:6,textTransform:'uppercase',letterSpacing:1,fontSize:9}}>Legenda</div>
-        <div style={{display:'flex',flexDirection:'column',gap:4}}>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:8,height:8,borderRadius:'50%',background:'#dc2626',border:'2px solid rgba(255,255,255,0.6)',flexShrink:0}}/>Cr\u00edtica
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:8,height:8,borderRadius:'50%',background:'#ef4444',border:'2px solid rgba(255,255,255,0.6)',flexShrink:0}}/>Alta
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:8,height:8,borderRadius:'50%',background:'#d97706',border:'2px solid rgba(255,255,255,0.6)',flexShrink:0}}/>M\u00e9dia
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:8,height:8,borderRadius:'50%',background:'#059669',border:'2px solid rgba(255,255,255,0.6)',flexShrink:0}}/>Baixa
-          </div>
-          <div style={{height:1,background:'#1e2a3a',margin:'2px 0'}}/>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:14,height:14,borderRadius:3,background:'#1e40af',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'#fff',fontSize:9,fontWeight:700}}>G</span>GCM
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:14,height:14,borderRadius:3,background:'#dc2626',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'#fff',fontSize:9,fontWeight:700}}>S</span>SAMU
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:14,height:14,borderRadius:3,background:'#ea580c',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'#fff',fontSize:9,fontWeight:700}}>B</span>Bombeiros
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{width:14,height:14,borderRadius:3,background:'#ca8a04',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:'#fff',fontSize:9,fontWeight:700}}>P</span>PM
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
