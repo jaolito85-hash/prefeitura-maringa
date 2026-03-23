@@ -1,0 +1,111 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no"><title>Node Mulher Segura</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,sans-serif;background:#0a0e17;color:#e2e8f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px}.shield{font-size:48px;margin:20px 0}.title{font-size:18px;font-weight:700;margin-bottom:8px}.sub{font-size:13px;color:#64748b;text-align:center;max-width:300px;line-height:1.5;margin-bottom:24px}#btn{width:100%;max-width:340px;padding:18px;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;color:#fff;background:#e03e6b;box-shadow:0 4px 20px rgba(224,62,107,0.3)}#btn.on{background:#1e293b;border:2px solid #e03e6b;color:#e03e6b}#btn:disabled{opacity:.5}#status{margin-top:16px;font-size:13px;color:#64748b;text-align:center;line-height:1.8;max-width:340px}.ok{color:#22c55e}.err{color:#ef4444}.info{color:#3b82f6}.pulse{display:inline-block;width:8px;height:8px;background:#e03e6b;border-radius:50%;margin-right:6px;animation:blink 1s infinite}@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}#stats{display:none;width:100%;max-width:340px;margin-top:16px;background:#131926;border:1px solid #1e2a3a;border-radius:12px;padding:14px;font-size:13px;line-height:2}</style></head><body><div class="shield">🛡️</div><div class="title">Node Mulher Segura</div><div class="sub">Seu rastreamento de segurança está pronto. Mantenha esta página aberta.</div><button id="btn" onclick="iniciar()">Ativar Proteção</button><div id="stats"></div><div id="status"></div><script>
+var SUPABASE_URL="https://kuhtndyhuddjpqimuijn.supabase.co";
+var SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1aHRuZHlodWRkanBxaW11aWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Mzg1MDgsImV4cCI6MjA4OTUxNDUwOH0.q5bLnE2D2zhDND_8NAkuZE4Rul0pGp8vnUStISBBLwM";
+var watchId=null,sessaoId=null,n=0,ativo=false;
+
+function msg(t,tipo){
+  document.getElementById("status").innerHTML+='<div class="'+tipo+'">'+t+'</div>';
+}
+
+function getToken(){
+  var params=new URLSearchParams(window.location.search);
+  return params.get("t");
+}
+
+async function validarToken(token){
+  var r=await fetch(SUPABASE_URL+"/rest/v1/emergencia_sessoes?token=eq."+token+"&status=eq.ativa&select=id,nome,telefone",{
+    headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
+  });
+  var data=await r.json();
+  if(data.length===0) return null;
+  return data[0];
+}
+
+async function salvarPonto(lat,lng,acc){
+  await fetch(SUPABASE_URL+"/rest/v1/emergencia_pontos",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY},
+    body:JSON.stringify({sessao_id:sessaoId,latitude:lat,longitude:lng,precisao_metros:acc})
+  });
+}
+
+async function iniciar(){
+  var btn=document.getElementById("btn");
+  if(ativo){
+    navigator.geolocation.clearWatch(watchId);
+    ativo=false;
+    btn.textContent="Ativar Proteção";
+    btn.className="";
+    msg("Rastreamento pausado. "+n+" pontos enviados.","info");
+    return;
+  }
+
+  btn.disabled=true;
+  btn.textContent="Verificando...";
+
+  var token=getToken();
+  if(!token){
+    msg("⚠️ Link inválido — sem token de sessão.","err");
+    msg("Este link deve ser enviado pelo bot do WhatsApp.","info");
+    btn.textContent="Link inválido";
+    return;
+  }
+
+  try{
+    var sessao=await validarToken(token);
+    if(!sessao){
+      msg("⚠️ Sessão não encontrada ou já encerrada.","err");
+      btn.textContent="Sessão inválida";
+      return;
+    }
+    sessaoId=sessao.id;
+    msg("Sessão validada ✓","ok");
+  }catch(e){
+    msg("Erro ao conectar: "+e.message,"err");
+    btn.disabled=false;
+    btn.textContent="Tentar novamente";
+    return;
+  }
+
+  if(!navigator.geolocation){
+    msg("GPS não disponível neste navegador.","err");
+    return;
+  }
+
+  ativo=true;
+  n=0;
+  btn.disabled=false;
+  btn.className="on";
+  btn.textContent="⏹ Parar";
+  msg("Ativando GPS...","info");
+
+  watchId=navigator.geolocation.watchPosition(
+    async function(pos){
+      n++;
+      var lat=pos.coords.latitude;
+      var lng=pos.coords.longitude;
+      var acc=Math.round(pos.coords.accuracy);
+      try{
+        await salvarPonto(lat,lng,acc);
+        document.getElementById("stats").style.display="block";
+        document.getElementById("stats").innerHTML='<span class="pulse"></span><b>Proteção ativa</b><br>Pontos enviados: <b>'+n+'</b><br>Precisão: <b>'+acc+'m</b><br>Última: '+new Date().toLocaleTimeString("pt-BR");
+      }catch(e){
+        msg("Erro ao enviar ponto: "+e.message,"err");
+      }
+    },
+    function(err){
+      var erros={1:"Permissão de GPS negada",2:"GPS indisponível",3:"Tempo esgotado"};
+      msg(erros[err.code]||err.message,"err");
+    },
+    {enableHighAccuracy:true,maximumAge:0,timeout:20000}
+  );
+}
+
+// Se tem token na URL, já inicia automaticamente
+window.onload=function(){
+  if(getToken()){
+    document.querySelector(".sub").textContent="Clique no botão para ativar sua proteção.";
+    iniciar();
+  }
+};
+</script></body></html>
