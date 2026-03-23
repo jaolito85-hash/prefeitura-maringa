@@ -411,6 +411,87 @@ def _criar_recompensa(sb: Client, denuncia_id: str, protocolo: str,
         return False
 
 
+def _validar_cpf(cpf: str) -> bool:
+    """
+    Valida CPF com verificação de dígitos (algoritmo oficial Receita Federal).
+    Retorna True se o CPF é válido, False caso contrário.
+    """
+    cpf_limpo = cpf.strip().replace(".", "").replace("-", "").replace(" ", "")
+    if len(cpf_limpo) != 11 or not cpf_limpo.isdigit():
+        return False
+    # Rejeitar sequências repetidas (ex: 111.111.111-11)
+    if cpf_limpo == cpf_limpo[0] * 11:
+        return False
+    # Primeiro dígito verificador
+    soma = sum(int(cpf_limpo[i]) * (10 - i) for i in range(9))
+    resto = soma % 11
+    d1 = 0 if resto < 2 else 11 - resto
+    if int(cpf_limpo[9]) != d1:
+        return False
+    # Segundo dígito verificador
+    soma = sum(int(cpf_limpo[i]) * (11 - i) for i in range(10))
+    resto = soma % 11
+    d2 = 0 if resto < 2 else 11 - resto
+    if int(cpf_limpo[10]) != d2:
+        return False
+    return True
+
+
+def _detectar_nova_intencao(texto: str, etapa_esperada: str) -> bool:
+    """
+    Detecta se o texto parece uma nova intenção em vez de resposta à etapa atual.
+    Ex: cidadão em aguardando_cpf manda "quero denunciar um buraco na rua".
+    """
+    if not texto or len(texto.strip()) < 10:
+        return False
+    texto_lower = texto.strip().lower()
+    # Se estamos esperando CPF e o texto é longo e com espaços, é nova intenção
+    if etapa_esperada == "aguardando_cpf":
+        palavras = texto_lower.split()
+        if len(palavras) >= 4:
+            return True
+    # Se estamos esperando PIX e o texto é longo e descritivo
+    if etapa_esperada == "aguardando_pix":
+        palavras = texto_lower.split()
+        if len(palavras) >= 5:
+            return True
+    # Se estamos esperando SIM/NÃO e o texto é longo
+    if etapa_esperada == "aguardando_cidadania":
+        palavras = texto_lower.split()
+        if len(palavras) >= 4:
+            return True
+    # Palavras-chave que indicam nova denúncia/ocorrência
+    indicadores = ["quero denunciar", "quero reportar", "preciso informar",
+                   "tem um", "tem uma", "aconteceu", "estou vendo",
+                   "socorro", "ajuda", "emergencia", "urgente"]
+    for ind in indicadores:
+        if ind in texto_lower:
+            return True
+    return False
+
+
+def _sessao_expirada_30min(sessao: dict) -> bool:
+    """
+    Verifica se a sessão está parada há mais de 30 minutos.
+    Usa o campo updated_at ou expira_em para calcular.
+    """
+    try:
+        # Usa updated_at se disponível, senão calcula pelo expira_em
+        expira_str = sessao.get("expira_em", "")
+        if not expira_str:
+            return False
+        # expira_em foi definido como NOW + 120min na criação
+        # Se agora > expira_em - 90min, significa que passaram 30+ min desde última atividade
+        expira = datetime.fromisoformat(expira_str.replace("Z", "+00:00"))
+        # Sessão foi criada/atualizada com expira = agora + 120min
+        # Então updated_at ~ expira - 120min
+        # 30min de inatividade = agora > (expira - 120min) + 30min = expira - 90min
+        limite = expira - timedelta(minutes=90)
+        return datetime.now(timezone.utc) > limite
+    except Exception:
+        return False
+
+
 def _detectar_tipo_pix(chave: str) -> str:
     """
     Detecta automaticamente o tipo de chave PIX pelo formato.
@@ -654,6 +735,22 @@ def _continuar_denuncia(event: dict, sb: Client) -> None:
 
     logger.info(f"Continuando denuncia: tel={telefone} etapa={etapa_atual} texto={texto[:50] if texto else '[vazio]'}")
 
+    # ── PROTEÇÃO: sessão parada há 30+ min ──
+    if _sessao_expirada_30min(sessao):
+        logger.info(f"Sessão expirada por inatividade (30min) para {telefone}, reprocessando como nova")
+        finalizar_sessao(sb, telefone)
+        event_novo = {**event, "is_continuacao": False, "sessao": None}
+        processar_denuncia(event_novo, sb)
+        return
+
+    # ── PROTEÇÃO: nova intenção detectada (texto longo em etapa que espera resposta curta) ──
+    if texto and _detectar_nova_intencao(texto, etapa_atual):
+        logger.info(f"Nova intenção detectada em sessão {etapa_atual} para {telefone}, reprocessando")
+        finalizar_sessao(sb, telefone)
+        event_novo = {**event, "is_continuacao": False, "sessao": None}
+        processar_denuncia(event_novo, sb)
+        return
+
     # Proteção: se algo crashar, o cidadão recebe uma mensagem em vez de ficar no vácuo
     try:
         _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
@@ -764,7 +861,7 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
     if etapa_atual == "aguardando_cpf":
         # Cidadão enviou o CPF
         cpf_limpo = texto.strip().replace(".", "").replace("-", "").replace(" ", "")
-        if len(cpf_limpo) == 11 and cpf_limpo.isdigit():
+        if _validar_cpf(cpf_limpo):
             contexto["cpf"] = cpf_limpo
             nova_etapa = "aguardando_pix"
             resposta = (f"✅ CPF recebido!\n\n"
@@ -772,8 +869,12 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
                         f"Pode ser: CPF, e-mail, telefone ou chave aleatória.")
         else:
             nova_etapa = etapa_atual
-            resposta = (f"⚠️ CPF inválido. Por favor, envie apenas os 11 números.\n"
-                        f"Exemplo: 12345678900")
+            if len(cpf_limpo) == 11 and cpf_limpo.isdigit():
+                resposta = (f"⚠️ CPF inválido (dígitos verificadores incorretos).\n"
+                            f"Confira o número e envie novamente.")
+            else:
+                resposta = (f"⚠️ CPF inválido. Por favor, envie apenas os 11 números.\n"
+                            f"Exemplo: 12345678900")
 
         criar_sessao(sb, telefone, "denuncia", nova_etapa, registro_id, contexto)
         enviar_whatsapp(telefone, resposta)
@@ -1502,6 +1603,22 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
     logger.info(f"Continuação ocorrência: protocolo={protocolo}, placeholder={is_placeholder}, "
                 f"tem_loc={tem_loc}, etapa={etapa_atual}, texto='{texto[:50]}'")
 
+    # ── PROTEÇÃO: sessão parada há 30+ min ──
+    if _sessao_expirada_30min(sessao):
+        logger.info(f"Sessão ocorrência expirada por inatividade (30min) para {telefone}, reprocessando")
+        finalizar_sessao(sb, telefone)
+        event_novo = {**event, "is_continuacao": False, "sessao": None}
+        processar_ocorrencia(event_novo, sb)
+        return
+
+    # ── PROTEÇÃO: nova intenção detectada ──
+    if texto and not tem_loc and _detectar_nova_intencao(texto, etapa_atual):
+        logger.info(f"Nova intenção detectada em sessão ocorrência {etapa_atual} para {telefone}")
+        finalizar_sessao(sb, telefone)
+        event_novo = {**event, "is_continuacao": False, "sessao": None}
+        processar_ocorrencia(event_novo, sb)
+        return
+
     # ══════════════════════════════════════════════════════════
     # PLACEHOLDER: ainda NÃO existe registro no banco.
     # O cidadão mandou a mensagem inicial sem GPS, agora manda o endereço.
@@ -2012,10 +2129,51 @@ def conectar():
             time.sleep(5)
 
 
+def _verificar_sessoes_orfas(sb: Client) -> None:
+    """
+    Limpa sessões órfãs no startup do worker.
+    Sessões que ficaram em etapas intermediárias (não finalizadas)
+    e já expiraram são marcadas como finalizadas.
+    """
+    try:
+        agora = datetime.now(timezone.utc).isoformat()
+        # Buscar sessões não finalizadas que já expiraram
+        result = sb.table("sessoes_conversa").select("id, telefone, canal, etapa, expira_em").neq(
+            "etapa", "finalizado"
+        ).lt("expira_em", agora).limit(100).execute()
+
+        if not result.data:
+            logger.info("Nenhuma sessão órfã encontrada.")
+            return
+
+        count = len(result.data)
+        logger.info(f"Encontradas {count} sessões órfãs — limpando...")
+
+        for sessao in result.data:
+            tel = sessao.get("telefone", "?")
+            etapa = sessao.get("etapa", "?")
+            canal = sessao.get("canal", "?")
+            logger.info(f"  Sessão órfã: {tel} canal={canal} etapa={etapa}")
+            try:
+                sb.table("sessoes_conversa").update({
+                    "etapa": "finalizado"
+                }).eq("id", sessao["id"]).execute()
+            except Exception as exc:
+                logger.error(f"  Erro ao limpar sessão {tel}: {exc}")
+
+        logger.info(f"Limpeza de sessões órfãs concluída: {count} sessões finalizadas.")
+    except Exception as exc:
+        logger.error(f"Erro ao verificar sessões órfãs: {exc}")
+
+
 def main():
     logger.info("Worker v3 (com sessao) iniciando...")
     logger.info(f"Filas: {QUEUES}")
     r, sb = conectar()
+
+    # Limpar sessões órfãs no startup
+    _verificar_sessoes_orfas(sb)
+
     logger.info("Pronto!")
 
     while True:
