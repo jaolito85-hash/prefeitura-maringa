@@ -1273,8 +1273,17 @@ def _buscar_ocorrencia_similar(sb: Client, categoria: str,
         if endereco and oc.get("endereco_normalizado"):
             end_norm = _normalizar_endereco(endereco)
             if end_norm and len(end_norm) > 5:
-                if end_norm in oc["endereco_normalizado"] or oc["endereco_normalizado"] in end_norm:
-                    logger.info(f"Agrupamento endereço: '{end_norm}' ~ '{oc['endereco_normalizado']}' → {oc['protocolo']}")
+                oc_norm = oc["endereco_normalizado"]
+                # Substring match
+                if end_norm in oc_norm or oc_norm in end_norm:
+                    logger.info(f"Agrupamento endereço: '{end_norm}' ~ '{oc_norm}' → {oc['protocolo']}")
+                    return oc
+                # Palavras-chave em comum (≥2 palavras significativas)
+                palavras_end = set(end_norm.split())
+                palavras_oc = set(oc_norm.split())
+                palavras_sig = {p for p in (palavras_end & palavras_oc) if len(p) > 2}
+                if len(palavras_sig) >= 2:
+                    logger.info(f"Agrupamento palavras-chave: {palavras_sig} → {oc['protocolo']}")
                     return oc
 
     return None
@@ -1380,100 +1389,99 @@ def processar_ocorrencia(event: dict, sb: Client) -> None:
     lat = event.get("latitude")
     lng = event.get("longitude")
 
-    # ── AGRUPAMENTO: buscar ocorrência similar antes de criar nova ──
-    similar = _buscar_ocorrencia_similar(
-        sb, categoria,
-        latitude=lat, longitude=lng,
-        endereco=None,  # texto da msg não é endereço
-    )
-    if similar:
-        _agrupar_relato(event, sb, similar)
-        return
-
-    # ── NOVA OCORRÊNCIA ──
-    protocolo = gerar_protocolo(sb)
-
-    # Geocodificação reversa se tem GPS
-    endereco_inicial = ""
-    endereco_normalizado = ""
-    bairro = None
-    if tem_loc and lat and lng:
-        endereco_geo, bairro_geo = _geocodificar_sync(lat, lng)
-        if endereco_geo:
-            endereco_inicial = endereco_geo
-            endereco_normalizado = _normalizar_endereco(endereco_geo)
-        else:
-            endereco_inicial = f"GPS: {lat:.4f}, {lng:.4f}"
-        if bairro_geo:
-            bairro = bairro_geo
-
-    res = sb.table("ocorrencias").insert({
-        "protocolo": protocolo,
-        "categoria": categoria,
-        "titulo": resumo,
-        "descricao": texto or None,
-        "endereco": endereco_inicial,
-        "endereco_normalizado": endereco_normalizado,
-        "bairro": bairro,
-        "status": "aberto",
-        "severidade": severidade,
-        "total_relatos": 1,
-        "latitude": lat,
-        "longitude": lng,
-    }).execute()
-
-    if not res.data:
-        logger.error("Falha ao criar ocorrencia")
-        return
-
-    registro_id = res.data[0]["id"]
-
-    sb.table("ocorrencias_relatos").insert({
-        "ocorrencia_id": registro_id,
-        "telefone": telefone,
-        "nome": push_name or None,
-        "mensagem": texto,
-        "latitude": lat,
-        "longitude": lng,
-    }).execute()
-
-    # Processar mídia se veio junto
-    if tem_midia:
-        erro_midia = processar_midia(event, sb, registro_id, "ocorrencias_relatos")
-        if erro_midia:
-            enviar_whatsapp(telefone, erro_midia)
-
-    # Emoji e urgência baseados na severidade
     icone = "🚨" if severidade in ("alta", "critica") else "⚠️"
     aviso_urgente = "\n🚨 *URGENTE* — Equipe de emergência sendo acionada." if severidade in ("alta", "critica") else ""
 
-    if not tem_loc:
-        etapa = "aguardando_endereco"
-        resposta = (f"{icone} Ocorrência de *{categoria.replace('_', ' ')}* registrada!{aviso_urgente}\n\n"
-                    f"📍 Pode enviar a localização? Clique em: 📎 > Localização\n"
-                    f"Ou me diga a rua e o bairro.\n\n"
-                    f"📋 Protocolo: {protocolo}")
-    elif not tem_midia:
-        etapa = "aguardando_midia"
-        endereco_display = endereco_inicial or "GPS recebido"
-        resposta = (f"{icone} Ocorrência registrada com localização!{aviso_urgente}\n"
-                    f"📍 {endereco_display}\n\n"
-                    f"📸 Se puder, envie uma foto do problema.\n\n"
-                    f"📋 Protocolo: {protocolo}")
-    else:
-        etapa = "finalizado"
-        resposta = (f"{icone} Ocorrência completa registrada!{aviso_urgente}\n\n"
-                    f"A equipe responsável já foi notificada.\n\n"
-                    f"📋 Protocolo: {protocolo}")
+    # ── COM GPS: pode agrupar ou criar direto ──
+    if tem_loc and lat and lng:
+        endereco_geo, bairro_geo = _geocodificar_sync(lat, lng)
 
-    criar_sessao(sb, telefone, "ocorrencia", etapa, registro_id,
-                 {"protocolo": protocolo, "categoria": categoria})
+        # Buscar ocorrência similar (GPS + endereço geocodificado)
+        similar = _buscar_ocorrencia_similar(
+            sb, categoria, latitude=lat, longitude=lng, endereco=endereco_geo
+        )
+        if similar:
+            _agrupar_relato(event, sb, similar)
+            return
 
-    if etapa == "finalizado":
-        finalizar_sessao(sb, telefone)
+        # Nova ocorrência COM endereço
+        protocolo = gerar_protocolo(sb)
+        endereco_inicial = endereco_geo or f"GPS: {lat:.4f}, {lng:.4f}"
+
+        res = sb.table("ocorrencias").insert({
+            "protocolo": protocolo,
+            "categoria": categoria,
+            "titulo": resumo,
+            "descricao": texto or None,
+            "endereco": endereco_inicial,
+            "endereco_normalizado": _normalizar_endereco(endereco_geo or ""),
+            "bairro": bairro_geo,
+            "status": "aberto",
+            "severidade": severidade,
+            "total_relatos": 1,
+            "latitude": lat,
+            "longitude": lng,
+        }).execute()
+
+        if not res.data:
+            logger.error("Falha ao criar ocorrencia")
+            return
+
+        registro_id = res.data[0]["id"]
+
+        sb.table("ocorrencias_relatos").insert({
+            "ocorrencia_id": registro_id,
+            "telefone": telefone,
+            "nome": push_name or None,
+            "mensagem": texto,
+            "latitude": lat,
+            "longitude": lng,
+        }).execute()
+
+        if tem_midia:
+            erro_midia = processar_midia(event, sb, registro_id, "ocorrencias_relatos")
+            if erro_midia:
+                enviar_whatsapp(telefone, erro_midia)
+
+        if not tem_midia:
+            etapa = "aguardando_midia"
+            resposta = (f"{icone} Ocorrência registrada com localização!{aviso_urgente}\n"
+                        f"📍 {endereco_inicial}\n\n"
+                        f"📸 Se puder, envie uma foto do problema.\n\n"
+                        f"📋 Protocolo: {protocolo}")
+        else:
+            etapa = "finalizado"
+            resposta = (f"{icone} Ocorrência completa registrada!{aviso_urgente}\n\n"
+                        f"A equipe responsável já foi notificada.\n\n"
+                        f"📋 Protocolo: {protocolo}")
+
+        criar_sessao(sb, telefone, "ocorrencia", etapa, registro_id,
+                     {"protocolo": protocolo, "categoria": categoria})
+        if etapa == "finalizado":
+            finalizar_sessao(sb, telefone)
+
+        enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+        logger.info(f"Nova ocorrência: {protocolo} cat={categoria} sev={severidade} loc=True")
+        return
+
+    # ── SEM GPS: NÃO cria protocolo, pede endereço primeiro ──
+    # O protocolo só será criado quando soubermos o endereço (para poder agrupar)
+    placeholder_id = str(uuid.uuid4())
+    criar_sessao(sb, telefone, "ocorrencia", "aguardando_endereco", placeholder_id, {
+        "categoria": categoria,
+        "resumo": resumo,
+        "texto_original": texto,
+        "push_name": push_name or "",
+        "severidade": severidade,
+        "_placeholder": True,
+    })
+
+    resposta = (f"{icone} Ocorrência de *{categoria.replace('_', ' ')}* identificada!{aviso_urgente}\n\n"
+                f"📍 Pode enviar a localização? Clique em: 📎 > Localização\n"
+                f"Ou me diga a rua e o bairro.")
 
     enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
-    logger.info(f"Nova ocorrência: {protocolo} cat={categoria} sev={severidade} loc={tem_loc}")
+    logger.info(f"Ocorrência aguardando endereço: cat={categoria} sev={severidade}")
 
 
 def _continuar_ocorrencia(event: dict, sb: Client) -> None:
@@ -1483,14 +1491,127 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
     registro_id = sessao.get("registro_id") if sessao else None
     etapa_atual = sessao.get("etapa", "") if sessao else ""
     protocolo = contexto.get("protocolo", "")
+    is_placeholder = contexto.get("_placeholder", False)
+    categoria = contexto.get("categoria", "outros_urbanos")
 
     tem_loc = event.get("tem_localizacao", False)
     tem_midia = event.get("tem_midia", False)
     texto = event.get("texto", "")
+    push_name = event.get("push_name", "") or contexto.get("push_name", "")
 
-    logger.info(f"Continuação ocorrência {protocolo}: tem_loc={tem_loc}, tem_midia={tem_midia}, "
-                f"etapa={etapa_atual}, texto='{texto[:50]}', registro_id={registro_id}")
+    logger.info(f"Continuação ocorrência: protocolo={protocolo}, placeholder={is_placeholder}, "
+                f"tem_loc={tem_loc}, etapa={etapa_atual}, texto='{texto[:50]}'")
 
+    # ══════════════════════════════════════════════════════════
+    # PLACEHOLDER: ainda NÃO existe registro no banco.
+    # O cidadão mandou a mensagem inicial sem GPS, agora manda o endereço.
+    # Só agora podemos buscar similar e decidir: agrupar ou criar nova.
+    # ══════════════════════════════════════════════════════════
+    if is_placeholder and etapa_atual == "aguardando_endereco":
+        endereco = None
+        bairro = None
+        latitude = None
+        longitude = None
+
+        # Cidadão mandou localização GPS
+        if tem_loc and event.get("latitude"):
+            latitude = event["latitude"]
+            longitude = event["longitude"]
+            endereco_geo, bairro_geo = _geocodificar_sync(latitude, longitude)
+            endereco = endereco_geo
+            bairro = bairro_geo
+
+        # Cidadão mandou endereço por texto
+        elif texto and len(texto.strip()) >= 5:
+            endereco = texto.strip()
+            # Heurística simples: última parte após vírgula pode ser bairro
+            parts = [p.strip() for p in texto.split(",")]
+            if len(parts) >= 2:
+                bairro = parts[-1]
+
+        else:
+            enviar_whatsapp(telefone,
+                "📍 Preciso da localização para registrar.\n"
+                "Envie pelo 📎 > Localização\n"
+                "Ou digite a rua e bairro (ex: Av Brasil 1200, Centro).")
+            return
+
+        # ── PONTO CHAVE: buscar ocorrência similar ──
+        similar = _buscar_ocorrencia_similar(
+            sb, categoria,
+            latitude=latitude, longitude=longitude,
+            endereco=endereco
+        )
+
+        if similar:
+            # AGRUPAR — não cria protocolo novo
+            event_completo = {**event, "push_name": push_name}
+            if not event_completo.get("texto"):
+                event_completo["texto"] = contexto.get("texto_original", "")
+            _agrupar_relato(event_completo, sb, similar)
+            finalizar_sessao(sb, telefone)
+            return
+
+        # NÃO encontrou similar — CRIAR NOVA OCORRÊNCIA agora
+        novo_protocolo = gerar_protocolo(sb)
+        resumo = contexto.get("resumo", contexto.get("texto_original", "Ocorrência"))
+        texto_original = contexto.get("texto_original", "")
+        severidade = contexto.get("severidade", "baixa")
+        endereco_final = endereco or (f"GPS: {latitude:.4f}, {longitude:.4f}" if latitude else "")
+
+        res = sb.table("ocorrencias").insert({
+            "protocolo": novo_protocolo,
+            "categoria": categoria,
+            "titulo": resumo[:200],
+            "descricao": texto_original,
+            "endereco": endereco_final,
+            "endereco_normalizado": _normalizar_endereco(endereco_final),
+            "bairro": bairro or "",
+            "status": "aberto",
+            "severidade": severidade,
+            "total_relatos": 1,
+            "latitude": latitude,
+            "longitude": longitude,
+        }).execute()
+
+        if not res.data:
+            logger.error("Falha ao criar ocorrência após endereço")
+            enviar_whatsapp(telefone, "Desculpe, ocorreu um erro. Tente novamente.")
+            return
+
+        novo_registro_id = res.data[0]["id"]
+
+        # Criar relato
+        sb.table("ocorrencias_relatos").insert({
+            "ocorrencia_id": novo_registro_id,
+            "telefone": telefone,
+            "nome": push_name or None,
+            "mensagem": texto_original,
+            "latitude": latitude,
+            "longitude": longitude,
+        }).execute()
+
+        # Processar mídia se tem
+        if tem_midia:
+            processar_midia(event, sb, novo_registro_id, "ocorrencias_relatos")
+
+        criar_sessao(sb, telefone, "ocorrencia", "finalizado", novo_registro_id,
+                     {"protocolo": novo_protocolo, "categoria": categoria})
+        finalizar_sessao(sb, telefone)
+
+        local_texto = endereco or bairro or "Localização registrada"
+        icone = "🚨" if severidade in ("alta", "critica") else "⚠️"
+        resposta = (f"📍 Endereço registrado: {local_texto}\n\n"
+                    f"{icone} Equipe notificada. Obrigado!\n"
+                    f"📋 Protocolo: {novo_protocolo}")
+        enviar_whatsapp(telefone, resposta)
+        logger.info(f"Nova ocorrência (pós-endereço): {novo_protocolo} cat={categoria}")
+        return
+
+    # ══════════════════════════════════════════════════════════
+    # JÁ TEM REGISTRO no banco — fluxo normal de continuação
+    # (atualizar endereço, receber mídia, etc)
+    # ══════════════════════════════════════════════════════════
     if not registro_id:
         logger.error(f"Continuacao ocorrencia sem registro_id para {telefone}")
         enviar_whatsapp(telefone, "⚠️ Ocorreu um erro. Por favor, envie sua mensagem novamente.")
@@ -1499,16 +1620,12 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
     if tem_loc:
         lat = event.get("latitude")
         lng = event.get("longitude")
-        logger.info(f"GPS recebido para {protocolo}: {lat}, {lng}")
-
-        # Geocodificação reversa
         update_data = {"latitude": lat, "longitude": lng}
         endereco_geo, bairro_geo = _geocodificar_sync(lat, lng)
         if endereco_geo:
             update_data["endereco"] = endereco_geo
             update_data["endereco_normalizado"] = _normalizar_endereco(endereco_geo)
             endereco_display = endereco_geo
-            logger.info(f"Geocodificado: {endereco_geo} (bairro: {bairro_geo})")
         else:
             update_data["endereco"] = f"GPS: {lat:.4f}, {lng:.4f}"
             update_data["endereco_normalizado"] = ""
