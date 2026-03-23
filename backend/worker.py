@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import secrets
 import sys
 import time
 import uuid
@@ -991,7 +992,10 @@ def processar_sos(event: dict, sb: Client) -> None:
         enviar_whatsapp(telefone, "✓ Recebido. Equipe já foi acionada. Mantenha-se segura.")
         return
 
-    # Criar novo alerta
+    # Gerar token único para rastreamento GPS
+    token_rastreamento = secrets.token_urlsafe(8)[:10]
+
+    # Criar novo alerta (com token de rastreamento)
     res = sb.table("sos_alertas").insert({
         "telefone": telefone,
         "codigo_usado": texto[:50] if texto else "sem_texto",
@@ -999,6 +1003,7 @@ def processar_sos(event: dict, sb: Client) -> None:
         "status": "active",
         "latitude": event.get("latitude"),
         "longitude": event.get("longitude"),
+        "token_rastreamento": token_rastreamento,
     }).execute()
 
     if res.data:
@@ -1006,6 +1011,23 @@ def processar_sos(event: dict, sb: Client) -> None:
         logger.warning(f"🚨 SOS ALERTA CRIADO (id={registro_id})")
         criar_sessao(sb, telefone, "sos_mulher", "aguardando_localizacao", registro_id,
                      {"tipo": "emergencia"})
+
+        # Criar sessão de rastreamento GPS
+        try:
+            sb.table("emergencia_sessoes").insert({
+                "token": token_rastreamento,
+                "telefone": telefone,
+                "nome": nome_cadastro or "Não identificada",
+                "status": "ativa",
+            }).execute()
+            logger.info(f"📍 Sessão GPS criada (token={token_rastreamento})")
+        except Exception as e:
+            logger.error(f"Erro ao criar sessão GPS: {e}")
+
+        # Enviar confirmação + link de rastreamento
+        DOMINIO = "maringa.nodedata.com.br"
+        link_rastreamento = f"https://{DOMINIO}/mulher-segura.html?t={token_rastreamento}"
+
         if nome_cadastro:
             enviar_whatsapp(telefone,
                 f"✓ {nome_cadastro}, recebemos seu alerta. Equipe acionada.\n"
@@ -1014,6 +1036,9 @@ def processar_sos(event: dict, sb: Client) -> None:
             enviar_whatsapp(telefone,
                 "✓ Recebido. Equipe acionada.\n"
                 "Se puder, envie sua localização: 📎 > Localização")
+
+        # Link discreto de rastreamento GPS
+        enviar_whatsapp(telefone, f"📍 {link_rastreamento}")
 
 
 def _continuar_cadastro_sos(event: dict, sb: Client, sessao: dict) -> None:

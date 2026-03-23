@@ -1772,6 +1772,9 @@ function SOSMulher(){
                   {sel.sos_cadastros?.contato_confianca_telefone&&(
                     <a href={`https://wa.me/55${sel.sos_cadastros.contato_confianca_telefone.replace(/\D/g,'')}`} target="_blank" rel="noopener" className="btn btn-outline" style={{width:'100%',justifyContent:'center',fontSize:12,padding:'6px 10px',textDecoration:'none'}}>💬 WhatsApp Confiança</a>
                   )}
+                  {sel.token_rastreamento&&(
+                    <a href={`/monitor-sos.html?t=${sel.token_rastreamento}`} target="_blank" rel="noopener" className="btn btn-primary" style={{width:'100%',justifyContent:'center',fontSize:14,padding:'12px 20px',textDecoration:'none',marginTop:8}}>📍 Ver Rastreamento ao Vivo no Mapa</a>
+                  )}
                 </div>
               </div>
               {/* Notas do operador — salva de verdade */}
