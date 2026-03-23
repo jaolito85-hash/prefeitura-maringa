@@ -228,6 +228,7 @@ select{-webkit-appearance:none;appearance:none}
 tr{transition:.1s}
 tr:hover td{background:var(--card-hover)}
 
+
 /* ── RELATÓRIOS — GOVERNO INSTITUCIONAL ──────────────────── */
 .rel-header{padding:20px 28px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface);display:flex;align-items:center;justify-content:space-between}
 .rel-title{font-family:'Public Sans',sans-serif;font-size:22px;font-weight:700;color:#fff;letter-spacing:-.3px}
@@ -419,10 +420,10 @@ const STA_FBK={
 
 /* ─── BASES DE OPERAÇÃO ───────────────────────────────────────── */
 const BASES=[
-  {id:'gcm',nome:'GCM Central',tipo:'gcm',icon:'🛡️',lat:-23.4236,lng:-51.9383,endereco:'Rua Fernão Dias, 688 — Zona 9',telefone:'(44) 3221-8696',cor:'#059669'},
-  {id:'samu',nome:'SAMU 192',tipo:'samu',icon:'🚑',lat:-23.4010,lng:-51.9560,endereco:'Av. Dr. Vladimir Babkov — Parque Industrial',telefone:'192',cor:'#3b82f6'},
-  {id:'bombeiros',nome:'5º BBM — Bombeiros',tipo:'bombeiros',icon:'🚒',lat:-23.4180,lng:-51.9250,endereco:'Rua Marquês de Abrantes, 78 — Zona 7',telefone:'193',cor:'#ef4444'},
-  {id:'pm',nome:'PM — 4º BPM',tipo:'pm',icon:'🚔',lat:-23.4195,lng:-51.9340,endereco:'Av. Carneiro Leão — Centro',telefone:'190',cor:'#fbbf24'},
+  {id:'gcm',nome:'GCM Central',tipo:'gcm',lat:-23.4236,lng:-51.9383,endereco:'Rua Fernão Dias, 688 — Zona 9',telefone:'(44) 3221-8696',cor:'#2563eb'},
+  {id:'samu',nome:'SAMU 192',tipo:'samu',lat:-23.4010,lng:-51.9560,endereco:'Av. Dr. Vladimir Babkov — Parque Industrial',telefone:'192',cor:'#dc2626'},
+  {id:'bombeiros',nome:'5º BBM — Bombeiros',tipo:'bombeiros',lat:-23.4180,lng:-51.9250,endereco:'Rua Marquês de Abrantes, 78 — Zona 7',telefone:'193',cor:'#dc2626'},
+  {id:'pm',nome:'PM — 4º BPM',tipo:'pm',lat:-23.4195,lng:-51.9340,endereco:'Av. Carneiro Leão — Centro',telefone:'190',cor:'#d97706'},
 ];
 
 function nearestBase(lat,lng,tipo){
@@ -551,6 +552,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       }};
     })};
   }
+
   function basesToGeoJSON(){
     return{type:'FeatureCollection',features:BASES.map(b=>({type:'Feature',geometry:{type:'Point',coordinates:[b.lng,b.lat]},properties:{
       id:b.id,nome:b.nome,endereco:b.endereco,telefone:b.telefone,cor:b.cor,tipo:b.tipo,
@@ -625,30 +627,21 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
         'circle-opacity':0.9,
       }});
 
-      // ── Bases source ──
+      // ── Bases: circle layers nativos ──
       map.addSource('bases',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-
-      // Base: halo pulsante
       map.addLayer({id:'base-pulse',type:'circle',source:'bases',paint:{
-        'circle-radius':16,
-        'circle-color':['get','cor'],
-        'circle-opacity':0.1,
-        'circle-stroke-width':1,
-        'circle-stroke-color':['get','cor'],
-        'circle-stroke-opacity':0.15,
+        'circle-radius':16,'circle-color':['get','cor'],'circle-opacity':0.1,
+        'circle-stroke-width':1,'circle-stroke-color':['get','cor'],'circle-stroke-opacity':0.15,
       }});
-      // Base: círculo principal (fundo escuro + borda colorida)
       map.addLayer({id:'base-main',type:'circle',source:'bases',paint:{
         'circle-radius':10,
-        'circle-color':'#111217',
+        'circle-color':['match',['get','tipo'],'samu','#ffffff','#111217'],
         'circle-opacity':0.95,
-        'circle-stroke-width':2.5,
-        'circle-stroke-color':['get','cor'],
+        'circle-stroke-width':2.5,'circle-stroke-color':['get','cor'],
       }});
-      // Base: ponto central colorido
       map.addLayer({id:'base-dot',type:'circle',source:'bases',paint:{
         'circle-radius':4,
-        'circle-color':['get','cor'],
+        'circle-color':['match',['get','tipo'],'samu','#dc2626',['get','cor']],
         'circle-opacity':0.9,
       }});
 
@@ -714,10 +707,10 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       map.on('click','base-main',(e)=>{
         const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
         popupRef.current.setLngLat(coords).setHTML(
-          `<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:12px 14px;color:#fff;font-family:Public Sans,system-ui;box-shadow:0 8px 24px rgba(0,0,0,.5)">
-            <div style="font-weight:600;font-size:13px;margin-bottom:2px">${p.nome}</div>
-            <div style="font-size:11px;color:#d1d5db">${p.endereco}</div>
-            <div style="font-size:12px;color:${p.cor};margin-top:6px;font-weight:500">${p.telefone}</div>
+          `<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:14px 16px;color:#fff;font-family:Public Sans,system-ui;box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:180px">
+            <div style="font-weight:700;font-size:14px;margin-bottom:3px">${p.nome}</div>
+            <div style="font-size:11px;color:#9ca3af;line-height:1.4">${p.endereco}</div>
+            <div style="font-size:13px;color:${p.cor};margin-top:8px;font-weight:600">${p.telefone}</div>
           </div>`
         ).addTo(map);
       });
