@@ -556,6 +556,13 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
 
   const sevStops=['critica','#dc2626','alta','#ef4444','media','#d97706','baixa','#059669'];
 
+  function basesToGeoJSON(){
+    return{type:'FeatureCollection',features:BASES.map(b=>({
+      type:'Feature',geometry:{type:'Point',coordinates:[b.lng,b.lat]},
+      properties:{id:b.id,nome:b.nome,endereco:b.endereco,telefone:b.telefone,tipo:b.tipo}
+    }))};
+  }
+
   function itemsToGeoJSON(list){
     return{type:'FeatureCollection',features:list.filter(i=>i.lat&&i.lng).map((item,idx)=>{
       const sev=SEV[item.severidade]||SEV.baixa;
@@ -626,52 +633,45 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
         'circle-stroke-opacity':1,
       }});
 
-      // ── Bases: Canvas badge markers (rounded-rect com letra) ──
-      var baseTypeCfg={
-        gcm:{cor:'#2563eb',letra:'G'},
-        samu:{cor:'#ef4444',letra:'S'},
-        bombeiros:{cor:'#f97316',letra:'B'},
-        pm:{cor:'#d97706',letra:'P'},
-      };
-      function createBaseEl(tipo){
-        var cfg=baseTypeCfg[tipo]||{cor:'#2563eb',letra:'?'};
-        var dpr=window.devicePixelRatio||1;
-        var sz=40,csz=sz*dpr,r=9*dpr,pad=2*dpr;
-        var cv=document.createElement('canvas');cv.width=csz;cv.height=csz;
-        var cx=cv.getContext('2d');
-        // rounded rect
-        cx.beginPath();
-        cx.moveTo(pad+r,pad);cx.lineTo(csz-pad-r,pad);cx.quadraticCurveTo(csz-pad,pad,csz-pad,pad+r);
-        cx.lineTo(csz-pad,csz-pad-r);cx.quadraticCurveTo(csz-pad,csz-pad,csz-pad-r,csz-pad);
-        cx.lineTo(pad+r,csz-pad);cx.quadraticCurveTo(pad,csz-pad,pad,csz-pad-r);
-        cx.lineTo(pad,pad+r);cx.quadraticCurveTo(pad,pad,pad+r,pad);cx.closePath();
-        cx.fillStyle=cfg.cor;cx.fill();
-        cx.strokeStyle='rgba(255,255,255,0.85)';cx.lineWidth=3*dpr;cx.stroke();
-        // letter
-        cx.fillStyle='#fff';cx.font='bold '+Math.round(22*dpr)+'px "Public Sans",system-ui,sans-serif';
-        cx.textAlign='center';cx.textBaseline='middle';
-        cx.fillText(cfg.letra,csz/2,csz/2+1*dpr);
-        var el=document.createElement('div');
-        el.style.cssText='width:'+sz+'px;height:'+sz+'px;background-image:url('+cv.toDataURL()+');background-size:contain;cursor:pointer;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5));transition:transform .15s ease;';
-        el.onmouseenter=function(){el.style.transform='scale(1.15)';};
-        el.onmouseleave=function(){el.style.transform='scale(1)';};
-        return{el:el,cor:cfg.cor};
-      }
-      var baseMarkersArr=[];
-      BASES.forEach(function(b){
-        var bc=createBaseEl(b.tipo);
-        var mk=new mapboxgl.Marker({element:bc.el}).setLngLat([b.lng,b.lat]);
-        mk.setPopup(new mapboxgl.Popup({offset:24,maxWidth:'250px'}).setHTML(
+      // ── Bases: Circle layers nativos (fixos no zoom/pitch) ──
+      var baseCores=['gcm','#3b82f6','samu','#ef4444','bombeiros','#f97316','pm','#a855f7'];
+      map.addSource('bases',{type:'geojson',data:showBases?basesToGeoJSON():{type:'FeatureCollection',features:[]}});
+      // Halo sutil
+      map.addLayer({id:'base-halo',type:'circle',source:'bases',paint:{
+        'circle-radius':10,
+        'circle-color':['match',['get','tipo'],...baseCores,'#6b7280'],
+        'circle-opacity':0.15,
+        'circle-blur':0.8,
+      }});
+      // Ponto principal
+      map.addLayer({id:'base-dot',type:'circle',source:'bases',paint:{
+        'circle-radius':6,
+        'circle-color':['match',['get','tipo'],...baseCores,'#6b7280'],
+        'circle-opacity':1,
+        'circle-stroke-width':2.5,
+        'circle-stroke-color':'#ffffff',
+        'circle-stroke-opacity':0.9,
+      }});
+      // Ponto central branco
+      map.addLayer({id:'base-center',type:'circle',source:'bases',paint:{
+        'circle-radius':2,
+        'circle-color':'#ffffff',
+        'circle-opacity':0.85,
+      }});
+      // Popup das bases
+      map.on('click','base-dot',(e)=>{
+        const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
+        var tipoCores={gcm:'#3b82f6',samu:'#ef4444',bombeiros:'#f97316',pm:'#a855f7'};
+        var cor=tipoCores[p.tipo]||'#6b7280';
+        popupRef.current.setLngLat(coords).setHTML(
           '<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:12px 14px;color:#fff;font-family:Public Sans,system-ui;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,.5)">'+
-          '<div style="font-weight:700;font-size:14px;margin-bottom:3px">'+b.nome+'</div>'+
-          '<div style="font-size:11px;color:#9ca3af;line-height:1.4">'+b.endereco+'</div>'+
-          '<div style="font-size:13px;color:'+bc.cor+';margin-top:8px;font-weight:600">'+b.telefone+'</div></div>'
-        ));
-        if(showBases) mk.addTo(map);
-        baseMarkersArr.push(mk);
+          '<div style="font-weight:700;font-size:14px;margin-bottom:3px">'+p.nome+'</div>'+
+          '<div style="font-size:11px;color:#9ca3af;line-height:1.4">'+p.endereco+'</div>'+
+          '<div style="font-size:13px;color:'+cor+';margin-top:8px;font-weight:600">'+p.telefone+'</div></div>'
+        ).addTo(map);
       });
-      map._baseMarkers=baseMarkersArr;
-      map._basesShown=!!showBases;
+      map.on('mouseenter','base-dot',()=>{map.getCanvas().style.cursor='pointer';});
+      map.on('mouseleave','base-dot',()=>{map.getCanvas().style.cursor='';});
 
       // ── Heatmap source + layers ──
       map.addSource('heatmap-data',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
@@ -748,7 +748,6 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
     mapRef.current=map;
     return()=>{
       if(pulseRef.current) cancelAnimationFrame(pulseRef.current);
-      if(map._baseMarkers) map._baseMarkers.forEach(mk=>mk.remove());
       map.remove();mapRef.current=null;readyRef.current=false;
     };
   },[]);
@@ -777,13 +776,16 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
     if(readyRef.current){apply();}else{map.once('load',apply);}
   },[items]);
 
-  // Toggle base markers visibility
+  // Toggle base layers visibility
   useEffect(()=>{
-    const map=mapRef.current;if(!map||!map._baseMarkers) return;
-    map._baseMarkers.forEach(mk=>{
-      if(basesVisible){mk.addTo(map);}else{mk.remove();}
-    });
-    map._basesShown=basesVisible;
+    const map=mapRef.current;if(!map) return;
+    const apply=()=>{
+      try{
+        const src=map.getSource('bases');if(!src) return;
+        src.setData(basesVisible?basesToGeoJSON():{type:'FeatureCollection',features:[]});
+      }catch(e){}
+    };
+    if(readyRef.current){apply();}else{map.once('load',apply);}
   },[basesVisible]);
 
   // Update heatmap data
