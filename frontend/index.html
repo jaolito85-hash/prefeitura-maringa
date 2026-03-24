@@ -598,37 +598,74 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // ── Incidents source ──
       map.addSource('incidents',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
 
-      // Pulse halo — onda externa (animada via JS, tamanho por severidade)
+      // Aura externa (só critica/alta — "zona de perigo")
+      map.addLayer({id:'inc-glow',type:'circle',source:'incidents',
+        filter:['in',['get','severidade'],['literal',['critica','alta']]],
+        paint:{
+          'circle-radius':['match',['get','severidade'],'critica',28,'alta',22,18],
+          'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
+          'circle-opacity':0.12,
+          'circle-blur':1.2,
+      }});
+
+      // Pulse halo — animado via JS
       map.addLayer({id:'inc-pulse1',type:'circle',source:'incidents',paint:{
-        'circle-radius':['match',['get','severidade'],'critica',18,'alta',14,'media',11,'baixa',8,10],
+        'circle-radius':['match',['get','severidade'],'critica',20,'alta',16,'media',12,'baixa',9,10],
         'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
-        'circle-opacity':0.3,
-        'circle-blur':0.8,
+        'circle-opacity':0.45,
+        'circle-blur':0.6,
       }});
 
-      // Círculo principal (tamanho e cor por severidade)
+      // Círculo principal sólido
       map.addLayer({id:'inc-main',type:'circle',source:'incidents',paint:{
-        'circle-radius':['match',['get','severidade'],'critica',8,'alta',7,'media',6,'baixa',5,5],
+        'circle-radius':['match',['get','severidade'],'critica',9,'alta',7.5,'media',6,'baixa',4.5,5],
         'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
-        'circle-opacity':0.9,
-        'circle-stroke-width':2,
-        'circle-stroke-color':'#ffffff',
-        'circle-stroke-opacity':0.6,
+        'circle-opacity':0.95,
+        'circle-stroke-width':1.5,
+        'circle-stroke-color':'rgba(255,255,255,0.7)',
+        'circle-stroke-opacity':1,
       }});
 
-      // ── Bases: HTML Marker circles (apenas cor, sem texto/icone) ──
-      var baseCores={gcm:'#2563eb',samu:'#ef4444',bombeiros:'#991b1b',pm:'#78350f'};
+      // ── Bases: Canvas badge markers (rounded-rect com letra) ──
+      var baseTypeCfg={
+        gcm:{cor:'#2563eb',letra:'G'},
+        samu:{cor:'#ef4444',letra:'S'},
+        bombeiros:{cor:'#f97316',letra:'B'},
+        pm:{cor:'#d97706',letra:'P'},
+      };
+      function createBaseEl(tipo){
+        var cfg=baseTypeCfg[tipo]||{cor:'#2563eb',letra:'?'};
+        var dpr=window.devicePixelRatio||1;
+        var sz=40,csz=sz*dpr,r=9*dpr,pad=2*dpr;
+        var cv=document.createElement('canvas');cv.width=csz;cv.height=csz;
+        var cx=cv.getContext('2d');
+        // rounded rect
+        cx.beginPath();
+        cx.moveTo(pad+r,pad);cx.lineTo(csz-pad-r,pad);cx.quadraticCurveTo(csz-pad,pad,csz-pad,pad+r);
+        cx.lineTo(csz-pad,csz-pad-r);cx.quadraticCurveTo(csz-pad,csz-pad,csz-pad-r,csz-pad);
+        cx.lineTo(pad+r,csz-pad);cx.quadraticCurveTo(pad,csz-pad,pad,csz-pad-r);
+        cx.lineTo(pad,pad+r);cx.quadraticCurveTo(pad,pad,pad+r,pad);cx.closePath();
+        cx.fillStyle=cfg.cor;cx.fill();
+        cx.strokeStyle='rgba(255,255,255,0.85)';cx.lineWidth=3*dpr;cx.stroke();
+        // letter
+        cx.fillStyle='#fff';cx.font='bold '+Math.round(22*dpr)+'px "Public Sans",system-ui,sans-serif';
+        cx.textAlign='center';cx.textBaseline='middle';
+        cx.fillText(cfg.letra,csz/2,csz/2+1*dpr);
+        var el=document.createElement('div');
+        el.style.cssText='width:'+sz+'px;height:'+sz+'px;background-image:url('+cv.toDataURL()+');background-size:contain;cursor:pointer;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5));transition:transform .15s ease;';
+        el.onmouseenter=function(){el.style.transform='scale(1.15)';};
+        el.onmouseleave=function(){el.style.transform='scale(1)';};
+        return{el:el,cor:cfg.cor};
+      }
       var baseMarkersArr=[];
       BASES.forEach(function(b){
-        var cor=baseCores[b.tipo]||'#2563eb';
-        var el=document.createElement('div');
-        el.style.cssText='width:20px;height:20px;border-radius:50%;background:'+cor+';border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4);cursor:pointer;';
-        var mk=new mapboxgl.Marker({element:el}).setLngLat([b.lng,b.lat]);
-        mk.setPopup(new mapboxgl.Popup({offset:14,maxWidth:'250px'}).setHTML(
+        var bc=createBaseEl(b.tipo);
+        var mk=new mapboxgl.Marker({element:bc.el}).setLngLat([b.lng,b.lat]);
+        mk.setPopup(new mapboxgl.Popup({offset:24,maxWidth:'250px'}).setHTML(
           '<div style="background:#111217;border:1px solid #23252e;border-radius:10px;padding:12px 14px;color:#fff;font-family:Public Sans,system-ui;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,.5)">'+
           '<div style="font-weight:700;font-size:14px;margin-bottom:3px">'+b.nome+'</div>'+
           '<div style="font-size:11px;color:#9ca3af;line-height:1.4">'+b.endereco+'</div>'+
-          '<div style="font-size:13px;color:'+cor+';margin-top:8px;font-weight:600">'+b.telefone+'</div></div>'
+          '<div style="font-size:13px;color:'+bc.cor+';margin-top:8px;font-weight:600">'+b.telefone+'</div></div>'
         ));
         if(showBases) mk.addTo(map);
         baseMarkersArr.push(mk);
@@ -651,20 +688,33 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
         ],
         'heatmap-radius':['interpolate',['linear'],['zoom'],10,20,16,40],
         'heatmap-opacity':0,
-      }},fullscreen?'inc-pulse1':undefined);
+      }},fullscreen?'inc-glow':undefined);
 
-      // ══════ Animação Pulse (halo pulsante por severidade) ══════
+      // ══════ Animação Pulse (3 layers, ciclo 3s) ══════
       let pulsePhase=0;
       function animatePulse(){
-        pulsePhase=(pulsePhase+1)%120;
-        const scale=1+0.3*Math.sin(pulsePhase*Math.PI/60);
-        const opac=0.15+0.15*Math.sin(pulsePhase*Math.PI/60);
+        pulsePhase=(pulsePhase+1)%180;
+        const t=pulsePhase/180;
+        const sin1=Math.sin(t*Math.PI*2);
+        const sin2=Math.sin(t*Math.PI*2+0.8);
+        // inc-pulse1: halo interno
+        const ps=1+0.35*sin1;
+        const po=0.35+0.20*sin1;
         try{
           map.setPaintProperty('inc-pulse1','circle-radius',[
             'match',['get','severidade'],
-            'critica',18*scale,'alta',14*scale,'media',11*scale,'baixa',8*scale,10*scale
+            'critica',20*ps,'alta',16*ps,'media',12*ps,'baixa',9*ps,10*ps
           ]);
-          map.setPaintProperty('inc-pulse1','circle-opacity',opac);
+          map.setPaintProperty('inc-pulse1','circle-opacity',po);
+        }catch(e){}
+        // inc-glow: aura externa (critica/alta)
+        const gs=1+0.25*sin2;
+        const go=0.08+0.10*sin2;
+        try{
+          map.setPaintProperty('inc-glow','circle-radius',[
+            'match',['get','severidade'],'critica',28*gs,'alta',22*gs,18*gs
+          ]);
+          map.setPaintProperty('inc-glow','circle-opacity',go);
         }catch(e){}
         map.triggerRepaint();
         pulseRef.current=requestAnimationFrame(animatePulse);
@@ -758,7 +808,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       try{
         const heatOpacity=heatmapMode?0.85:0;
         map.setPaintProperty('heatmap-layer','heatmap-opacity',heatOpacity);
-        ['inc-pulse1','inc-main'].forEach(l=>{
+        ['inc-glow','inc-pulse1','inc-main'].forEach(l=>{
           try{map.setLayoutProperty(l,'visibility',heatmapMode?'none':'visible');}catch(e){}
         });
       }catch(e){}
