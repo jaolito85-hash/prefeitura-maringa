@@ -1747,11 +1747,35 @@ def processar_feedback(event: dict, sb: Client) -> None:
     telefone = event.get("telefone", "desconhecido")
     texto = event.get("texto", "")
     push_name = event.get("push_name", "")
+    is_continuacao = event.get("is_continuacao", False)
 
-    # Feedback nao tem sessao — cada mensagem e independente
-    protocolo = gerar_protocolo(sb)
+    # ── CONTINUAÇÃO: cidadão respondeu os detalhes que a Clara pediu ──
+    if is_continuacao:
+        _continuar_feedback(event, sb)
+        return
+
     sentimento = classificacao.get("sentimento", "neutro")
     categoria = classificacao.get("categoria", "outros")
+    resposta_ia = classificacao.get("resposta_whatsapp", "")
+    pedir_detalhes = classificacao.get("pedir_localizacao", False)
+
+    # ── A IA pediu mais detalhes → cria sessão, NÃO gera protocolo ainda ──
+    if pedir_detalhes and resposta_ia:
+        placeholder_id = str(uuid.uuid4())
+        criar_sessao(sb, telefone, "feedback", "aguardando_detalhes", placeholder_id, {
+            "categoria": categoria,
+            "sentimento": sentimento,
+            "urgencia": classificacao.get("urgencia", "normal"),
+            "resumo": classificacao.get("resumo"),
+            "texto_original": texto,
+            "push_name": push_name or "",
+        })
+        enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta_ia))
+        logger.info(f"Feedback aguardando detalhes: cat={categoria} sent={sentimento}")
+        return
+
+    # ── Feedback completo (sem necessidade de perguntas) → salva direto ──
+    protocolo = gerar_protocolo(sb)
 
     res = sb.table("feedbacks").insert({
         "protocolo": protocolo,
@@ -1770,18 +1794,77 @@ def processar_feedback(event: dict, sb: Client) -> None:
     if res.data:
         logger.info(f"Feedback: {protocolo} ({sentimento})")
 
-        emoji = {"positivo": "😊", "negativo": "😔", "neutro": "📝"}.get(sentimento, "📝")
-        resposta_ia = classificacao.get("resposta_whatsapp", "")
-
         if resposta_ia:
-            resposta = f"{resposta_ia}\n\n📋 Protocolo: {protocolo}"
+            resposta = (f"{resposta_ia}\n\n"
+                        f"📋 Protocolo: *{protocolo}*\n\n"
+                        f"Seu feedback ajuda Maringá a melhorar cada vez mais! 💙")
         else:
+            emoji = {"positivo": "😊", "negativo": "😔", "neutro": "📝"}.get(sentimento, "📝")
             resposta = (f"{emoji} Obrigado pelo seu feedback, {push_name or 'cidadão'}!\n\n"
                         f"Vamos encaminhar para o setor de *{categoria.replace('_', ' ')}*.\n\n"
-                        f"📋 Protocolo: {protocolo}")
+                        f"📋 Protocolo: *{protocolo}*\n\n"
+                        f"Seu feedback ajuda Maringá a melhorar cada vez mais! 💙")
 
         enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
-        # Feedback nao cria sessao — mensagem unica
+
+
+def _continuar_feedback(event: dict, sb: Client) -> None:
+    """Continuação de feedback — cidadão respondeu com detalhes que a Clara pediu."""
+    sessao = event.get("sessao", {})
+    telefone = event.get("telefone", "")
+    texto = event.get("texto", "")
+    contexto = sessao.get("contexto", {}) if sessao else {}
+    push_name = event.get("push_name", "") or contexto.get("push_name", "")
+
+    categoria = contexto.get("categoria", "outros")
+    sentimento = contexto.get("sentimento", "neutro")
+    texto_original = contexto.get("texto_original", "")
+
+    # Gera protocolo agora que temos os detalhes
+    protocolo = gerar_protocolo(sb)
+
+    # Combina mensagem original + detalhes novos
+    mensagem_completa = texto_original
+    if texto:
+        mensagem_completa = f"{texto_original}\n[Detalhe adicional: {texto}]"
+
+    res = sb.table("feedbacks").insert({
+        "protocolo": protocolo,
+        "telefone": telefone,
+        "nome": push_name or None,
+        "categoria": categoria,
+        "sentimento": sentimento,
+        "urgencia": contexto.get("urgencia", "normal"),
+        "mensagem": mensagem_completa,
+        "resumo": contexto.get("resumo"),
+        "latitude": event.get("latitude"),
+        "longitude": event.get("longitude"),
+        "status": "novo",
+    }).execute()
+
+    if not res.data:
+        logger.error("Falha ao criar feedback na continuação")
+        return
+
+    logger.info(f"Feedback completo: {protocolo} ({sentimento}) — detalhes recebidos")
+
+    # Usa a IA pra gerar resposta de encerramento humanizada
+    resposta_ia = event.get("classificacao", {}).get("resposta_whatsapp", "")
+
+    if resposta_ia:
+        resposta = (f"{resposta_ia}\n\n"
+                    f"📋 Protocolo: *{protocolo}*\n\n"
+                    f"Seu feedback ajuda Maringá a melhorar cada vez mais! 💙")
+    else:
+        emoji = {"positivo": "😊", "negativo": "😔", "neutro": "📝"}.get(sentimento, "📝")
+        setor = categoria.replace("_", " ")
+        resposta = (f"{emoji} Anotado, {push_name or 'cidadão'}! "
+                    f"Já encaminhei sua mensagem para a equipe de *{setor}* da Prefeitura.\n\n"
+                    f"📋 Protocolo: *{protocolo}*\n\n"
+                    f"Seu feedback ajuda Maringá a melhorar cada vez mais! 💙")
+
+    finalizar_sessao(sb, telefone)
+    enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
 
 
 # ══════════════════════════════════════════════════════════════
