@@ -297,7 +297,7 @@ def criar_sessao(sb: Client, telefone: str, canal: str, etapa: str,
                  registro_id: str, contexto: dict) -> None:
     """Cria ou atualiza sessao de conversa pra esse telefone."""
     try:
-        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=120)).isoformat()  # 2h — demo-safe
+        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat()  # 1min — teste rápido
         sb.table("sessoes_conversa").upsert({
             "telefone": telefone,
             "canal": canal,
@@ -314,7 +314,7 @@ def criar_sessao(sb: Client, telefone: str, canal: str, etapa: str,
 def atualizar_sessao(sb: Client, telefone: str, etapa: str, contexto: dict) -> None:
     """Atualiza a etapa e contexto da sessao ativa sem mudar canal/registro_id."""
     try:
-        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat()  # 1min — teste rápido
         sb.table("sessoes_conversa").update({
             "etapa": etapa,
             "contexto": contexto,
