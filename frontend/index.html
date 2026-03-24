@@ -1863,9 +1863,9 @@ function SOSMulher(){
                     <button className="btn" style={{background:'#fbbf24',color:'#000',border:'none',fontSize:13,padding:'7px 14px',fontWeight:600}}
                       onClick={handleAceitar}>🔔 Aceitar Atendimento</button>
                   )}
-                  <a href={`tel:${sel.telefone}`} className="btn btn-primary" style={{fontSize:13,padding:'7px 14px',textDecoration:'none'}}>📞 Ligar</a>
+                  <a href={`https://wa.me/${sel.telefone?.replace('+','')}`} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{fontSize:13,padding:'7px 14px',textDecoration:'none'}}>📞 Ligar</a>
                   {sel.sos_cadastros?.contato_confianca_telefone&&(
-                    <a href={`tel:${sel.sos_cadastros.contato_confianca_telefone}`} className="btn btn-outline" style={{fontSize:13,padding:'7px 14px',textDecoration:'none'}}>📞 Confiança</a>
+                    <a href={`https://wa.me/${sel.sos_cadastros.contato_confianca_telefone?.replace('+','')}`} target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{fontSize:13,padding:'7px 14px',textDecoration:'none'}}>📞 Confiança</a>
                   )}
                   <button className="btn btn-danger" style={{fontSize:13,padding:'7px 14px'}} onClick={handleResolver}>✓ Resolver</button>
                   <button className="btn" style={{background:'var(--accent)',color:'#fff',border:'none',fontSize:13,padding:'7px 14px'}}
@@ -2057,7 +2057,7 @@ function Feedbacks(){
             {/* Info: telefone + categoria + endereço */}
             <div style={{padding:'10px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',flexShrink:0}}>
               {sel.telefone&&<span style={{fontSize:12,color:'var(--text-secondary)',display:'flex',alignItems:'center',gap:4}}>📱 {sel.telefone}</span>}
-              <a href={`tel:${sel.telefone}`} style={{width:28,height:28,borderRadius:14,background:'var(--accent)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:13,textDecoration:'none',cursor:'pointer',color:'#fff'}}>📞</a>
+              <a href={`https://wa.me/${sel.telefone?.replace('+','')}`} target="_blank" rel="noopener noreferrer" style={{width:28,height:28,borderRadius:14,background:'var(--accent)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:13,textDecoration:'none',cursor:'pointer',color:'#fff'}}>📞</a>
               {(()=>{const cat=CAT_FBK[sel.categoria];return cat?<span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:6,background:`${cat.color}20`,color:cat.color,border:`1px solid ${cat.color}35`}}>{cat.label}</span>:null;})()}
             </div>
             {(sel.endereco||sel.bairro)&&(

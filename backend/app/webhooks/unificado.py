@@ -54,6 +54,11 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
 
     remote_jid = key.get("remoteJid", "desconhecido")
     phone = remote_jid.split("@")[0].split(":")[0]
+    # Normalizar celular BR: 55 + DDD(2) + 9 + numero(8) = 13 digitos
+    # WhatsApp/Evolution API as vezes armazena sem o 9 (formato antigo)
+    if phone.startswith("55") and len(phone) == 12:
+        ddd = phone[2:4]
+        phone = f"55{ddd}9{phone[4:]}"
     if not phone.startswith("+"):
         phone = "+" + phone
 
