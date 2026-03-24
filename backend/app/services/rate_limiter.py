@@ -20,7 +20,7 @@ logger = logging.getLogger("rate_limiter")
 
 # ── Constantes ──────────────────────────────────────────────
 MAX_CHARS_MENSAGEM = 600          # ~10 linhas de WhatsApp
-MAX_MENSAGENS_DIA = 30            # por telefone, por dia
+MAX_MENSAGENS_DIA = 500           # por telefone, por dia (500 para demo)
 MAX_CONSULTAS_PROTOCOLO_HORA = 3  # por telefone, por hora
 
 # TTLs em segundos
