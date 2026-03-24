@@ -718,6 +718,7 @@ def _continuar_denuncia(event: dict, sb: Client):
         enviar_whatsapp(telefone,
                         "⚠️ Ocorreu um erro ao processar sua mensagem. "
                         "Por favor, tente enviar novamente.")
+    return True  # Processado com sucesso — NÃO reprocessar
 
 
 def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
