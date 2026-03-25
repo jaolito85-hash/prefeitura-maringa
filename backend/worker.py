@@ -1161,6 +1161,23 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
 # PROCESSADORES — SOS MULHER
 # ══════════════════════════════════════════════════════════════
 
+def _salvar_msg_sos(sb: Client, alerta_id: str, telefone: str, nome: str | None,
+                    mensagem: str, remetente: str = "cidadao") -> None:
+    """Salva uma mensagem no histórico do chat SOS."""
+    if not alerta_id or not mensagem:
+        return
+    try:
+        sb.table("sos_mensagens").insert({
+            "alerta_id": alerta_id,
+            "telefone": telefone,
+            "nome": nome,
+            "mensagem": mensagem,
+            "remetente": remetente,
+        }).execute()
+    except Exception as exc:
+        logger.error(f"Erro ao salvar msg SOS: {exc}")
+
+
 def processar_sos(event: dict, sb: Client) -> None:
     is_continuacao = event.get("is_continuacao", False)
     telefone = event.get("telefone", "desconhecido")
@@ -1168,6 +1185,7 @@ def processar_sos(event: dict, sb: Client) -> None:
     tem_loc = event.get("tem_localizacao", False)
     classificacao = event.get("classificacao", {})
     categoria_sos = classificacao.get("categoria", "emergencia")
+    push_name = event.get("push_name", "")
 
     # ── CADASTRO — mulher quer se cadastrar no Mulher Segura ──
     if categoria_sos == "cadastro" and not is_continuacao:
@@ -1208,6 +1226,8 @@ def processar_sos(event: dict, sb: Client) -> None:
                     "latitude": event.get("latitude"),
                     "longitude": event.get("longitude"),
                 }).eq("id", registro_id).execute()
+                _salvar_msg_sos(sb, registro_id, telefone, push_name,
+                                f"📍 Localização GPS enviada: {event.get('latitude')}, {event.get('longitude')}")
                 logger.warning(f"🚨 SOS localizacao GPS atualizada para {telefone}")
             enviar_whatsapp(telefone, "📍 Localização recebida. Equipe a caminho. Mantenha-se segura.")
             finalizar_sessao(sb, telefone)
@@ -1248,6 +1268,8 @@ def processar_sos(event: dict, sb: Client) -> None:
                 if update_data:
                     sb.table("sos_alertas").update(update_data).eq("id", registro_id).execute()
 
+            if registro_id:
+                _salvar_msg_sos(sb, registro_id, telefone, push_name, texto)
             enviar_whatsapp(telefone,
                 f"📍 Endereço registrado: *{texto}*\n\n"
                 "Equipe a caminho. Mantenha-se segura.\n\n"
@@ -1255,7 +1277,9 @@ def processar_sos(event: dict, sb: Client) -> None:
             finalizar_sessao(sb, telefone)
             return
 
-        # Mensagem muito curta ou mídia — reforça pedido
+        # Mensagem muito curta ou mídia — salva mesmo assim
+        if registro_id and texto:
+            _salvar_msg_sos(sb, registro_id, telefone, push_name, texto)
         enviar_whatsapp(telefone,
             "✓ Recebido. Para te encontrar, envie:\n\n"
             "📍 Sua *localização* pelo celular (📎 > Localização)\n"
@@ -1302,6 +1326,8 @@ def processar_sos(event: dict, sb: Client) -> None:
     if res.data:
         registro_id = res.data[0]["id"]
         logger.warning(f"🚨 SOS ALERTA CRIADO (id={registro_id})")
+        _salvar_msg_sos(sb, registro_id, telefone, push_name or nome_cadastro,
+                        texto or "[Código SOS]")
         criar_sessao(sb, telefone, "sos_mulher", "aguardando_localizacao", registro_id,
                      {"tipo": "emergencia"})
 

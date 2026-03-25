@@ -84,6 +84,16 @@ async def salvar_notas(alerta_id: str, body: dict):
     return result.data[0] if result.data else {}
 
 
+@router.get("/alertas/{alerta_id}/mensagens")
+async def listar_mensagens_sos(alerta_id: str):
+    """Retorna todas as mensagens do chat SOS (vítima + operador)."""
+    sb = get_supabase()
+    result = sb.table("sos_mensagens").select("*").eq(
+        "alerta_id", alerta_id
+    ).order("created_at", desc=False).execute()
+    return result.data or []
+
+
 @router.post("/alertas/{alerta_id}/handoff")
 async def sos_handoff_toggle(alerta_id: str, body: dict):
     """Ativa/desativa handoff (atendimento humano) para a vítima SOS."""
@@ -123,13 +133,26 @@ async def sos_handoff_toggle(alerta_id: str, body: dict):
 
 @router.post("/alertas/{alerta_id}/send-message")
 async def send_sos_message(alerta_id: str, body: dict):
-    """Envia mensagem do operador para a vítima via WhatsApp."""
+    """Envia mensagem do operador para a vítima via WhatsApp e salva no histórico."""
     telefone = body.get("telefone", "")
     mensagem = body.get("mensagem", "")
     operador = body.get("operador", "Atendente SOS")
 
     if not telefone or not mensagem:
         return {"error": "telefone e mensagem obrigatórios"}
+
+    # Salvar no histórico de mensagens
+    sb = get_supabase()
+    try:
+        sb.table("sos_mensagens").insert({
+            "alerta_id": alerta_id,
+            "telefone": "operador",
+            "nome": operador,
+            "mensagem": f"[ATENDENTE] {mensagem}",
+            "remetente": "operador",
+        }).execute()
+    except Exception as exc:
+        logger.error(f"Erro ao salvar msg operador SOS: {exc}")
 
     if EVOLUTION_API_URL and EVOLUTION_API_KEY:
         numero = telefone.lstrip("+")

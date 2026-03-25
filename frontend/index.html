@@ -2494,12 +2494,30 @@ function SOSMulher(){
   const [sosMsg,setSosMsg]=useState('');
   const [sosSending,setSosSending]=useState(false);
   const [sosHandoff,setSosHandoff]=useState(false);
+  const [sosMensagens,setSosMensagens]=useState([]);
+  const sosChatRef=useRef(null);
 
   // Atualiza notas quando muda a seleção
   useEffect(()=>{setNotas(sel?.notas||'');},[sel?.id]);
 
   // Reset handoff ao fechar modal
-  useEffect(()=>{if(!chatModal)setSosHandoff(false);},[chatModal]);
+  useEffect(()=>{if(!chatModal){setSosHandoff(false);setSosMensagens([]);}},[chatModal]);
+
+  // Fetch mensagens quando abre modal
+  useEffect(()=>{
+    if(!chatModal) return;
+    fetch(API_URL+'/api/sos/alertas/'+chatModal.id+'/mensagens')
+      .then(r=>r.ok?r.json():[]).then(d=>setSosMensagens(d)).catch(()=>{});
+    // Polling a cada 5s enquanto modal aberto
+    const iv=setInterval(()=>{
+      fetch(API_URL+'/api/sos/alertas/'+chatModal.id+'/mensagens')
+        .then(r=>r.ok?r.json():[]).then(d=>setSosMensagens(d)).catch(()=>{});
+    },5000);
+    return()=>clearInterval(iv);
+  },[chatModal?.id]);
+
+  // Scroll chat pro final
+  useEffect(()=>{if(sosChatRef.current)sosChatRef.current.scrollTop=sosChatRef.current.scrollHeight;},[sosMensagens]);
 
   async function toggleSosHandoff(){
     if(!chatModal) return;
@@ -2521,6 +2539,9 @@ function SOSMulher(){
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({telefone:chatModal.telefone,mensagem:sosMsg.trim(),operador:'Atendente SOS'})
       });
+      // Reload mensagens
+      const data=await fetch(API_URL+'/api/sos/alertas/'+chatModal.id+'/mensagens').then(r=>r.json());
+      setSosMensagens(data);
       setSosMsg('');
     }catch(e){console.error('Erro ao enviar:',e);}
     setSosSending(false);
@@ -2800,6 +2821,28 @@ function SOSMulher(){
                     try{const res=await fetch(API_URL+'/api/sos/alertas/'+s.id+'/resolver',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({notas:motivo||''})});
                     if(res.ok){alert('✅ Alerta resolvido.');setChatModal(null);setSel(null);}}catch(e){alert('Erro: '+e.message);}
                   }}>✓ Resolver</button>
+                </div>
+                {/* Chat — histórico de mensagens */}
+                <div style={{marginBottom:16}}>
+                  <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Conversa</div>
+                  <div ref={sosChatRef} style={{maxHeight:200,overflowY:'auto',borderRadius:8,border:'1px solid var(--border)',background:'rgba(0,0,0,.15)',padding:10}}>
+                    {sosMensagens.length===0&&(
+                      <div style={{textAlign:'center',color:'var(--text-muted)',fontSize:12,padding:16}}>Nenhuma mensagem registrada</div>
+                    )}
+                    <div className="oc-chat-area">
+                      {sosMensagens.map((m,i)=>{
+                        const time=m.created_at?new Date(m.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+                        const isOp=m.remetente==='operador'||m.telefone==='operador';
+                        return(
+                          <div key={i} className={`oc-chat-bubble ${isOp?'oc-bubble-human':'oc-bubble-citizen'}`}>
+                            <div className="oc-chat-sender">{isOp?(m.nome||'Atendente'):(m.nome||cad?.nome||'Vítima')}</div>
+                            {m.mensagem}
+                            <div className="oc-chat-time">{time}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
                 {/* Assumir Conversa — handoff real (desliga bot de IA) */}
                 <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
