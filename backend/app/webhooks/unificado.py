@@ -318,13 +318,16 @@ async def receber_webhook_unificado(
                     "mensagem": msg_texto,
                 }).execute()
             elif canal == "feedback" and registro_id:
-                sb.table("feedbacks_mensagens").insert({
-                    "feedback_id": registro_id,
-                    "telefone": telefone,
-                    "nome": push_name or None,
-                    "mensagem": msg_texto,
-                    "remetente": "cidadao",
-                }).execute()
+                # Verificar se o feedback existe (pode ser placeholder)
+                check = sb.table("feedbacks").select("id").eq("id", registro_id).limit(1).execute()
+                if check.data:
+                    sb.table("feedbacks_mensagens").insert({
+                        "feedback_id": registro_id,
+                        "telefone": telefone,
+                        "nome": push_name or None,
+                        "mensagem": msg_texto,
+                        "remetente": "cidadao",
+                    }).execute()
         except Exception as exc:
             logger.error(f"Erro ao salvar msg durante handoff: {exc}")
 

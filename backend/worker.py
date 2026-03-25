@@ -420,6 +420,8 @@ def criar_sessao(sb: Client, telefone: str, canal: str, etapa: str,
             "registro_id": registro_id,
             "contexto": contexto,
             "expira_em": expira_em,
+            "handoff_ativo": False,
+            "handoff_operador": "",
         }, on_conflict="telefone").execute()
         logger.info(f"Sessao criada/atualizada: {telefone} → {canal}/{etapa}")
     except Exception as exc:
