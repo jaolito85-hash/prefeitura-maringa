@@ -165,6 +165,113 @@ tbody tr:nth-child(even) td{background:rgba(255,255,255,.01)}
 .b-den-procedente{background:transparent;color:#4a9e7a;border:none;font-weight:600;padding:0}
 .b-den-rejeitada{background:transparent;color:#c06060;border:none;font-weight:600;padding:0}
 
+/* ==================== DENÚNCIAS REDESIGN ==================== */
+.den-period-bar{display:flex;align-items:center;gap:.75rem;margin-bottom:1.25rem}
+.den-period-group{display:flex;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.den-period-btn{padding:8px 16px;background:transparent;border:none;color:var(--text-muted);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;position:relative}
+.den-period-btn:not(:last-child)::after{content:'';position:absolute;right:0;top:25%;bottom:25%;width:1px;background:var(--border)}
+.den-period-btn:hover{color:var(--text-secondary)}
+.den-period-btn.active{background:#c41e3a;color:#fff;font-weight:600}
+.den-period-btn.active::after{display:none}
+.den-period-label{font-size:13px;color:var(--text-secondary);font-weight:500;margin-left:8px}
+.den-period-label strong{color:var(--text);font-weight:700}
+.den-period-nav{display:flex;align-items:center;gap:4px;margin-left:auto}
+.den-period-nav button{width:32px;height:32px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-secondary);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:'Outfit',sans-serif}
+.den-period-nav button:hover{border-color:var(--border-light);color:var(--text)}
+
+.den-summary-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:1.25rem}
+.den-sc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s,transform .2s;cursor:default;position:relative;overflow:hidden}
+.den-sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
+.den-sc:hover{border-color:var(--border-light);transform:translateY(-2px)}
+.den-sc .sc-val{font-family:'Outfit',sans-serif;font-size:1.55rem;font-weight:800;letter-spacing:-.03em;line-height:1.2;margin-bottom:2px}
+.den-sc .sc-lbl{font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)}
+.den-sc .sc-sub{display:flex;align-items:center;gap:5px;font-size:11px;margin-top:7px;font-weight:500}
+.den-trend{display:inline-flex;align-items:center;gap:3px;font-weight:700;font-size:11px}
+.den-trend.up{color:#2ecc71}
+.den-trend.down{color:#e74c3c}
+.den-trend.neutral{color:var(--text-muted)}
+.den-trend-lbl{color:var(--text-muted);font-weight:400}
+.den-sc.sc-pago .sc-val{color:#2ecc71}
+.den-sc.sc-pago::before{background:#2ecc71}
+.den-sc.sc-apagar .sc-val{color:#e67e22}
+.den-sc.sc-apagar::before{background:#e67e22}
+.den-sc.sc-analise .sc-val{color:#f1c40f}
+.den-sc.sc-analise::before{background:#f1c40f}
+.den-sc.sc-total .sc-val{color:var(--text)}
+.den-sc.sc-total::before{background:var(--text-muted)}
+.den-sc.sc-denuncias .sc-val{color:#c41e3a}
+.den-sc.sc-denuncias::before{background:#c41e3a}
+.den-sc.sc-cidadaos .sc-val{color:#1abc9c}
+.den-sc.sc-cidadaos::before{background:#1abc9c}
+
+.den-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap}
+.den-search{flex:1;min-width:220px;position:relative}
+.den-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);width:15px;height:15px}
+.den-search input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px 9px 36px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;outline:none;transition:border-color .2s}
+.den-search input::placeholder{color:var(--text-muted);font-weight:400}
+.den-search input:focus{border-color:rgba(196,30,58,.4)}
+.den-filter-group{display:flex;gap:5px}
+.den-filter-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 12px;color:var(--text-secondary);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.den-filter-btn:hover{border-color:var(--border-light);color:var(--text)}
+.den-filter-btn.active{background:rgba(196,30,58,.12);border-color:rgba(196,30,58,.3);color:#c41e3a;font-weight:600}
+.den-cat-select{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 28px 7px 12px;color:var(--text-secondary);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235e6a85' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.den-cat-select:focus{border-color:rgba(196,30,58,.4)}
+.den-export-btn{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--text-secondary);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+.den-export-btn:hover{border-color:var(--border-light);color:var(--text)}
+
+.den-table-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.den-table-wrap table{width:100%;border-collapse:collapse}
+.den-table-wrap thead th{font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);text-align:left;padding:12px 10px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;white-space:nowrap}
+.den-table-wrap thead th:first-child{padding-left:20px}
+.den-table-wrap thead th:last-child{padding-right:20px}
+.den-table-wrap tbody tr{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
+.den-table-wrap tbody tr:last-child{border-bottom:none}
+.den-table-wrap tbody tr:hover{background:var(--card-hover)}
+.den-table-wrap tbody td{padding:10px 10px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;color:var(--text-secondary);vertical-align:middle}
+.den-table-wrap tbody td:first-child{padding-left:20px}
+.den-table-wrap tbody td:last-child{padding-right:20px}
+.den-proto{font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;color:var(--text);letter-spacing:-.01em}
+.den-cat-text{font-weight:700;font-size:12.5px;letter-spacing:-.01em}
+.den-cat-text.c-furto{color:#e67e22}
+.den-cat-text.c-descarte{color:#9b59b6}
+.den-cat-text.c-pichacao{color:#3498db}
+.den-cat-text.c-depredacao{color:#f1c40f}
+.den-cat-text.c-trafico{color:#e74c3c}
+.den-cat-text.c-generica{color:var(--text-muted)}
+.den-msg{font-weight:400;font-size:12.5px;color:var(--text-secondary);max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.den-bairro{font-weight:600;font-size:13px;color:var(--text)}
+.den-status{font-weight:700;font-size:12.5px;letter-spacing:-.01em}
+.den-status.s-novo{color:var(--text-muted)}
+.den-status.s-em_analise{color:#f1c40f}
+.den-status.s-encaminhado,.den-status.s-encaminhada{color:#3498db}
+.den-status.s-procedente{color:#2ecc71}
+.den-status.s-improcedente,.den-status.s-rejeitada{color:#e74c3c}
+.den-status.s-recompensa_paga{color:#2ecc71}
+.den-ev-cell{display:flex;align-items:center;gap:5px}
+.den-ev-badge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);transition:all .2s}
+.den-ev-badge svg{width:13px;height:13px}
+.den-ev-badge.active{border-color:rgba(46,204,113,.25);background:rgba(46,204,113,.08);color:#2ecc71}
+.den-ev-badge.inactive{opacity:.2}
+.den-flag{width:16px;height:16px;cursor:help;opacity:.85;transition:opacity .2s;flex-shrink:0}
+.den-flag:hover{opacity:1}
+.den-flag svg{width:16px;height:16px}
+.den-flag.f-high{color:#e74c3c}
+.den-flag.f-medium{color:#f1c40f}
+.den-flag.f-low{color:#e67e22}
+.den-flag.f-none{color:#2ecc71;opacity:.4}
+.den-recomp{font-family:'Outfit',sans-serif;font-weight:800;font-size:13px;color:#2ecc71}
+.den-recomp.none{color:var(--text-muted);font-weight:400;font-size:12px}
+.den-date{font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--text);white-space:nowrap}
+.den-date .rel{display:block;font-size:10px;font-weight:400;color:var(--text-muted);margin-top:2px}
+.den-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--surface);border-top:1px solid var(--border);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;color:var(--text-muted)}
+.den-footer strong{color:var(--text-secondary);font-weight:700}
+.den-pagination{display:flex;align-items:center;gap:4px}
+.den-page-btn{width:30px;height:30px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-secondary);font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.den-page-btn:hover{border-color:var(--border-light);color:var(--text)}
+.den-page-btn.active{background:rgba(196,30,58,.12);border-color:rgba(196,30,58,.3);color:#c41e3a}
+@media(max-width:1200px){.den-summary-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.den-summary-row{grid-template-columns:repeat(2,1fr)}.den-toolbar{flex-direction:column;align-items:stretch}}
+
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;border:none;font-family:inherit;letter-spacing:.1px}
 .btn-primary{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-dark) 100%);color:#fff;box-shadow:0 2px 12px rgba(16,185,129,.2)}.btn-primary:hover{background:linear-gradient(135deg,#34d399 0%,var(--accent) 100%);box-shadow:0 4px 20px rgba(16,185,129,.3);transform:translateY(-1px)}
@@ -1590,102 +1697,204 @@ function Ocorrencias(){
   );
 }
 
-/* ─── DENÚNCIAS ────────────────────────────────────────────────── */
+/* ─── DENÚNCIAS (REDESIGN) ─────────────────────────────────────── */
+const DEN_CAT_CLASS={furto_fios:'c-furto',descarte_irregular:'c-descarte',pichacao:'c-pichacao',depredacao:'c-depredacao',trafico_drogas:'c-trafico',generica:'c-generica'};
+const DEN_CAT_LABEL={furto_fios:'Furto de Fios',descarte_irregular:'Descarte Irregular',pichacao:'Pichação',depredacao:'Depredação',trafico_drogas:'Tráfico de Drogas',generica:'Aguardando Triagem'};
+const DEN_STATUS_CLASS={novo:'s-novo',em_analise:'s-em_analise',encaminhado:'s-encaminhado',encaminhada:'s-encaminhada',procedente:'s-procedente',improcedente:'s-improcedente',rejeitada:'s-rejeitada',recompensa_paga:'s-recompensa_paga'};
+const DEN_STATUS_LABEL={novo:'Novo',em_analise:'Em análise',encaminhado:'Encaminhado',encaminhada:'Encaminhada',procedente:'Procedente',improcedente:'Improcedente',rejeitada:'Rejeitada',recompensa_paga:'Recompensa Paga'};
+const DEN_PER_PAGE=15;
+
+function _denFmtDate(d){if(!d)return'—';const dt=new Date(d);return dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})}
+function _denRelDate(d){if(!d)return'';const diff=Math.floor((Date.now()-new Date(d))/864e5);if(diff===0)return'Hoje';if(diff===1)return'Ontem';return`há ${diff} dias`}
+function _denFmtMoney(v){return'R$ '+v.toFixed(2).replace('.',',')}
+function _denFmtShort(d){return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}
+function _denFmtFull(d){return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})}
+function _denGetRange(period,offset){
+  const ref=new Date();
+  if(period==='day'){ref.setDate(ref.getDate()-offset);return{start:new Date(ref.getFullYear(),ref.getMonth(),ref.getDate()),end:new Date(ref.getFullYear(),ref.getMonth(),ref.getDate(),23,59,59)}}
+  if(period==='week'){ref.setDate(ref.getDate()-offset*7);const day=ref.getDay();const s=new Date(ref);s.setDate(ref.getDate()-(day===0?6:day-1));const e=new Date(s);e.setDate(s.getDate()+6);return{start:new Date(s.getFullYear(),s.getMonth(),s.getDate()),end:new Date(e.getFullYear(),e.getMonth(),e.getDate(),23,59,59)}}
+  ref.setMonth(ref.getMonth()-offset);return{start:new Date(ref.getFullYear(),ref.getMonth(),1),end:new Date(ref.getFullYear(),ref.getMonth()+1,0,23,59,59)}
+}
+function _denInRange(d,range){if(!d)return false;const dt=new Date(d);return dt>=range.start&&dt<=range.end}
+function _denTrend(c,p){if(p===0&&c===0)return{pct:0,dir:'neutral'};if(p===0)return{pct:100,dir:'up'};const pct=Math.round(((c-p)/p)*100);return{pct:Math.abs(pct),dir:pct>0?'up':pct<0?'down':'neutral'}}
+
+function DenFlagIcon({flag,motivo}){
+  const alertSvg=React.createElement('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round',width:16,height:16},[React.createElement('path',{key:'p',d:'m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3'}),React.createElement('path',{key:'l',d:'M12 9v4'}),React.createElement('path',{key:'d',d:'M12 17h.01'})]);
+  const flagSvg=React.createElement('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round',width:16,height:16},[React.createElement('path',{key:'a',d:'m3 2 1.578 17.824M12.5 6.5 17 2l0 9.5-4.5-2'}),React.createElement('path',{key:'b',d:'M4.275 16 3.5 22'})]);
+  const checkSvg=React.createElement('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round',width:16,height:16},React.createElement('path',{d:'M20 6 9 17l-5-5'}));
+  if(flag==='high')return React.createElement('span',{className:'den-flag f-high',title:`⚠ ${motivo||'Foto encaminhada de outra conversa'}`},alertSvg);
+  if(flag==='medium')return React.createElement('span',{className:'den-flag f-medium',title:`⚠ ${motivo||'Foto da galeria com mais de 24h'}`},alertSvg);
+  if(flag==='low')return React.createElement('span',{className:'den-flag f-low',title:motivo||'Foto enviada da galeria'},flagSvg);
+  return React.createElement('span',{className:'den-flag f-none',title:motivo||'Foto tirada na hora'},checkSvg);
+}
+
+function DenEvBadge({type,active}){
+  const cam=React.createElement('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},[React.createElement('path',{key:'p',d:'M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'}),React.createElement('circle',{key:'c',cx:12,cy:13,r:3})]);
+  const vid=React.createElement('svg',{xmlns:'http://www.w3.org/2000/svg',viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},[React.createElement('rect',{key:'r',x:2,y:6,width:15,height:12,rx:2}),React.createElement('path',{key:'p',d:'m17 9 5-3v12l-5-3z'})]);
+  return React.createElement('span',{className:`den-ev-badge ${active?'active':'inactive'}`,title:type==='foto'?'Foto':'Vídeo'},type==='foto'?cam:vid);
+}
+
 function Denuncias(){
-  const [tab,setTab]=useState('lista');
   const [sel,setSel]=useState(null);
-  const [fc,setFc]=useState('');
-  const [filtroSuspeitas,setFiltroSuspeitas]=useState(false);
-  const lista=DEN.filter(d=>(!fc||d.categoria===fc)&&(!filtroSuspeitas||(d.foto_flag==='medium'||d.foto_flag==='high')));
-  const pago=DEN.filter(d=>d.status==='recompensa_paga').reduce((a,d)=>a+(d.valor_recompensa||0),0);
-  const apagar=DEN.filter(d=>d.status==='procedente').reduce((a,d)=>a+(d.valor_recompensa||0),0);
-  const analise=DEN.filter(d=>d.status==='em_analise').reduce((a,d)=>a+(d.valor_recompensa||0),0);
-  const chartData=[{label:'Out',oc:34,den:12},{label:'Nov',oc:41,den:18},{label:'Dez',oc:29,den:9},{label:'Jan',oc:52,den:22},{label:'Fev',oc:38,den:15},{label:'Mar',oc:47,den:19}];
-  const recompData=[{label:'Jan',pago:2400,apagar:800},{label:'Fev',pago:1800,apagar:600},{label:'Mar',pago:3200,apagar:1200}];
-  const pieData=[{v:2,c:'#dc2626',n:'Tráfico'},{v:2,c:'#7c3aed',n:'Pichação'},{v:1,c:'#fbbf24',n:'Descarte'},{v:1,c:'#3b82f6',n:'Furto Fios'}];
+  const [period,setPeriod]=useState('month');
+  const [offset,setOffset]=useState(0);
+  const [statusFilter,setStatusFilter]=useState('todos');
+  const [catFilter,setCatFilter]=useState('');
+  const [search,setSearch]=useState('');
+  const [page,setPage]=useState(1);
+
+  const range=_denGetRange(period,offset);
+  const prevRange=_denGetRange(period,offset+1);
+  const periodItems=DEN.filter(d=>_denInRange(d.created_at,range));
+  const prevItems=DEN.filter(d=>_denInRange(d.created_at,prevRange));
+
+  // Summary calculations
+  const pagoV=periodItems.filter(d=>d.status==='procedente'||d.status==='recompensa_paga').reduce((a,d)=>a+(d.valor_recompensa||0),0);
+  const prevPagoV=prevItems.filter(d=>d.status==='procedente'||d.status==='recompensa_paga').reduce((a,d)=>a+(d.valor_recompensa||0),0);
+  const totalV=periodItems.reduce((a,d)=>a+(d.valor_recompensa||0),0);
+  const prevTotalV=prevItems.reduce((a,d)=>a+(d.valor_recompensa||0),0);
+  const analiseN=periodItems.filter(d=>d.status==='em_analise').length;
+  const prevAnaliseN=prevItems.filter(d=>d.status==='em_analise').length;
+  const cidadaos=new Set(periodItems.map(d=>d.telefone||d.protocolo)).size;
+  const prevCidadaos=new Set(prevItems.map(d=>d.telefone||d.protocolo)).size;
+
+  const periodLabel=period==='day'?'dia':period==='week'?'semana':'mês';
+
+  function TrendBadge({cur,prev}){
+    const t=_denTrend(cur,prev);
+    const arrow=t.dir==='up'?'↑':t.dir==='down'?'↓':'→';
+    return React.createElement('div',{className:'sc-sub'},
+      React.createElement('span',{className:`den-trend ${t.dir}`},`${arrow} ${t.pct}%`),
+      React.createElement('span',{className:'den-trend-lbl'},` vs ${periodLabel} ant.`)
+    );
+  }
+
+  // Filtered list
+  let lista=periodItems;
+  if(statusFilter==='suspeitas')lista=lista.filter(d=>d.foto_flag==='high'||d.foto_flag==='medium');
+  else if(statusFilter!=='todos')lista=lista.filter(d=>d.status===statusFilter);
+  if(catFilter)lista=lista.filter(d=>d.categoria===catFilter);
+  if(search){const q=search.toLowerCase();lista=lista.filter(d=>(d.protocolo||'').toLowerCase().includes(q)||(d.mensagem||'').toLowerCase().includes(q)||(d.bairro||'').toLowerCase().includes(q)||(DEN_CAT_LABEL[d.categoria]||'').toLowerCase().includes(q))}
+
+  const totalPages=Math.max(1,Math.ceil(lista.length/DEN_PER_PAGE));
+  const safeP=Math.min(page,totalPages);
+  const paged=lista.slice((safeP-1)*DEN_PER_PAGE,safeP*DEN_PER_PAGE);
+  const showFrom=lista.length===0?0:(safeP-1)*DEN_PER_PAGE+1;
+  const showTo=Math.min(safeP*DEN_PER_PAGE,lista.length);
+
+  function hasPhoto(d){return d.midia_urls&&d.midia_urls.some(u=>!(/\.(mp4|mov|avi|webm)/i.test(u)||u.includes('video')))}
+  function hasVideo(d){return d.midia_urls&&d.midia_urls.some(u=>/\.(mp4|mov|avi|webm)/i.test(u)||u.includes('video'))}
+
+  function exportCSV(){
+    const header='Protocolo;Categoria;Mensagem;Bairro;Status;Recompensa;Data;Flag\n';
+    const rows=lista.map(d=>`${d.protocolo};${DEN_CAT_LABEL[d.categoria]||d.categoria};"${(d.mensagem||'').replace(/"/g,"'")}";${d.bairro||''};${DEN_STATUS_LABEL[d.status]||d.status};${d.valor_recompensa||0};${_denFmtDate(d.created_at)};${d.foto_flag||'none'}`).join('\n');
+    const blob=new Blob([header+rows],{type:'text/csv;charset=utf-8;'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`denuncias_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  }
 
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-      <div className="stat-row">
-        {[
-          {num:`R$ ${pago.toLocaleString('pt-BR')}`,lbl:'Total Pago',c:'#4ade80'},
-          {num:`R$ ${apagar.toLocaleString('pt-BR')}`,lbl:'A Pagar',c:'#fbbf24'},
-          {num:`R$ ${analise.toLocaleString('pt-BR')}`,lbl:'Em Análise',c:'#3b82f6'},
-          {num:`R$ ${(pago+apagar+analise).toLocaleString('pt-BR')}`,lbl:'Total Geral',c:'#fff'},
-          {num:DEN.length,lbl:'Denúncias',c:'#3b82f6'},
-          {num:DEN.filter(d=>d.cidadania_ativa).length,lbl:'Cidadania Ativa',c:'#4ade80'},
-        ].map((s,i)=>(
-          <div key={i} className="stat-box anim-card">
-            <div className="stat-num" style={{color:s.c}}>{s.num}</div>
-            <div className="stat-lbl">{s.lbl}</div>
+      <div className="scrollable" style={{flex:1,padding:'20px 24px'}}>
+        {/* PERIOD SELECTOR */}
+        <div className="den-period-bar">
+          <div className="den-period-group">
+            {['day','week','month'].map(p=>(
+              <button key={p} className={`den-period-btn ${period===p?'active':''}`} onClick={()=>{setPeriod(p);setOffset(0);setPage(1)}}>{p==='day'?'Dia':p==='week'?'Semana':'Mês'}</button>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="tab-bar">
-        <div className={`tab ${tab==='lista'?'active':''}`} onClick={()=>setTab('lista')}>Denúncias</div>
-        <div className={`tab ${tab==='graficos'?'active':''}`} onClick={()=>setTab('graficos')}>Gráficos</div>
-        <div className="tab-spacer"/>
-        <div style={{display:'flex',alignItems:'flex-end',paddingBottom:10,gap:8}}>
-          <select value={fc} onChange={e=>setFc(e.target.value)}>
-            <option value="">Todas categorias</option>
-            {Object.entries(CAT_DEN).map(([k,v])=><option key={k} value={k}>{v.icon} {v.label}</option>)}
-          </select>
-          <button onClick={()=>setFiltroSuspeitas(!filtroSuspeitas)} style={{padding:'6px 12px',fontSize:12,fontWeight:600,borderRadius:6,border:filtroSuspeitas?'1px solid #e74c3c':'1px solid var(--border)',background:filtroSuspeitas?'rgba(231,76,60,.15)':'transparent',color:filtroSuspeitas?'#e74c3c':'var(--text-muted)',cursor:'pointer',whiteSpace:'nowrap',transition:'all .2s'}}>🚩 Suspeitas{filtroSuspeitas?` (${DEN.filter(d=>d.foto_flag==='medium'||d.foto_flag==='high').length})`:''}</button>
+          <span className="den-period-label"><strong>{_denFmtShort(range.start)}</strong> — <strong>{_denFmtFull(range.end)}</strong></span>
+          <div className="den-period-nav">
+            <button onClick={()=>{setOffset(o=>o+1);setPage(1)}}>‹</button>
+            <button onClick={()=>{setOffset(o=>Math.max(0,o-1));setPage(1)}}>›</button>
+          </div>
         </div>
-      </div>
-      {tab==='lista'?(
-        <div className="scrollable" style={{flex:1}}>
+
+        {/* SUMMARY CARDS */}
+        <div className="den-summary-row">
+          <div className="den-sc sc-pago"><div className="sc-val">{_denFmtMoney(pagoV)}</div><div className="sc-lbl">Total Pago</div><TrendBadge cur={pagoV} prev={prevPagoV}/></div>
+          <div className="den-sc sc-apagar"><div className="sc-val">{_denFmtMoney(totalV-pagoV)}</div><div className="sc-lbl">A Pagar</div><TrendBadge cur={totalV-pagoV} prev={prevTotalV-prevPagoV}/></div>
+          <div className="den-sc sc-analise"><div className="sc-val">{analiseN}</div><div className="sc-lbl">Em Análise</div><TrendBadge cur={analiseN} prev={prevAnaliseN}/></div>
+          <div className="den-sc sc-total"><div className="sc-val">{_denFmtMoney(totalV)}</div><div className="sc-lbl">Total Geral</div><TrendBadge cur={totalV} prev={prevTotalV}/></div>
+          <div className="den-sc sc-denuncias"><div className="sc-val">{periodItems.length}</div><div className="sc-lbl">Denúncias</div><TrendBadge cur={periodItems.length} prev={prevItems.length}/></div>
+          <div className="den-sc sc-cidadaos"><div className="sc-val">{cidadaos}</div><div className="sc-lbl">Cidadãos Ativos</div><TrendBadge cur={cidadaos} prev={prevCidadaos}/></div>
+        </div>
+
+        {/* TOOLBAR */}
+        <div className="den-toolbar">
+          <div className="den-search">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" placeholder="Buscar protocolo, mensagem ou bairro..." value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}}/>
+          </div>
+          <div className="den-filter-group">
+            {[['todos','Todos'],['novo','Novo'],['em_analise','Em análise'],['encaminhada','Encaminhado'],['procedente','Procedente'],['suspeitas','⚠ Suspeitas']].map(([k,l])=>(
+              <button key={k} className={`den-filter-btn ${statusFilter===k?'active':''}`} onClick={()=>{setStatusFilter(k);setPage(1)}}>{l}</button>
+            ))}
+          </div>
+          <select className="den-cat-select" value={catFilter} onChange={e=>{setCatFilter(e.target.value);setPage(1)}}>
+            <option value="">Todas categorias</option>
+            {Object.entries(DEN_CAT_LABEL).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+          </select>
+          <button className="den-export-btn" onClick={exportCSV}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Exportar
+          </button>
+        </div>
+
+        {/* TABLE */}
+        <div className="den-table-wrap">
           <table>
-            <thead><tr><th>Protocolo</th><th>Categoria</th><th>Mensagem</th><th>Bairro</th><th>Status</th><th>Recompensa</th><th>Recebido</th></tr></thead>
+            <thead><tr><th>Protocolo</th><th>Categoria</th><th>Mensagem</th><th>Bairro</th><th>Status</th><th>Evidência</th><th>Recompensa</th><th>Data</th></tr></thead>
             <tbody>
-              {lista.map(d=>{
-                const cat=CAT_DEN[d.categoria]||{label:d.categoria,icon:'📌',badge:'b-gray'};
-                const sta=S_DEN[d.status]||{label:d.status,badge:'b-gray'};
-                return(
-                  <tr key={d.id} onClick={()=>setSel(d)} style={{cursor:'pointer',background:sel?.id===d.id?'rgba(5,150,105,.04)':''}}>
-                    <td><span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{d.protocolo}</span>{d.midia_urls&&d.midia_urls.length>0&&<span title={`${d.midia_urls.length} evidência(s)`} style={{marginLeft:6,fontSize:11,opacity:.7}}>📎</span>}{d.foto_flag==='high'&&<span title={`⚠ ${d.foto_flag_motivo||'Foto encaminhada de outra conversa'}`} style={{marginLeft:4,fontSize:13,cursor:'help',color:'#e74c3c'}}>⚠</span>}{d.foto_flag==='medium'&&<span title={`⚠ ${d.foto_flag_motivo||'Foto da galeria com mais de 24h'}`} style={{marginLeft:4,fontSize:13,cursor:'help',color:'#f1c40f'}}>⚠</span>}{d.foto_flag==='low'&&<span title={d.foto_flag_motivo||'Foto enviada da galeria'} style={{marginLeft:4,fontSize:13,cursor:'help',color:'#e67e22'}}>🕐</span>}{d.foto_flag==='none'&&d.foto_origem==='camera_direta'&&<span title="Foto tirada na hora" style={{marginLeft:4,fontSize:11,cursor:'help',color:'#2ecc71'}}>✓</span>}</td>
-                    <td><span className={`badge ${cat.badge}`}>{cat.icon?`${cat.icon} `:''}{cat.label}</span></td>
-                    <td style={{maxWidth:280}}><span className="truncate" style={{display:'block',maxWidth:280}}>{d.mensagem}</span></td>
-                    <td>{d.bairro}</td>
-                    <td><span className={`badge ${sta.badge}`}>{sta.label}</span></td>
-                    <td>{d.valor_recompensa?<span className="mono" style={{fontWeight:600,color:'#4ade80'}}>R$ {d.valor_recompensa.toLocaleString('pt-BR')}</span>:<span style={{color:'var(--text-muted)'}}>—</span>}</td>
-                    <td style={{color:'var(--text-muted)',fontSize:12}}>{ago(d.created_at)}</td>
-                  </tr>
-                );
-              })}
+              {paged.map(d=>(
+                <tr key={d.id} onClick={()=>setSel(d)} style={{background:sel?.id===d.id?'rgba(196,30,58,.04)':''}}>
+                  <td><span className="den-proto">{d.protocolo}</span></td>
+                  <td><span className={`den-cat-text ${DEN_CAT_CLASS[d.categoria]||'c-generica'}`}>{DEN_CAT_LABEL[d.categoria]||d.categoria}</span></td>
+                  <td><span className="den-msg" title={d.mensagem}>{d.mensagem}</span></td>
+                  <td><span className="den-bairro">{d.bairro||'—'}</span></td>
+                  <td><span className={`den-status ${DEN_STATUS_CLASS[d.status]||'s-novo'}`}>{DEN_STATUS_LABEL[d.status]||d.status}</span></td>
+                  <td><div className="den-ev-cell"><DenEvBadge type="foto" active={hasPhoto(d)}/><DenEvBadge type="video" active={hasVideo(d)}/><DenFlagIcon flag={d.foto_flag||'none'} motivo={d.foto_flag_motivo||''}/></div></td>
+                  <td>{d.valor_recompensa?<span className="den-recomp">{_denFmtMoney(d.valor_recompensa)}</span>:<span className="den-recomp none">—</span>}</td>
+                  <td><span className="den-date">{_denFmtDate(d.created_at)}<span className="rel">{_denRelDate(d.created_at)}</span></span></td>
+                </tr>
+              ))}
+              {paged.length===0&&<tr><td colSpan={8} style={{textAlign:'center',padding:40,color:'var(--text-muted)',fontFamily:"'Outfit',sans-serif"}}>Nenhuma denúncia encontrada no período.</td></tr>}
             </tbody>
           </table>
-        </div>
-      ):(
-        <div className="scrollable" style={{flex:1,padding:20}}>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-            <div className="chart-card anim-card"><div className="chart-title">Ocorrências × Denúncias · 6 meses</div><AreaChart data={chartData} keys={['oc','den']} colors={['#3b82f6','#059669']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#3b82f6'}}/>Ocorrências</div><div className="chart-legend-item"><div style={{width:10,height:3,borderRadius:2,background:'#059669'}}/>Denúncias</div></div></div>
-            <div className="chart-card anim-card"><div className="chart-title">Distribuição por Categoria</div><div style={{display:'flex',alignItems:'center',gap:28,flex:1,justifyContent:'center'}}><DonutChart data={pieData} size={170}/><div style={{display:'flex',flexDirection:'column',gap:12}}>{pieData.map((d,i)=>(<div key={i} style={{display:'flex',alignItems:'center',gap:10,fontSize:13}}><div style={{width:10,height:10,borderRadius:3,background:d.c}}/><span style={{color:'var(--text-muted)',minWidth:70}}>{d.n}</span><span className="mono" style={{fontWeight:600,color:'#fff'}}>{d.v}</span></div>))}</div></div></div>
-            <div className="chart-card anim-card"><div className="chart-title">Recompensas Pagas × A Pagar</div><BarChart data={recompData} keys={['pago','apagar']} colors={['#059669','#fbbf24']} height={240}/><div className="chart-legend"><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#059669'}}/>Pago</div><div className="chart-legend-item"><div style={{width:10,height:10,borderRadius:3,background:'#fbbf24'}}/>A Pagar</div></div></div>
-            <div className="chart-card anim-card"><div className="chart-title">Resumo Financeiro</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,flex:1,alignContent:'center'}}>{[['Pago','R$ '+pago.toLocaleString('pt-BR'),'#4ade80'],['A Pagar','R$ '+apagar.toLocaleString('pt-BR'),'#fbbf24'],['Em Análise','R$ '+analise.toLocaleString('pt-BR'),'#3b82f6'],['Total','R$ '+(pago+apagar+analise).toLocaleString('pt-BR'),'#fff']].map(([l,v,c])=>(<div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:'16px 18px'}}><div className="mono" style={{fontSize:20,fontWeight:600,color:c}}>{v}</div><div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginTop:5}}>{l}</div></div>))}</div></div>
+          <div className="den-footer">
+            <span>Exibindo <strong>{showFrom}–{showTo}</strong> de <strong>{lista.length}</strong> registros</span>
+            <div className="den-pagination">
+              <button className="den-page-btn" onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={safeP<=1}>‹</button>
+              {Array.from({length:totalPages},(_,i)=>i+1).slice(Math.max(0,safeP-3),safeP+2).map(n=>(
+                <button key={n} className={`den-page-btn ${n===safeP?'active':''}`} onClick={()=>setPage(n)}>{n}</button>
+              ))}
+              <button className="den-page-btn" onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={safeP>=totalPages}>›</button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* MODAL DETALHE */}
       {sel&&(
         <div className="modal-overlay" onClick={()=>setSel(null)}>
           <div className="modal-box" onClick={e=>e.stopPropagation()}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 22px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
               <div style={{display:'flex',alignItems:'center',gap:12}}>
-                <span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{sel.protocolo}</span>
-                <span className={`badge ${CAT_DEN[sel.categoria]?.badge||'b-gray'}`}>{CAT_DEN[sel.categoria]?.icon} {CAT_DEN[sel.categoria]?.label}</span>
+                <span style={{fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:700,color:'var(--text)'}}>{sel.protocolo}</span>
+                <span className={`den-cat-text ${DEN_CAT_CLASS[sel.categoria]||'c-generica'}`} style={{fontSize:13}}>{DEN_CAT_LABEL[sel.categoria]||sel.categoria}</span>
+                <span className={`den-status ${DEN_STATUS_CLASS[sel.status]||'s-novo'}`} style={{fontSize:13}}>{DEN_STATUS_LABEL[sel.status]||sel.status}</span>
               </div>
               <button onClick={()=>setSel(null)} style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',cursor:'pointer',borderRadius:8,border:'none',background:'none',fontSize:18}}>✕</button>
             </div>
             <div className="scrollable" style={{flex:1,padding:'20px 22px',minHeight:0}}>
-              <p style={{fontSize:14,lineHeight:1.7,marginBottom:22,color:'var(--text)'}}>{sel.mensagem}</p>
+              <p style={{fontFamily:"'Outfit',sans-serif",fontSize:14,lineHeight:1.7,marginBottom:22,color:'var(--text)'}}>{sel.mensagem}</p>
               {sel.midia_urls&&sel.midia_urls.length>0&&(
                 <div style={{marginBottom:22}}>
-                  <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>
-                    <span style={{fontSize:14}}>📎</span> Evidências ({sel.midia_urls.length})
-                    {sel.foto_flag==='high'&&<span style={{fontSize:11,fontWeight:700,color:'#e74c3c',background:'rgba(231,76,60,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>🔴 {sel.foto_flag_motivo||'Foto encaminhada'}</span>}
-                    {sel.foto_flag==='medium'&&<span style={{fontSize:11,fontWeight:700,color:'#f1c40f',background:'rgba(241,196,15,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>🟡 {sel.foto_flag_motivo||'Foto da galeria antiga'}</span>}
-                    {sel.foto_flag==='low'&&<span style={{fontSize:11,fontWeight:700,color:'#e67e22',background:'rgba(230,126,34,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>🟠 {sel.foto_flag_motivo||'Foto da galeria'}</span>}
-                    {sel.foto_flag==='none'&&sel.foto_origem==='camera_direta'&&<span style={{fontSize:11,fontWeight:700,color:'#2ecc71',background:'rgba(46,204,113,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>✅ Foto tirada na hora</span>}
+                  <div style={{fontFamily:"'Outfit',sans-serif",fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>
+                    Evidências ({sel.midia_urls.length})
+                    {sel.foto_flag==='high'&&<span style={{fontSize:11,fontWeight:700,color:'#e74c3c',background:'rgba(231,76,60,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>⚠ {sel.foto_flag_motivo||'Foto encaminhada'}</span>}
+                    {sel.foto_flag==='medium'&&<span style={{fontSize:11,fontWeight:700,color:'#f1c40f',background:'rgba(241,196,15,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>⚠ {sel.foto_flag_motivo||'Foto da galeria antiga'}</span>}
+                    {sel.foto_flag==='low'&&<span style={{fontSize:11,fontWeight:700,color:'#e67e22',background:'rgba(230,126,34,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>⚠ {sel.foto_flag_motivo||'Foto da galeria'}</span>}
+                    {sel.foto_flag==='none'&&sel.foto_origem==='camera_direta'&&<span style={{fontSize:11,fontWeight:700,color:'#2ecc71',background:'rgba(46,204,113,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>✓ Foto tirada na hora</span>}
                   </div>
                   <div style={{display:'grid',gridTemplateColumns:sel.midia_urls.length===1?'1fr':'1fr 1fr',gap:10}}>
                     {sel.midia_urls.map((url,i)=>{
@@ -1693,15 +1902,13 @@ function Denuncias(){
                       return isVideo?(
                         <div key={i} style={{position:'relative',borderRadius:10,overflow:'hidden',border:'1px solid var(--border)',background:'#000'}}>
                           <video src={url} controls muted playsInline style={{width:'100%',maxHeight:240,objectFit:'contain',display:'block'}}/>
-                          <div style={{position:'absolute',top:8,left:8,background:'rgba(0,0,0,.75)',color:'#fbbf24',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:4,display:'flex',alignItems:'center',gap:4}}>
-                            🎥 Vídeo
-                          </div>
+                          <div style={{position:'absolute',top:8,left:8,background:'rgba(0,0,0,.75)',color:'#fbbf24',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:4}}>Vídeo</div>
                         </div>
                       ):(
                         <div key={i} style={{position:'relative',borderRadius:10,overflow:'hidden',border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(url,'_blank')}>
                           <img src={url} alt={`Evidência ${i+1}`} style={{width:'100%',maxHeight:240,objectFit:'cover',display:'block'}}/>
                           <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'8px 10px',background:'linear-gradient(transparent,rgba(0,0,0,.8))',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                            <span style={{color:'#fff',fontSize:11,fontWeight:600,display:'flex',alignItems:'center',gap:4}}>📸 Foto {sel.midia_urls.length>1?i+1:''}</span>
+                            <span style={{color:'#fff',fontSize:11,fontWeight:600}}>Foto {sel.midia_urls.length>1?i+1:''}</span>
                             <span style={{color:'var(--accent-light)',fontSize:10,fontWeight:600}}>Ampliar ↗</span>
                           </div>
                         </div>
@@ -1710,46 +1917,32 @@ function Denuncias(){
                   </div>
                 </div>
               )}
-              <div style={{display:'grid',gap:10,fontSize:13,marginBottom:24}}>
+              <div style={{display:'grid',gap:10,fontSize:13,marginBottom:24,fontFamily:"'Outfit',sans-serif"}}>
                 {[
-                  ['Bairro',sel.bairro||(sel.latitude?`📍 GPS: ${Number(sel.latitude).toFixed(4)}, ${Number(sel.longitude).toFixed(4)}`:'Não informado')],
+                  ['Bairro',sel.bairro||(sel.latitude?`GPS: ${Number(sel.latitude).toFixed(4)}, ${Number(sel.longitude).toFixed(4)}`:'Não informado')],
                   sel.endereco&&['Endereço',sel.endereco],
-                  ['Cidadania Ativa',sel.cidadania_ativa?'✓ Sim':'Não'],
+                  ['Cidadania Ativa',sel.cidadania_ativa?'Sim':'Não'],
                   sel.valor_recompensa&&['Recompensa',`R$ ${sel.valor_recompensa.toLocaleString('pt-BR')}`],
-                  ['Status',S_DEN[sel.status]?.label||sel.status],
+                  ['Data',_denFmtDate(sel.created_at)+' ('+_denRelDate(sel.created_at)+')'],
                 ].filter(Boolean).map(([l,v])=>(
                   <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'10px 14px',background:'rgba(255,255,255,.02)',borderRadius:8,border:'1px solid var(--border)'}}>
                     <span style={{color:'var(--text-muted)'}}>{l}</span>
-                    <span style={{fontWeight:500,color:l==='Cidadania Ativa'&&sel.cidadania_ativa?'#4ade80':l==='Recompensa'?'#4ade80':'var(--text)'}}>{v}</span>
+                    <span style={{fontWeight:600,color:l==='Cidadania Ativa'&&sel.cidadania_ativa?'#2ecc71':l==='Recompensa'?'#2ecc71':'var(--text)'}}>{v}</span>
                   </div>
                 ))}
               </div>
               <div style={{display:'flex',gap:10}}>
                 <button className="btn btn-primary" style={{flex:1,justifyContent:'center'}} onClick={async()=>{
-                  try{
-                    const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'procedente',operador:'admin'})});
-                    if(res.ok){alert('✅ Denúncia marcada como procedente!');setSel(null);}
-                    else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
-                  }catch(e){alert('Erro: '+e.message);}
+                  try{const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'procedente',operador:'admin'})});if(res.ok){alert('Denúncia marcada como procedente!');setSel(null)}else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText))}}catch(e){alert('Erro: '+e.message)}
                 }}>✓ Procedente</button>
                 <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}} onClick={async()=>{
                   const destino=prompt('Encaminhar para qual órgão?\n\n1 - Polícia Civil\n2 - Guarda Municipal\n3 - Meio Ambiente\n4 - Fiscalização\n\nDigite o número:');
-                  const orgaos={'1':'Polícia Civil','2':'Guarda Municipal','3':'Meio Ambiente','4':'Fiscalização'};
-                  const orgao=orgaos[destino];
-                  if(!orgao){if(destino!==null)alert('Opção inválida.');return;}
-                  try{
-                    const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'encaminhada',operador:'admin',notas:'Encaminhada para: '+orgao})});
-                    if(res.ok){alert('✅ Denúncia encaminhada para '+orgao+'!');setSel(null);}
-                    else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
-                  }catch(e){alert('Erro: '+e.message);}
+                  const orgaos={'1':'Polícia Civil','2':'Guarda Municipal','3':'Meio Ambiente','4':'Fiscalização'};const orgao=orgaos[destino];if(!orgao){if(destino!==null)alert('Opção inválida.');return}
+                  try{const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'encaminhada',operador:'admin',notas:'Encaminhada para: '+orgao})});if(res.ok){alert('Denúncia encaminhada para '+orgao+'!');setSel(null)}else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText))}}catch(e){alert('Erro: '+e.message)}
                 }}>→ Encaminhar</button>
                 <button className="btn btn-danger" style={{flex:1,justifyContent:'center'}} onClick={async()=>{
                   const motivo=prompt('Motivo (opcional):');
-                  try{
-                    const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'improcedente',operador:'admin',notas:motivo||''})});
-                    if(res.ok){alert('Denúncia marcada como improcedente.');setSel(null);}
-                    else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
-                  }catch(e){alert('Erro: '+e.message);}
+                  try{const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'improcedente',operador:'admin',notas:motivo||''})});if(res.ok){alert('Denúncia marcada como improcedente.');setSel(null)}else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText))}}catch(e){alert('Erro: '+e.message)}
                 }}>✕ Improcedente</button>
               </div>
             </div>
