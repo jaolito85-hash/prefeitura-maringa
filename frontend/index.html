@@ -2490,9 +2490,26 @@ function SOSMulher(){
   const [notas,setNotas]=useState('');
   const [salvandoNotas,setSalvandoNotas]=useState(false);
   const [histModal,setHistModal]=useState(null);
+  const [chatModal,setChatModal]=useState(null);
+  const [sosMsg,setSosMsg]=useState('');
+  const [sosSending,setSosSending]=useState(false);
+  const [sosChatHandoff,setSosChatHandoff]=useState(false);
 
   // Atualiza notas quando muda a seleção
   useEffect(()=>{setNotas(sel?.notas||'');},[sel?.id]);
+
+  async function sendSosMessage(){
+    if(!sosMsg.trim()||!chatModal) return;
+    setSosSending(true);
+    try{
+      await fetch(API_URL+'/api/sos/alertas/'+chatModal.id+'/send-message',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({telefone:chatModal.telefone,mensagem:sosMsg.trim(),operador:'Atendente SOS'})
+      });
+      setSosMsg('');
+    }catch(e){console.error('Erro ao enviar:',e);}
+    setSosSending(false);
+  }
 
   async function handleTraceRoute(item){
     setLoadingRoute(true);
@@ -2551,7 +2568,7 @@ function SOSMulher(){
           {SOS.map(s=>{
             const isAtt=s.status==='attending';
             return(
-              <div key={s.id} onClick={()=>setSel(s)} style={{margin:'0 10px 6px',padding:'14px 16px',borderRadius:8,background:sel?.id===s.id?'rgba(220,38,38,.08)':isAtt?'rgba(251,191,36,.05)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':isAtt?'rgba(251,191,36,.2)':'rgba(220,38,38,.12)'}`,cursor:'pointer'}}>
+              <div key={s.id} onClick={()=>{setSel(s);setChatModal(s);setSosChatHandoff(false);setSosMsg('');}} style={{margin:'0 10px 6px',padding:'14px 16px',borderRadius:8,background:sel?.id===s.id?'rgba(220,38,38,.08)':isAtt?'rgba(251,191,36,.05)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':isAtt?'rgba(251,191,36,.2)':'rgba(220,38,38,.12)'}`,cursor:'pointer'}}>
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
                   <span style={{fontWeight:600,fontSize:14,color:'#fff'}}>{s.sos_cadastros?.nome||s.telefone}</span>
                   <span style={{fontSize:12,color:isAtt?'#fbbf24':'#f87171'}}>{ago(s.created_at)}</span>
@@ -2683,6 +2700,117 @@ function SOSMulher(){
                     </a>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+      {/* ── MODAL ALERTA ATIVO — com chat do operador ── */}
+      {chatModal&&(()=>{
+        const s=chatModal;
+        const cad=s.sos_cadastros;
+        const isAtt=s.status==='attending';
+        const criadoEm=s.created_at?new Date(s.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
+        return(
+          <div className="modal-overlay" onClick={()=>setChatModal(null)}>
+            <div className="modal-box" onClick={e=>e.stopPropagation()} style={{maxWidth:660,maxHeight:'92vh'}}>
+              {/* Header */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 22px',borderBottom:'1px solid var(--border)',flexShrink:0,background:isAtt?'rgba(251,191,36,.03)':'rgba(220,38,38,.03)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <div style={{width:36,height:36,borderRadius:8,background:isAtt?'rgba(251,191,36,.12)':'rgba(220,38,38,.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{isAtt?'🔔':'🚨'}</div>
+                  <div>
+                    <div style={{fontSize:16,fontWeight:700,color:'#fff'}}>{cad?.nome||s.telefone}</div>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginTop:3}}>
+                      <span className={`badge ${isAtt?'b-warn':'b-red'}`} style={{fontSize:10}}>{isAtt?'Em atendimento':'Aguardando'}</span>
+                      <span style={{fontSize:11,color:'var(--text-muted)',fontFamily:'var(--font-mono)'}}>{criadoEm}</span>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={()=>setChatModal(null)} style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',cursor:'pointer',borderRadius:8,border:'none',background:'none',fontSize:18}}>✕</button>
+              </div>
+              {/* Body */}
+              <div className="scrollable" style={{flex:1,padding:'20px 22px',minHeight:0}}>
+                {/* Dados da vítima */}
+                {cad&&(
+                  <div style={{marginBottom:20}}>
+                    <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Dados da Vítima</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                      {[
+                        ['Nome',cad.nome],
+                        ['Telefone',s.telefone],
+                        ['Endereço',cad.endereco],
+                        ['Referência',cad.referencia],
+                        ['Agressor',cad.agressor],
+                        cad.contato_confianca_nome&&['Contato Confiança',`${cad.contato_confianca_nome} — ${cad.contato_confianca_telefone||''}`],
+                      ].filter(Boolean).filter(([,v])=>v).map(([l,v])=>(
+                        <div key={l} style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px'}}>
+                          <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:3}}>{l}</div>
+                          <div style={{fontSize:13,color:l==='Agressor'?'#f87171':'var(--text)',fontWeight:500,wordBreak:'break-word'}}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Sem cadastro */}
+                {!cad&&(
+                  <div style={{background:'rgba(251,191,36,.04)',border:'1px solid rgba(251,191,36,.15)',borderRadius:8,padding:'14px 16px',marginBottom:20}}>
+                    <div style={{fontSize:13,color:'#fbbf24',fontWeight:500}}>⚠️ Vítima não cadastrada no programa</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:4}}>Telefone: {s.telefone}</div>
+                  </div>
+                )}
+                {/* Localização */}
+                {s.latitude&&(
+                  <div style={{marginBottom:20}}>
+                    <a href={`https://www.google.com/maps?q=${s.latitude},${s.longitude}`} target="_blank" rel="noopener"
+                      style={{display:'flex',alignItems:'center',gap:8,background:'rgba(59,130,246,.06)',border:'1px solid rgba(59,130,246,.15)',borderRadius:8,padding:'12px 16px',textDecoration:'none',color:'#60a5fa',fontSize:13,fontWeight:500}}>
+                      📍 Ver no Google Maps — {Number(s.latitude).toFixed(5)}, {Number(s.longitude).toFixed(5)}
+                    </a>
+                  </div>
+                )}
+                {/* Ações */}
+                <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:20}}>
+                  {!isAtt&&(
+                    <button className="btn" style={{background:'#fbbf24',color:'#000',border:'none',fontSize:13,padding:'8px 16px',fontWeight:600}}
+                      onClick={async()=>{
+                        try{const res=await fetch(API_URL+'/api/sos/alertas/'+s.id+'/aceitar',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({operador:'admin'})});
+                        if(res.ok){setChatModal(prev=>({...prev,status:'attending'}));setSel(prev=>prev?.id===s.id?{...prev,status:'attending'}:prev);}}catch(e){alert('Erro: '+e.message);}
+                      }}>🔔 Aceitar Atendimento</button>
+                  )}
+                  <a href={`tel:190`} className="btn btn-danger" style={{fontSize:13,padding:'8px 16px',textDecoration:'none'}}>📞 190</a>
+                  <a href={`tel:153`} className="btn btn-outline" style={{fontSize:13,padding:'8px 16px',textDecoration:'none'}}>📞 153</a>
+                  <button className="btn" style={{background:'var(--accent)',color:'#fff',border:'none',fontSize:13,padding:'8px 16px'}}
+                    onClick={()=>{handleTraceRoute(s);setChatModal(null);}} disabled={loadingRoute}>🗺️ Traçar Rota</button>
+                  <button className="btn btn-danger" style={{fontSize:13,padding:'8px 16px'}} onClick={async()=>{
+                    const motivo=prompt('Notas de resolução (opcional):');
+                    try{const res=await fetch(API_URL+'/api/sos/alertas/'+s.id+'/resolver',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({notas:motivo||''})});
+                    if(res.ok){alert('✅ Alerta resolvido.');setChatModal(null);setSel(null);}}catch(e){alert('Erro: '+e.message);}
+                  }}>✓ Resolver</button>
+                </div>
+                {/* Assumir Conversa */}
+                <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                    <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px'}}>Conversa com a Vítima</div>
+                    <button className={`btn ${sosChatHandoff?'btn-danger':'btn-primary'}`} style={{fontSize:11,padding:'5px 12px'}}
+                      onClick={()=>setSosChatHandoff(!sosChatHandoff)}>
+                      {sosChatHandoff?'✕ Encerrar conversa':'💬 Assumir conversa'}
+                    </button>
+                  </div>
+                  {sosChatHandoff&&(
+                    <div style={{background:'rgba(220,38,38,.04)',border:'1px solid rgba(220,38,38,.12)',borderRadius:8,padding:14}}>
+                      <div style={{fontSize:12,color:'#f87171',fontWeight:500,marginBottom:10}}>⚠️ Cuidado: suas mensagens serão enviadas diretamente para o WhatsApp da vítima.</div>
+                      <div style={{display:'flex',gap:8}}>
+                        <textarea value={sosMsg} onChange={e=>setSosMsg(e.target.value)}
+                          placeholder="Digite sua mensagem para a vítima..."
+                          onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendSosMessage();}}}
+                          style={{flex:1,fontSize:13,lineHeight:1.5,background:'rgba(0,0,0,.3)',border:'1px solid var(--border)',borderRadius:6,padding:'10px 12px',color:'var(--text)',resize:'none',minHeight:44}}/>
+                        <button className="btn btn-primary" style={{alignSelf:'flex-end',padding:'10px 16px'}}
+                          onClick={sendSosMessage} disabled={sosSending||!sosMsg.trim()}>
+                          {sosSending?'...':'Enviar'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

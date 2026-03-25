@@ -1,8 +1,18 @@
 """
 sos.py — Endpoints REST para a aba SOS Mulher
 """
+import logging
+import os
+
+import httpx
 from fastapi import APIRouter
 from app.services.supabase_client import get_supabase
+
+logger = logging.getLogger("api.sos")
+
+EVOLUTION_API_URL = os.environ.get("EVOLUTION_API_URL", "")
+EVOLUTION_API_KEY = os.environ.get("EVOLUTION_API_KEY", "")
+WA_INSTANCE_NAME = os.environ.get("WA_INSTANCE_NAME", "maringa-demo")
 
 router = APIRouter()
 
@@ -72,3 +82,29 @@ async def salvar_notas(alerta_id: str, body: dict):
         "notas": body.get("notas", ""),
     }).eq("id", alerta_id).execute()
     return result.data[0] if result.data else {}
+
+
+@router.post("/alertas/{alerta_id}/send-message")
+async def send_sos_message(alerta_id: str, body: dict):
+    """Envia mensagem do operador para a vítima via WhatsApp."""
+    telefone = body.get("telefone", "")
+    mensagem = body.get("mensagem", "")
+    operador = body.get("operador", "Atendente SOS")
+
+    if not telefone or not mensagem:
+        return {"error": "telefone e mensagem obrigatórios"}
+
+    if EVOLUTION_API_URL and EVOLUTION_API_KEY:
+        numero = telefone.lstrip("+")
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(
+                    f"{EVOLUTION_API_URL}/message/sendText/{WA_INSTANCE_NAME}",
+                    headers={"apikey": EVOLUTION_API_KEY},
+                    json={"number": numero, "text": f"*{operador}:*\n{mensagem}"},
+                )
+        except Exception as exc:
+            logger.error(f"Erro ao enviar msg SOS: {exc}")
+            return {"error": str(exc)}
+
+    return {"status": "sent"}
