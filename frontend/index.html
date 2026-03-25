@@ -1776,6 +1776,7 @@ function ocMaskPhone(phone){
 /* Mock citizen/chat data for each occurrence — keyed by ocorrencia id */
 const OC_MOCK_CITIZENS={};
 function ocGetCitizens(ocId,oc){
+  if(!oc||!ocId)return[];
   if(OC_MOCK_CITIZENS[ocId])return OC_MOCK_CITIZENS[ocId];
   const names=[
     {name:'Maria Silva',phone:'5544991500066'},{name:'Carlos Eduardo',phone:'5544988700022'},
@@ -1785,24 +1786,26 @@ function ocGetCitizens(ocId,oc){
     {name:'Dona Rosa',phone:'5544996700028'},{name:'Lucas Torres',phone:'5544995600044'},
     {name:'Rafael Neto',phone:'5544990300052'},{name:'Fernanda Lima',phone:'5544998200037'},
   ];
-  const titulo=oc.titulo||'Ocorrência';
-  const bairro=oc.bairro||'';
-  const nCitizens=Math.max(1,Math.min(oc.total_relatos||1,4));
-  const offset=(ocId*3)%names.length;
+  const titulo=oc?.titulo||oc?.title||'Ocorrência';
+  const bairro=oc?.bairro||'';
+  const nCitizens=Math.max(1,Math.min(oc?.total_relatos||1,4));
+  const safeId=typeof ocId==='number'?ocId:parseInt(ocId)||0;
+  const offset=(safeId*3)%names.length;
   const citizens=[];
   for(let i=0;i<nCitizens;i++){
     const n=names[(offset+i)%names.length];
-    const initials=n.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+    if(!n||!n.name)continue;
+    const initials=n.name.split(' ').map(w=>w?.[0]||'').join('').slice(0,2);
     const h=14+Math.floor(Math.random()*4);const m=Math.floor(Math.random()*60);
     const timeStr=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
     const chatMsgs=[
       {from:'cidadao',msg:i===0?`${titulo} aqui no ${bairro}! Situação complicada.`:`Confirmando a ocorrência no ${bairro}. Vi agora.`,time:timeStr},
-      {from:'bot',msg:`Obrigado ${n.name.split(' ')[0]}! Sua denúncia foi registrada com o protocolo #${oc.protocolo||'MGA-2026-?????'}. Equipe será acionada.`,time:timeStr},
+      {from:'bot',msg:`Obrigado ${n.name.split(' ')[0]}! Sua denúncia foi registrada com o protocolo #${oc?.protocolo||'MGA-2026-?????'}. Equipe será acionada.`,time:timeStr},
     ];
     if(i===0){
-      chatMsgs.push({from:'cidadao',msg:'Ainda está acontecendo, mandem alguém por favor.',time:String(h).padStart(2,'0')+':'+String(m+8).padStart(2,'0')});
+      chatMsgs.push({from:'cidadao',msg:'Ainda está acontecendo, mandem alguém por favor.',time:String(h).padStart(2,'0')+':'+String(Math.min(m+8,59)).padStart(2,'0')});
     }
-    citizens.push({id:'c'+ocId+'_'+i,name:n.name,phone:n.phone,initials,msgs:chatMsgs.filter(c=>c.from==='cidadao').length,time:timeStr,chat:chatMsgs,fotos:Math.floor(Math.random()*4)+1,videos:Math.floor(Math.random()*2)});
+    citizens.push({id:'c'+safeId+'_'+i,name:n.name,phone:n.phone,initials,msgs:chatMsgs.filter(c=>c.from==='cidadao').length,time:timeStr,chat:chatMsgs,fotos:Math.floor(Math.random()*4)+1,videos:Math.floor(Math.random()*2)});
   }
   OC_MOCK_CITIZENS[ocId]=citizens;
   return citizens;
@@ -1962,9 +1965,9 @@ function Ocorrencias(){
           </div>
         </div>
         <div className="oc-cards-list">
-          {lista.map(o=>{
-            const type=OC_TYPE_MAP[o.categoria]||'gas';
-            const sev=o.severidade||'baixa';
+          {lista.filter(o=>o&&o.id).map(o=>{
+            const type=OC_TYPE_MAP[o?.categoria]||'gas';
+            const sev=o?.severidade||'baixa';
             const step=OC_STATUS_STEP[o.status]||0;
             const isSel=sel?.id===o.id;
             const citizens=ocGetCitizens(o.id,o);
@@ -1975,8 +1978,8 @@ function Ocorrencias(){
                 <div className="oc-card-top">
                   <CardIcon type={type}/>
                   <div className="oc-card-info">
-                    <div className="oc-card-title">{o.titulo}</div>
-                    <div className="oc-card-meta">{o.bairro} · {ago(o.created_at)}</div>
+                    <div className="oc-card-title">{o?.titulo||o?.title||'Ocorrência'}</div>
+                    <div className="oc-card-meta">{o?.bairro||'—'} · {ago(o?.created_at)}</div>
                   </div>
                   <span className={`oc-sev ${sev}`}>{sev==='critica'?'Crítica':sev==='alta'?'Alta':sev==='media'?'Média':'Baixa'}</span>
                 </div>
@@ -2015,16 +2018,16 @@ function Ocorrencias(){
                 <span className="oc-side-proto">{sel.protocolo}</span>
                 <button className="oc-side-close" onClick={()=>{setSel(null);setViewCitizen(null);}}>&#10005;</button>
               </div>
-              <div className="oc-side-title">{sel.titulo}</div>
+              <div className="oc-side-title">{sel?.titulo||sel?.title||'Ocorrência'}</div>
               <div className="oc-side-tags">
-                <span className={`oc-side-tag sev-${sel.severidade||'baixa'}`}>{(sel.severidade||'baixa').toUpperCase()}</span>
+                <span className={`oc-side-tag sev-${sel?.severidade||'baixa'}`}>{(sel?.severidade||'baixa').toUpperCase()}</span>
                 <span className="oc-side-tag status-t">{OC_STATUS_LABELS[currentStep]}</span>
                 <span className="oc-side-tag reporters-t">{currentCitizens.length} cidadãos</span>
-                <span className="oc-side-tag bairro-t">{sel.bairro}</span>
+                <span className="oc-side-tag bairro-t">{sel?.bairro||'—'}</span>
               </div>
               <div className="oc-side-location">
                 <OC_SVG.pin width={15} height={15}/>
-                {sel.endereco||`${sel.bairro}, Maringá - PR`}
+                {sel?.endereco||`${sel?.bairro||'Maringá'}, Maringá - PR`}
               </div>
             </div>
             <div className="oc-side-body">
@@ -2050,12 +2053,12 @@ function Ocorrencias(){
               })()}
 
               <div className="oc-section-label">Cidadãos que reportaram</div>
-              {currentCitizens.map(c=>(
+              {(currentCitizens||[]).filter(Boolean).map(c=>(
                 <div key={c.id} className="oc-citizen-item" onClick={()=>setViewCitizen(c.id)}>
-                  <div className="oc-citizen-avatar">{c.initials}</div>
+                  <div className="oc-citizen-avatar">{c?.initials||'?'}</div>
                   <div className="oc-citizen-info">
-                    <div className="oc-citizen-name">{c.name}</div>
-                    <div className="oc-citizen-phone">{ocMaskPhone(c.phone)}</div>
+                    <div className="oc-citizen-name">{c?.name||'Cidadão'}</div>
+                    <div className="oc-citizen-phone">{ocMaskPhone(c?.phone||'')}</div>
                     <div className={`oc-citizen-handoff-badge ${handoffMap[c.id]?'visible':''}`}><span className="hd"></span> Humano ativo</div>
                   </div>
                   <div className="oc-citizen-right">
@@ -2092,17 +2095,17 @@ function Ocorrencias(){
             {/* Level 2: Citizen chat */}
             <div className="oc-side-header">
               <div className="oc-side-header-top">
-                <span className="oc-side-proto">{sel.protocolo}</span>
+                <span className="oc-side-proto">{sel?.protocolo||'—'}</span>
                 <button className="oc-side-close" onClick={()=>{setSel(null);setViewCitizen(null);}}>&#10005;</button>
               </div>
               <button className="oc-chat-back" onClick={()=>setViewCitizen(null)}>
                 <OC_SVG.back width={16} height={16}/> Voltar para ocorrência
               </button>
               <div className="oc-chat-citizen-header">
-                <div className="oc-citizen-avatar">{activeCitizen.initials}</div>
+                <div className="oc-citizen-avatar">{activeCitizen?.initials||'?'}</div>
                 <div>
-                  <div className="oc-ch-name">{activeCitizen.name}</div>
-                  <div className="oc-ch-phone">{ocMaskPhone(activeCitizen.phone)}</div>
+                  <div className="oc-ch-name">{activeCitizen?.name||'Cidadão'}</div>
+                  <div className="oc-ch-phone">{ocMaskPhone(activeCitizen?.phone)}</div>
                 </div>
               </div>
             </div>
@@ -2115,11 +2118,11 @@ function Ocorrencias(){
                 {handoffMap[viewCitizen]?<><OC_SVG.handoffRelease width={16} height={16}/> Devolver para IA</>:<><OC_SVG.handoffTake width={16} height={16}/> Assumir conversa</>}
               </button>
               <div className="oc-chat-area">
-                {activeCitizen.chat.map((m,i)=>{
-                  if(m.from==='system')return <div key={i} className="oc-chat-bubble oc-bubble-system"><span>{m.msg}</span></div>;
-                  if(m.from==='humano')return <div key={i} className="oc-chat-bubble oc-bubble-human"><div className="oc-chat-sender">Atendente</div>{m.msg}<div className="oc-chat-time">{m.time}</div></div>;
-                  if(m.from==='cidadao')return <div key={i} className="oc-chat-bubble oc-bubble-citizen"><div className="oc-chat-sender">{activeCitizen.name}</div>{m.msg}<div className="oc-chat-time">{m.time}</div></div>;
-                  return <div key={i} className="oc-chat-bubble oc-bubble-bot"><div className="oc-chat-sender">NodeData</div>{m.msg}<div className="oc-chat-time">{m.time}</div></div>;
+                {(activeCitizen?.chat||[]).filter(Boolean).map((m,i)=>{
+                  if(m?.from==='system')return <div key={i} className="oc-chat-bubble oc-bubble-system"><span>{m.msg}</span></div>;
+                  if(m?.from==='humano')return <div key={i} className="oc-chat-bubble oc-bubble-human"><div className="oc-chat-sender">Atendente</div>{m.msg}<div className="oc-chat-time">{m?.time}</div></div>;
+                  if(m?.from==='cidadao')return <div key={i} className="oc-chat-bubble oc-bubble-citizen"><div className="oc-chat-sender">{activeCitizen?.name||'Cidadão'}</div>{m.msg}<div className="oc-chat-time">{m?.time}</div></div>;
+                  return <div key={i} className="oc-chat-bubble oc-bubble-bot"><div className="oc-chat-sender">NodeData</div>{m.msg}<div className="oc-chat-time">{m?.time}</div></div>;
                 })}
               </div>
             </div>
