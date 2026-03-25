@@ -101,7 +101,16 @@ Mensagens que são OPINIÕES, ELOGIOS, RECLAMAÇÕES, PEDIDOS DE AJUDA sobre ser
 - Sugestão de melhoria
 - Opinião sobre a cidade, mobilidade, transporte
 - REGRA: "o caminhão do lixo não passa" = feedback/reclamação (serviço público), NÃO denúncia
-- Categorias: transporte_mobilidade, saude, educacao, seguranca, infraestrutura, meio_ambiente, assistencia_social, cultura_lazer, atendimento_publico, outros
+- Categorias: transporte_mobilidade, saude, educacao, seguranca, infraestrutura, meio_ambiente, limpeza_urbana, assistencia_social, cultura_lazer, atendimento_publico, outros
+- REGRA de categorização:
+  - "caminhão de lixo", "coleta de lixo", "lixo na rua", "lixeira", "varrição" → limpeza_urbana
+  - "ônibus", "transporte", "mobilidade", "ciclovia", "trânsito" → transporte_mobilidade
+  - "hospital", "UBS", "posto de saúde", "fila", "remédio" → saude
+  - "escola", "creche", "professor" → educacao
+  - "buraco", "asfalto", "calçada", "obra" → infraestrutura
+  - "árvore", "poda", "parque", "rio", "poluição" → meio_ambiente
+  - "assistência", "vulnerável", "idoso", "morador de rua" → assistencia_social
+  - "assalto", "roubo", "iluminação", "escuro" → seguranca
 
 ## PRIORIDADE PARA FEEDBACKS:
 Use o campo "urgencia" com estes valores para feedbacks:

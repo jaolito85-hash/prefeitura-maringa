@@ -2127,6 +2127,24 @@ def _continuar_feedback(event: dict, sb: Client) -> None:
     if texto:
         mensagem_completa = f"{texto_original}\n[Detalhe adicional: {texto}]"
 
+    # O detalhe adicional geralmente é o endereço/local que a Clara pediu
+    # Salvar como endereco do feedback
+    endereco = texto.strip() if texto else None
+    bairro = None
+
+    # Se recebeu localização GPS, geocodificar
+    lat = event.get("latitude")
+    lng = event.get("longitude")
+    if lat and lng:
+        try:
+            endereco_geo, bairro_geo = _geocodificar_sync(lat, lng)
+            if endereco_geo:
+                endereco = endereco_geo
+            if bairro_geo:
+                bairro = bairro_geo
+        except Exception:
+            pass
+
     res = sb.table("feedbacks").insert({
         "protocolo": protocolo,
         "telefone": telefone,
@@ -2136,8 +2154,10 @@ def _continuar_feedback(event: dict, sb: Client) -> None:
         "urgencia": contexto.get("urgencia", "normal"),
         "mensagem": mensagem_completa,
         "resumo": contexto.get("resumo"),
-        "latitude": event.get("latitude"),
-        "longitude": event.get("longitude"),
+        "endereco": endereco,
+        "bairro": bairro,
+        "latitude": lat,
+        "longitude": lng,
         "status": "novo",
     }).execute()
 
