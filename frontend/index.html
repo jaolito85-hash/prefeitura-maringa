@@ -418,6 +418,23 @@ tr{transition:.12s}
 .rec-summary-card:nth-child(4){animation-delay:.2s}
 @media(max-width:1100px){.rec-summary-row{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:768px){.rec-summary-row{grid-template-columns:1fr}.rec-toolbar{flex-direction:column;align-items:stretch}.rec-period-bar{flex-wrap:wrap}}
+
+/* ==================== LOGIN SCREEN ==================== */
+.login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-screen::before{content:'';position:fixed;inset:0;background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(16,185,129,.06) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(59,130,246,.04) 0%,transparent 60%);pointer-events:none}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px 36px;width:100%;max-width:380px;text-align:center;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--blue));border-radius:16px 16px 0 0}
+.login-logo{font-family:'Public Sans',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:-.3px;margin-bottom:4px}
+.login-logo span{font-weight:500;color:var(--accent-light)}
+.login-sub{font-size:12px;color:var(--text-muted);margin-bottom:28px;letter-spacing:.2px}
+.login-label{display:block;text-align:left;font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px}
+.login-input{width:100%;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Public Sans',sans-serif;font-size:14px;font-weight:500;outline:none;transition:border-color .2s}
+.login-input:focus{border-color:rgba(16,185,129,.4)}
+.login-input::placeholder{color:var(--text-muted);font-weight:400}
+.login-btn{width:100%;padding:12px;margin-top:16px;background:linear-gradient(135deg,var(--accent),var(--accent-dark));border:none;border-radius:10px;color:#fff;font-family:'Public Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.2px}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(16,185,129,.25)}
+.login-btn:active{transform:translateY(0)}
+.login-error{color:#ef4444;font-size:13px;font-weight:600;margin-top:12px;min-height:20px}
 </style>
 </head>
 <body>
@@ -3093,7 +3110,36 @@ function App(){
     </div>
   );
 }
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+/* ─── LOGIN GATE (provisório até Supabase Auth) ──────────────── */
+function LoginScreen({onAuth}){
+  const [senha,setSenha]=useState('');
+  const [erro,setErro]=useState('');
+  const inputRef=useRef(null);
+  useEffect(()=>{inputRef.current?.focus();},[]);
+  const submit=(e)=>{
+    e.preventDefault();
+    if(senha==='nodedata2026'){sessionStorage.setItem('nd_auth','1');onAuth();}
+    else{setErro('Senha incorreta');setSenha('');}
+  };
+  return(
+    <div className="login-screen">
+      <form className="login-box" onSubmit={submit}>
+        <div className="login-logo">Node<span>Data</span></div>
+        <div className="login-sub">Central de Segurança Pública · Maringá-PR</div>
+        <label className="login-label">Senha de Acesso</label>
+        <input ref={inputRef} className="login-input" type="password" placeholder="Digite a senha..." value={senha} onChange={e=>{setSenha(e.target.value);setErro('');}}/>
+        <button className="login-btn" type="submit">Entrar</button>
+        <div className="login-error">{erro}</div>
+      </form>
+    </div>
+  );
+}
+function Root(){
+  const [auth,setAuth]=useState(()=>sessionStorage.getItem('nd_auth')==='1');
+  if(!auth)return <LoginScreen onAuth={()=>setAuth(true)}/>;
+  return <App/>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Root/>);
 </script>
 </body>
 </html>
