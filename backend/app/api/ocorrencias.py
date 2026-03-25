@@ -60,6 +60,8 @@ async def relatos_da_ocorrencia(ocorrencia_id: str):
 @router.patch("/{ocorrencia_id}/status")
 async def atualizar_status_ocorrencia(ocorrencia_id: str, body: dict):
     """Atualiza o status de uma ocorrência (usado pelos botões do dashboard)."""
+    from datetime import datetime, timezone
+
     sb = get_supabase()
     update_data = {}
 
@@ -71,10 +73,14 @@ async def atualizar_status_ocorrencia(ocorrencia_id: str, body: dict):
         update_data["notas"] = body["notas"]
     if "equipe" in body:
         update_data["equipe"] = body["equipe"]
+    if "equipe_designada" in body:
+        update_data["equipe_designada"] = body["equipe_designada"]
+
+    if body.get("status") == "encaminhada":
+        update_data["encaminhada_em"] = datetime.now(timezone.utc).isoformat()
 
     if body.get("status") == "resolvido":
-        from datetime import datetime, timezone
-        update_data["resolvido_em"] = datetime.now(timezone.utc).isoformat()
+        update_data["resolvida_em"] = datetime.now(timezone.utc).isoformat()
 
     result = sb.table("ocorrencias").update(update_data).eq("id", ocorrencia_id).execute()
     return result.data[0] if result.data else {}

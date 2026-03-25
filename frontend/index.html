@@ -1759,7 +1759,7 @@ const OC_TYPE_MAP={
   outros_urbanos:'gas',geral:'gas',
 };
 /* Map API status to step index */
-const OC_STATUS_STEP={aberto:0,equipe_caminho:1,em_atendimento:2,resolvido:3};
+const OC_STATUS_STEP={aberto:0,encaminhada:1,equipe_caminho:1,no_local:2,em_atendimento:2,resolvido:3};
 const OC_STATUS_LABELS=['Aberto','Encaminhada','No Local','Resolvido'];
 const OC_STATUS_CLS=['aberto','encaminhada','no-local','resolvido'];
 
@@ -1806,10 +1806,24 @@ function Ocorrencias(){
 
   async function handleTraceRoute(item){
     setLoadingRoute(true);
-    const base=nearestBase(item.lat,item.lng,'gcm');
+    let destLat=item.lat, destLng=item.lng;
+    /* Se não tem coordenadas, geocodifica o endereço via Mapbox */
+    if(!destLat||!destLng){
+      const endereco=item.endereco||item.endereco_normalizado||item.bairro;
+      if(!endereco){alert('Sem endereço ou coordenadas para traçar rota.');setLoadingRoute(false);return;}
+      try{
+        const geoRes=await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(endereco+', Maringá, Paraná, Brasil')}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
+        const geoData=await geoRes.json();
+        if(geoData.features&&geoData.features.length>0){
+          const [gLng,gLat]=geoData.features[0].center;
+          destLat=gLat; destLng=gLng;
+        }else{alert('Não foi possível localizar o endereço no mapa.');setLoadingRoute(false);return;}
+      }catch(e){alert('Erro ao geocodificar endereço: '+e.message);setLoadingRoute(false);return;}
+    }
+    const base=nearestBase(destLat,destLng,'gcm');
     if(!base){setLoadingRoute(false);return;}
-    const r=await fetchRoute(base.lng,base.lat,item.lng,item.lat);
-    if(r){setRouteData(r);setRouteBase(base);setRouteIncident(item);}
+    const r=await fetchRoute(base.lng,base.lat,destLng,destLat);
+    if(r){setRouteData(r);setRouteBase(base);setRouteIncident({...item,lat:destLat,lng:destLng});}
     setLoadingRoute(false);
   }
 
@@ -1835,14 +1849,39 @@ function Ocorrencias(){
     }catch(e){alert('Erro: '+e.message);}
   }
 
-  /* Status flow click */
+  /* Status flow click — only "No Local" is clickable by operator */
   function handleStatusClick(stepIdx){
     if(!sel)return;
-    const statusKeys=['aberto','equipe_caminho','em_atendimento','resolvido'];
     const currentStep=OC_STATUS_STEP[sel.status]||0;
     if(stepIdx<=currentStep)return;
-    if(stepIdx===3&&!confirm('Marcar ocorrência como resolvida?'))return;
-    updateStatus(sel.id,statusKeys[stepIdx]);
+    /* Only step 2 (No Local) is clickable manually */
+    if(stepIdx===2){
+      updateStatus(sel.id,'no_local');
+    }
+    /* Steps 0 (Aberto), 1 (Encaminhada) and 3 (Resolvido) are controlled by buttons */
+  }
+
+  /* Despachar: requires team selection */
+  async function handleDespachar(){
+    if(!sel)return;
+    const selectEl=document.querySelector('.oc-team-select');
+    const equipe=selectEl?.value;
+    if(!equipe||equipe==='Designar equipe...'){
+      alert('Selecione uma equipe antes de despachar.');
+      return;
+    }
+    try{
+      const res=await fetch(API_URL+'/api/ocorrencias/'+sel.id+'/status',{
+        method:'PATCH',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({status:'encaminhada',equipe_designada:equipe})
+      });
+      if(res.ok){
+        const updated=await res.json();
+        setSel(prev=>({...prev,status:'encaminhada',equipe_designada:equipe,...updated}));
+      }else{
+        const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));
+      }
+    }catch(e){alert('Erro: '+e.message);}
   }
 
   /* Handoff toggle */
@@ -2044,10 +2083,11 @@ function Ocorrencias(){
               <div className="oc-section-label">Status do atendimento</div>
               <div className="oc-status-flow">
                 {OC_STATUS_LABELS.map((label,i)=>(
-                  <div key={i} className={`oc-sf-step ${i<currentStep?'done':i===currentStep?'current':''}`}
-                    onClick={()=>handleStatusClick(i)}>{label}</div>
+                  <div key={i} className={`oc-sf-step ${i<currentStep?'done':i===currentStep?'current':''} ${i===2&&currentStep<2?'clickable':''}`}
+                    onClick={()=>{if(i===2)handleStatusClick(i);}} style={{cursor:i===2&&currentStep<2?'pointer':'default'}}>{label}</div>
                 ))}
               </div>
+              {sel.equipe_designada&&<div style={{fontSize:12,color:'var(--accent)',marginTop:4,fontWeight:500}}>Encaminhada para: {sel.equipe_designada}</div>}
 
               {(()=>{
                 const urls=(sel?.midia_urls||[]).filter(Boolean);
@@ -2095,11 +2135,11 @@ function Ocorrencias(){
                 <option>Energética</option>
               </select>
               <div className="oc-side-actions-row">
-                <button className="oc-act-btn oc-act-primary" onClick={()=>{if(sel.status==='aberto')updateStatus(sel.id,'equipe_caminho');}}>Despachar</button>
+                <button className="oc-act-btn oc-act-primary" onClick={handleDespachar} disabled={currentStep>=1}>Despachar</button>
                 <button className="oc-act-btn oc-act-blue" onClick={()=>handleTraceRoute(sel)} disabled={loadingRoute}>{loadingRoute?'Calculando...':'Traçar Rota'}</button>
               </div>
               <div className="oc-side-actions-row">
-                <button className="oc-act-btn oc-act-green" onClick={()=>{if(confirm('Marcar ocorrência como resolvida?'))updateStatus(sel.id,'resolvido');}}>Resolver</button>
+                <button className="oc-act-btn oc-act-green" onClick={()=>{if(confirm('Marcar ocorrência como resolvida?'))updateStatus(sel.id,'resolvido');}} disabled={currentStep>=3}>Resolver</button>
                 <button className="oc-act-btn oc-act-secondary">Mesclar</button>
               </div>
             </div>
