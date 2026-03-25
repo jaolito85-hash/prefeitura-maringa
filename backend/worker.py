@@ -104,16 +104,28 @@ def _identificar_categoria_menu(texto: str) -> str | None:
 
 def classificar_foto_origem(event: dict) -> dict:
     """Classifica a origem da foto baseado nos metadados da Evolution API.
-    Retorna dict com foto_origem, foto_flag e foto_flag_motivo."""
+    Retorna dict com foto_origem, foto_flag e foto_flag_motivo.
+
+    Lógica:
+    - Sem mídia de imagem/vídeo → unknown (sem foto pra verificar)
+    - Encaminhada (isForwarded/forwardingScore) → high (red flag)
+    - Com mediaKeyTimestamp → compara com horário de recebimento
+    - Sem mediaKeyTimestamp mas NÃO encaminhada → foto direta (confiável)
+      A Evolution API nem sempre envia mediaKeyTimestamp, mas se não
+      é encaminhada, a foto veio diretamente do celular do cidadão.
+    """
     is_forwarded = event.get("is_forwarded", False)
     forwarding_score = event.get("forwarding_score", 0) or 0
     media_key_timestamp = event.get("media_key_timestamp")
     received_at = event.get("received_at", "")
 
-    # Sem mídia de imagem → desconhecida
+    # Sem mídia de imagem/vídeo → unknown
     tipo_midia = event.get("tipo_midia")
-    if tipo_midia != "imagem":
+    if tipo_midia not in ("imagem", "video"):
         return {"foto_origem": "desconhecida", "foto_flag": "unknown", "foto_flag_motivo": "Sem foto para verificar"}
+
+    logger.info(f"📷 classificar_foto: tipo={tipo_midia}, forwarded={is_forwarded}, "
+                f"fwd_score={forwarding_score}, mediaKeyTs={media_key_timestamp}")
 
     # 1. Foto encaminhada → RED FLAG ALTA
     if is_forwarded or forwarding_score > 0:
@@ -123,12 +135,14 @@ def classificar_foto_origem(event: dict) -> dict:
             "foto_flag_motivo": "Foto encaminhada de outra conversa",
         }
 
-    # 2. Comparar mediaKeyTimestamp com horário de recebimento
+    # 2. Comparar mediaKeyTimestamp com horário de recebimento (quando disponível)
     if media_key_timestamp and received_at:
         try:
             ts_media = datetime.fromtimestamp(media_key_timestamp, tz=timezone.utc)
             ts_received = datetime.fromisoformat(received_at.replace("Z", "+00:00"))
             diff_seconds = (ts_received - ts_media).total_seconds()
+
+            logger.info(f"📷 timestamp diff: {diff_seconds:.0f}s ({diff_seconds/60:.1f}min)")
 
             # Foto tirada na hora (< 5 min)
             if diff_seconds < 300:
@@ -151,10 +165,17 @@ def classificar_foto_origem(event: dict) -> dict:
                     "foto_flag": "low",
                     "foto_flag_motivo": "Foto enviada da galeria",
                 }
-        except (ValueError, TypeError, OSError):
-            pass
+        except (ValueError, TypeError, OSError) as exc:
+            logger.warning(f"📷 Erro ao comparar timestamps: {exc}")
 
-    return {"foto_origem": "desconhecida", "foto_flag": "unknown", "foto_flag_motivo": "Origem não verificada"}
+    # 3. Sem timestamp mas NÃO encaminhada → foto direta (confiável)
+    # A Evolution API nem sempre envia mediaKeyTimestamp.
+    # Se chegou até aqui, não é encaminhada → veio do celular do cidadão.
+    return {
+        "foto_origem": "camera_direta",
+        "foto_flag": "none",
+        "foto_flag_motivo": "Foto enviada diretamente",
+    }
 
 
 # Chave AES para criptografia (em produção, vem do .env)
