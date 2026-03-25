@@ -3063,7 +3063,7 @@ function Feedbacks(){
     else if(urgentes>5) txt=`🟡 Atenção: ${urgentes} feedbacks urgentes. Principal tema: ${topCatLabel}. ${negCount>posCount?'Sentimento predominante negativo — monitorar de perto.':''}`;
     else if(negCount>posCount*2) txt=`😔 Sentimento negativo predominante (${negCount} de ${all.length}). Principais reclamações em ${topCatLabel}${topBairro?`, concentradas em ${topBairro[0]}`:''}.`;
     else if(posCount>negCount) txt=`😊 Tendência positiva! ${posCount} elogios de ${all.length} feedbacks. Destaque para ${topCatLabel}. Maringá está no caminho certo!`;
-    else txt=`📊 ${all.length} feedbacks analisados. ${topCatLabel} é o tema mais recorrente${topBairro?` (${topBairro[0]} lidera)':''}. ${criticos>0?`${criticos} críticos requerem atenção.`:'Situação estável.'}`;
+    else txt=`📊 ${all.length} feedbacks analisados. ${topCatLabel} é o tema mais recorrente${topBairro?` (${topBairro[0]} lidera)`:``}. ${criticos>0?`${criticos} críticos requerem atenção.`:`Situação estável.`}`;
     setAiPulse(txt);setAiPulseTime(new Date());
   }
 
