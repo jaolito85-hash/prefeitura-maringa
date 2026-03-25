@@ -2015,6 +2015,23 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
 # PROCESSADORES — FEEDBACK
 # ══════════════════════════════════════════════════════════════
 
+def _salvar_msg_feedback(sb: Client, feedback_id: str, telefone: str, nome: str | None,
+                         mensagem: str, remetente: str = "cidadao") -> None:
+    """Salva uma mensagem no histórico do chat de feedback."""
+    if not feedback_id or not mensagem:
+        return
+    try:
+        sb.table("feedbacks_mensagens").insert({
+            "feedback_id": feedback_id,
+            "telefone": telefone,
+            "nome": nome,
+            "mensagem": mensagem,
+            "remetente": remetente,
+        }).execute()
+    except Exception as exc:
+        logger.error(f"Erro ao salvar msg feedback: {exc}")
+
+
 def processar_feedback(event: dict, sb: Client) -> None:
     classificacao = event.get("classificacao", {})
     telefone = event.get("telefone", "desconhecido")
@@ -2065,18 +2082,25 @@ def processar_feedback(event: dict, sb: Client) -> None:
     }).execute()
 
     if res.data:
+        feedback_id = res.data[0]["id"]
         logger.info(f"Feedback: {protocolo} ({sentimento})")
+
+        # Salvar mensagem do cidadão
+        _salvar_msg_feedback(sb, feedback_id, telefone, push_name, texto)
 
         if resposta_ia:
             resposta = (f"{resposta_ia}\n\n"
                         f"📋 Protocolo: *{protocolo}*\n\n"
-                        f"Seu feedback ajuda Maringá a melhorar cada vez mais! 💙")
+                        f"Seu feedback é muito importante para Maringá! 💙")
         else:
             emoji = {"positivo": "😊", "negativo": "😔", "neutro": "📝"}.get(sentimento, "📝")
             resposta = (f"{emoji} Obrigado pelo seu feedback, {push_name or 'cidadão'}!\n\n"
                         f"Vamos encaminhar para o setor de *{categoria.replace('_', ' ')}*.\n\n"
                         f"📋 Protocolo: *{protocolo}*\n\n"
-                        f"Seu feedback ajuda Maringá a melhorar cada vez mais! 💙")
+                        f"Maringá agradece sua participação! 💙🌳")
+
+        # Salvar resposta do bot
+        _salvar_msg_feedback(sb, feedback_id, "bot", "Clara IA", resposta, "bot")
 
         enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
 
@@ -2119,7 +2143,13 @@ def _continuar_feedback(event: dict, sb: Client) -> None:
         logger.error("Falha ao criar feedback na continuação")
         return
 
+    feedback_id = res.data[0]["id"]
     logger.info(f"Feedback completo: {protocolo} ({sentimento}) — detalhes recebidos")
+
+    # Salvar mensagens no histórico
+    _salvar_msg_feedback(sb, feedback_id, telefone, push_name, texto_original)
+    if texto and texto != texto_original:
+        _salvar_msg_feedback(sb, feedback_id, telefone, push_name, texto)
 
     # Usa a IA pra gerar resposta de encerramento humanizada
     resposta_ia = event.get("classificacao", {}).get("resposta_whatsapp", "")
@@ -2127,14 +2157,16 @@ def _continuar_feedback(event: dict, sb: Client) -> None:
     if resposta_ia:
         resposta = (f"{resposta_ia}\n\n"
                     f"📋 Protocolo: *{protocolo}*\n\n"
-                    f"Seu feedback ajuda Maringá a melhorar cada vez mais! 💙")
+                    f"Seu feedback é muito importante para Maringá! 💙🌳")
     else:
         emoji = {"positivo": "😊", "negativo": "😔", "neutro": "📝"}.get(sentimento, "📝")
         setor = categoria.replace("_", " ")
         resposta = (f"{emoji} Anotado, {push_name or 'cidadão'}! "
                     f"Já encaminhei sua mensagem para a equipe de *{setor}* da Prefeitura.\n\n"
                     f"📋 Protocolo: *{protocolo}*\n\n"
-                    f"Seu feedback ajuda Maringá a melhorar cada vez mais! 💙")
+                    f"Maringá agradece sua participação! 💙🌳")
+
+    _salvar_msg_feedback(sb, feedback_id, "bot", "Clara IA", resposta, "bot")
 
     finalizar_sessao(sb, telefone)
     enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))

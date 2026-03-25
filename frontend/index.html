@@ -830,14 +830,9 @@ function useApiPolling(){
         if(soshist) SOS_HIST=soshist;
         if(reldata) REL_DATA=reldata;
         if(fb) FBK=fb.map(f=>{
-          const priMap={alta:'critico',normal:'urgente',baixa:'normal'};
-          const catMap={transporte:'transporte',saude:'saude_atendimento',educacao:'educacao_escolas',
-            seguranca:'seguranca_publica',infraestrutura:'infraestrutura_obras',
-            meio_ambiente:'limpeza_urbana',cultura_lazer:'transporte',
-            atendimento_publico:'saude_atendimento',outros:'infraestrutura_obras'};
+          const priMap={alta:'critico',critico:'critico',urgente:'urgente',normal:'neutro',neutro:'neutro',baixa:'positivo',positivo:'positivo'};
           return{...f,lat:f.latitude,lng:f.longitude,
-            prioridade:priMap[f.urgencia]||'normal',
-            categoria:catMap[f.categoria]||f.categoria,
+            prioridade:priMap[f.urgencia]||'neutro',
             status:f.status==='novo'?'aberto':f.status};
         });
         if(kpis)  KPIS=kpis;
@@ -857,20 +852,29 @@ function useApiPolling(){
 /* ─── FEEDBACKS LOOKUPS ───────────────────────────────────────── */
 const CAT_FBK={
   infraestrutura_obras:{label:'Infraestrutura & Obras',emoji:'🏗️',color:'#f59e0b'},
+  infraestrutura:{label:'Infraestrutura',emoji:'🏗️',color:'#f59e0b'},
   seguranca_publica:{label:'Segurança Pública',emoji:'🛡️',color:'#dc2626'},
+  seguranca:{label:'Segurança',emoji:'🛡️',color:'#dc2626'},
   limpeza_urbana:{label:'Limpeza Urbana',emoji:'♻️',color:'#10b981'},
   educacao_escolas:{label:'Educação & Escolas',emoji:'📚',color:'#3b82f6'},
+  educacao:{label:'Educação',emoji:'📚',color:'#3b82f6'},
   saude_atendimento:{label:'Saúde & Atendimento',emoji:'🏥',color:'#7c3aed'},
-  transporte:{label:'Transporte',emoji:'🚌',color:'#3b82f6'},
-  descarte_irregular:{label:'Descarte Irregular',emoji:'🗑️',color:'#f59e0b'},
-  trafico_drogas:{label:'Tráfico de Drogas',emoji:'💊',color:'#dc2626'},
+  saude:{label:'Saúde',emoji:'🏥',color:'#7c3aed'},
+  transporte_mobilidade:{label:'Transporte & Mobilidade',emoji:'🚌',color:'#0ea5e9'},
+  transporte:{label:'Transporte',emoji:'🚌',color:'#0ea5e9'},
+  meio_ambiente:{label:'Meio Ambiente',emoji:'🌳',color:'#22c55e'},
+  assistencia_social:{label:'Assistência Social',emoji:'🤝',color:'#ec4899'},
+  cultura_lazer:{label:'Cultura & Lazer',emoji:'🎭',color:'#a78bfa'},
+  atendimento_publico:{label:'Atendimento Público',emoji:'🏛️',color:'#6366f1'},
   outros:{label:'Outros',emoji:'📝',color:'#8b949e'},
 };
 const PRI_FBK={
   critico:{label:'Crítico',color:'#dc2626',pulse:true},
-  urgente:{label:'Urgente',color:'#f97316',pulse:false},
-  normal:{label:'Normal',color:'#8b949e',pulse:false},
-  baixa:{label:'Baixa',color:'#4b5563',pulse:false},
+  urgente:{label:'Urgente',color:'#f59e0b',pulse:false},
+  neutro:{label:'Neutro',color:'#3b82f6',pulse:false},
+  positivo:{label:'Positivo',color:'#22c55e',pulse:false},
+  normal:{label:'Neutro',color:'#3b82f6',pulse:false},
+  baixa:{label:'Positivo',color:'#22c55e',pulse:false},
 };
 const STA_FBK={
   aberto:{label:'Aberto',color:'#fbbf24',bg:'rgba(251,191,36,.1)',border:'rgba(251,191,36,.3)'},
@@ -2973,6 +2977,10 @@ function Feedbacks(){
   const [filtCat,setFiltCat]=useState('');
   const [filtPri,setFiltPri]=useState('');
   const [filtSta,setFiltSta]=useState('ativos');
+  const [fbkHandoff,setFbkHandoff]=useState(false);
+  const [fbkMsg,setFbkMsg]=useState('');
+  const [fbkSending,setFbkSending]=useState(false);
+  const fbkChatRef=useRef(null);
 
   const lista=FBK.filter(f=>{
     if(filtCat&&f.categoria!==filtCat)return false;
@@ -2982,9 +2990,52 @@ function Feedbacks(){
     return true;
   });
 
-  function abrirConversa(f){setSel(f);setMsgs(FBK_MSGS[f.id]||[]);}
-  function fecharModal(){setSel(null);setMsgs([]);}
-  function mudarStatus(id,novo){if(sel?.id===id)setSel(prev=>({...prev,status:novo}));}
+  function abrirConversa(f){
+    setSel(f);setFbkHandoff(false);setFbkMsg('');
+    fetch(API_URL+'/api/feedbacks/'+f.id+'/mensagens').then(r=>r.ok?r.json():[]).then(d=>setMsgs(d)).catch(()=>setMsgs([]));
+  }
+  function fecharModal(){setSel(null);setMsgs([]);setFbkHandoff(false);}
+  function mudarStatus(id,novo){
+    fetch(API_URL+'/api/feedbacks/'+id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:novo,operador:'admin'})});
+    if(sel?.id===id)setSel(prev=>({...prev,status:novo}));
+  }
+
+  // Polling mensagens enquanto modal aberto
+  useEffect(()=>{
+    if(!sel) return;
+    const iv=setInterval(()=>{
+      fetch(API_URL+'/api/feedbacks/'+sel.id+'/mensagens').then(r=>r.ok?r.json():[]).then(d=>setMsgs(d)).catch(()=>{});
+    },5000);
+    return()=>clearInterval(iv);
+  },[sel?.id]);
+
+  useEffect(()=>{if(fbkChatRef.current)fbkChatRef.current.scrollTop=fbkChatRef.current.scrollHeight;},[msgs]);
+
+  async function toggleFbkHandoff(){
+    if(!sel) return;
+    const novoEstado=!fbkHandoff;
+    setFbkHandoff(novoEstado);
+    try{
+      await fetch(API_URL+'/api/feedbacks/'+sel.id+'/handoff',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({telefone:sel.telefone,ativo:novoEstado,operador:'admin'})
+      });
+    }catch(e){console.error('Handoff error:',e);}
+  }
+
+  async function sendFbkMsg(){
+    if(!fbkMsg.trim()||!sel) return;
+    setFbkSending(true);
+    try{
+      await fetch(API_URL+'/api/feedbacks/'+sel.id+'/send-message',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({telefone:sel.telefone,mensagem:fbkMsg.trim(),operador:'Atendente'})
+      });
+      const data=await fetch(API_URL+'/api/feedbacks/'+sel.id+'/mensagens').then(r=>r.json());
+      setMsgs(data);setFbkMsg('');
+    }catch(e){console.error('Erro:',e);}
+    setFbkSending(false);
+  }
 
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
@@ -3076,57 +3127,81 @@ function Feedbacks(){
       {/* ── Modal conversa (sobrepõe tudo) ── */}
       {sel&&(
         <div className="modal-overlay" onClick={fecharModal}>
-          <div className="modal-box" onClick={e=>e.stopPropagation()}>
-            {/* Header: nome + fechar */}
+          <div className="modal-box" onClick={e=>e.stopPropagation()} style={{maxWidth:680,maxHeight:'92vh'}}>
+            {/* Header */}
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
               <div style={{display:'flex',alignItems:'center',gap:10}}>
-                <div style={{width:10,height:10,borderRadius:'50%',background:'var(--accent)'}}/>
+                <div style={{width:10,height:10,borderRadius:'50%',background:(PRI_FBK[sel.prioridade]||PRI_FBK.neutro).color}}/>
                 <span style={{fontSize:16,fontWeight:700,color:'#fff'}}>{sel.nome||'Cidadão'}</span>
+                {(()=>{const cat=CAT_FBK[sel.categoria];return cat?<span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:6,background:`${cat.color}20`,color:cat.color,border:`1px solid ${cat.color}35`}}>{cat.emoji} {cat.label}</span>:null;})()}
+                <span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:6,background:`${(PRI_FBK[sel.prioridade]||PRI_FBK.neutro).color}20`,color:(PRI_FBK[sel.prioridade]||PRI_FBK.neutro).color,border:`1px solid ${(PRI_FBK[sel.prioridade]||PRI_FBK.neutro).color}35`}}>{(PRI_FBK[sel.prioridade]||PRI_FBK.neutro).label}</span>
               </div>
               <button onClick={fecharModal} style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',cursor:'pointer',borderRadius:8,border:'none',background:'none',fontSize:18}}>✕</button>
             </div>
-            {/* Info: telefone + categoria + endereço */}
+            {/* Info */}
             <div style={{padding:'10px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',flexShrink:0}}>
-              {sel.telefone&&<span style={{fontSize:12,color:'var(--text-secondary)',display:'flex',alignItems:'center',gap:4}}>📱 {sel.telefone}</span>}
-              <a href={`https://wa.me/${sel.telefone?.replace('+','')}`} target="_blank" rel="noopener noreferrer" style={{width:28,height:28,borderRadius:14,background:'var(--accent)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:13,textDecoration:'none',cursor:'pointer',color:'#fff'}}>📞</a>
-              {(()=>{const cat=CAT_FBK[sel.categoria];return cat?<span style={{fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:6,background:`${cat.color}20`,color:cat.color,border:`1px solid ${cat.color}35`}}>{cat.label}</span>:null;})()}
+              {sel.protocolo&&<span className="mono" style={{fontSize:11,color:'var(--text-muted)'}}>{sel.protocolo}</span>}
+              {sel.telefone&&<span style={{fontSize:12,color:'var(--text-secondary)'}}>📱 {sel.telefone}</span>}
+              {(sel.endereco||sel.bairro)&&<span style={{fontSize:12,color:'var(--accent)'}}>📍 {sel.endereco||sel.bairro}</span>}
+              <span style={{fontSize:11,color:'var(--text-muted)',marginLeft:'auto'}}>{new Date(sel.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
             </div>
-            {(sel.endereco||sel.bairro)&&(
-              <div style={{padding:'8px 20px',borderBottom:'1px solid var(--border)',fontSize:12,color:'var(--accent)',display:'flex',alignItems:'center',gap:4,flexShrink:0}}>📍 {sel.endereco?`${sel.endereco}, ${sel.bairro||''}`:sel.bairro}</div>
-            )}
-            {/* Thread conversa */}
-            <div className="scrollable" style={{flex:1,padding:20,minHeight:0}}>
+            {/* Mensagem original */}
+            <div style={{padding:'14px 20px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+              <p style={{fontSize:14,lineHeight:1.7,color:'var(--text)',margin:0}}>{sel.mensagem}</p>
+            </div>
+            {/* Chat */}
+            <div ref={fbkChatRef} className="scrollable" style={{flex:1,padding:16,minHeight:0}}>
               {msgs.length===0?(
-                <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:200,gap:8}}>
-                  <span style={{fontSize:32,opacity:.3}}>💬</span>
+                <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:120,gap:8}}>
+                  <span style={{fontSize:28,opacity:.3}}>💬</span>
                   <div style={{fontSize:12,color:'var(--text-muted)'}}>Nenhuma mensagem no histórico</div>
                 </div>
               ):(
-                <div style={{display:'flex',flexDirection:'column',gap:16}}>
-                  {msgs.map(m=>{
-                    const deCidadao=m.de==='cidadao';
+                <div className="oc-chat-area">
+                  {msgs.map((m,i)=>{
+                    const time=m.created_at?new Date(m.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+                    const isOp=m.remetente==='operador'||m.telefone==='operador';
+                    const isBot=m.remetente==='bot'||m.telefone==='bot';
                     return(
-                      <div key={m.id} style={{display:'flex',flexDirection:'column',alignItems:deCidadao?'flex-start':'flex-end'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4,width:'100%',justifyContent:'space-between'}}>
-                          <span style={{fontSize:11,fontWeight:700,color:deCidadao?'var(--text)':'var(--accent-light)',textTransform:'uppercase',letterSpacing:'.5px'}}>{deCidadao?'CIDADÃO':'CLARA IA'}</span>
-                          <span style={{fontSize:11,color:'var(--text-muted)'}}>{new Date(m.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
-                        </div>
-                        <div className={`chat-bubble ${deCidadao?'client':'agent'}`} style={{maxWidth:'85%'}}>
-                          <div style={{fontSize:14,color:'var(--text-secondary)',lineHeight:1.6}}>{m.mensagem}</div>
-                        </div>
+                      <div key={i} className={`oc-chat-bubble ${isOp?'oc-bubble-human':isBot?'oc-bubble-bot':'oc-bubble-citizen'}`}>
+                        <div className="oc-chat-sender">{isOp?(m.nome||'Atendente'):isBot?'Clara IA':(m.nome||sel.nome||'Cidadão')}</div>
+                        {m.mensagem}
+                        <div className="oc-chat-time">{time}</div>
                       </div>
                     );
                   })}
                 </div>
               )}
             </div>
-            {/* Rodapé */}
-            <div style={{padding:'10px 20px',borderTop:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
-              <select value={sel.status} onChange={e=>mudarStatus(sel.id,e.target.value)}
-                style={{fontSize:12,padding:'5px 10px',borderRadius:8,background:STA_FBK[sel.status]?.bg||'transparent',border:`1px solid ${STA_FBK[sel.status]?.border||'var(--border)'}`,color:STA_FBK[sel.status]?.color||'var(--text)'}}>
-                {Object.entries(STA_FBK).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
-              </select>
-              <span style={{fontSize:11,color:'var(--text-muted)'}}>Aberto: {new Date(sel.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+            {/* Handoff + input */}
+            <div style={{borderTop:'1px solid var(--border)',padding:'12px 20px',flexShrink:0}}>
+              {fbkHandoff&&(
+                <div className="oc-handoff-active-bar visible" style={{marginBottom:10}}>
+                  <span className="hd"></span> Você está controlando esta conversa — IA desligada
+                </div>
+              )}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                <button className={`oc-handoff-btn ${fbkHandoff?'release':'take'}`} style={{flex:'none',width:'auto',padding:'6px 14px',marginBottom:0}}
+                  onClick={toggleFbkHandoff}>
+                  {fbkHandoff?'🔴 Devolver para IA':'💬 Assumir conversa'}
+                </button>
+                <select value={sel.status} onChange={e=>mudarStatus(sel.id,e.target.value)}
+                  style={{fontSize:12,padding:'5px 10px',borderRadius:8,background:STA_FBK[sel.status]?.bg||'transparent',border:`1px solid ${STA_FBK[sel.status]?.border||'var(--border)'}`,color:STA_FBK[sel.status]?.color||'var(--text)'}}>
+                  {Object.entries(STA_FBK).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+                </select>
+              </div>
+              {fbkHandoff&&(
+                <div style={{display:'flex',gap:8}}>
+                  <textarea value={fbkMsg} onChange={e=>setFbkMsg(e.target.value)}
+                    placeholder="Digite sua mensagem para o cidadão..."
+                    onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendFbkMsg();}}}
+                    style={{flex:1,fontSize:13,lineHeight:1.5,background:'rgba(0,0,0,.3)',border:'1px solid var(--border)',borderRadius:6,padding:'10px 12px',color:'var(--text)',resize:'none',minHeight:44}}/>
+                  <button className="btn btn-primary" style={{alignSelf:'flex-end',padding:'10px 16px'}}
+                    onClick={sendFbkMsg} disabled={fbkSending||!fbkMsg.trim()}>
+                    {fbkSending?'...':'Enviar'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

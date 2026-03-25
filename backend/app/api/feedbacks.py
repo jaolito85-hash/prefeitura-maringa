@@ -1,8 +1,18 @@
 """
 feedbacks.py — Endpoints REST para a aba Feedbacks do Dashboard
 """
+import logging
+import os
+
+import httpx
 from fastapi import APIRouter, Query
 from app.services.supabase_client import get_supabase
+
+logger = logging.getLogger("api.feedbacks")
+
+EVOLUTION_API_URL = os.environ.get("EVOLUTION_API_URL", "")
+EVOLUTION_API_KEY = os.environ.get("EVOLUTION_API_KEY", "")
+WA_INSTANCE_NAME = os.environ.get("WA_INSTANCE_NAME", "maringa-demo")
 
 router = APIRouter()
 
@@ -52,6 +62,103 @@ async def atualizar_status_feedback(feedback_id: str, body: dict):
 
     result = sb.table("feedbacks").update(update_data).eq("id", feedback_id).execute()
     return result.data[0] if result.data else {}
+
+
+@router.get("/{feedback_id}/mensagens")
+async def listar_mensagens_feedback(feedback_id: str):
+    """Retorna todas as mensagens do chat do feedback (cidadão + bot + operador)."""
+    sb = get_supabase()
+    result = sb.table("feedbacks_mensagens").select("*").eq(
+        "feedback_id", feedback_id
+    ).order("created_at", desc=False).execute()
+    return result.data or []
+
+
+@router.post("/{feedback_id}/handoff")
+async def feedback_handoff_toggle(feedback_id: str, body: dict):
+    """Ativa/desativa handoff para um feedback."""
+    from datetime import datetime, timezone, timedelta
+
+    sb = get_supabase()
+    telefone = body.get("telefone", "")
+    ativo = body.get("ativo", False)
+    operador = body.get("operador", "admin")
+
+    try:
+        if ativo:
+            expira_em = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+            sb.table("sessoes_conversa").upsert({
+                "telefone": telefone,
+                "canal": "feedback",
+                "etapa": "handoff",
+                "registro_id": feedback_id,
+                "contexto": {"handoff": True},
+                "expira_em": expira_em,
+                "handoff_ativo": True,
+                "handoff_operador": operador,
+            }, on_conflict="telefone").execute()
+        else:
+            sb.table("sessoes_conversa").update({
+                "handoff_ativo": False,
+                "handoff_operador": "",
+                "etapa": "finalizado",
+            }).eq("telefone", telefone).execute()
+    except Exception as exc:
+        logger.error(f"Erro ao atualizar sessão handoff feedback: {exc}")
+
+    if EVOLUTION_API_URL and EVOLUTION_API_KEY:
+        numero = telefone.lstrip("+")
+        msg = ("Um atendente está entrando na conversa para te ajudar. 😊" if ativo
+               else "O atendimento voltou ao nosso assistente virtual.")
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(
+                    f"{EVOLUTION_API_URL}/message/sendText/{WA_INSTANCE_NAME}",
+                    headers={"apikey": EVOLUTION_API_KEY},
+                    json={"number": numero, "text": msg},
+                )
+        except Exception as exc:
+            logger.error(f"Erro ao enviar msg handoff feedback: {exc}")
+
+    return {"status": "ok", "handoff_ativo": ativo}
+
+
+@router.post("/{feedback_id}/send-message")
+async def send_feedback_message(feedback_id: str, body: dict):
+    """Envia mensagem do operador para o cidadão e salva no histórico."""
+    telefone = body.get("telefone", "")
+    mensagem = body.get("mensagem", "")
+    operador = body.get("operador", "Atendente")
+
+    if not telefone or not mensagem:
+        return {"error": "telefone e mensagem obrigatórios"}
+
+    sb = get_supabase()
+    try:
+        sb.table("feedbacks_mensagens").insert({
+            "feedback_id": feedback_id,
+            "telefone": "operador",
+            "nome": operador,
+            "mensagem": f"[ATENDENTE] {mensagem}",
+            "remetente": "operador",
+        }).execute()
+    except Exception as exc:
+        logger.error(f"Erro ao salvar msg operador feedback: {exc}")
+
+    if EVOLUTION_API_URL and EVOLUTION_API_KEY:
+        numero = telefone.lstrip("+")
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(
+                    f"{EVOLUTION_API_URL}/message/sendText/{WA_INSTANCE_NAME}",
+                    headers={"apikey": EVOLUTION_API_KEY},
+                    json={"number": numero, "text": f"*{operador}:*\n{mensagem}"},
+                )
+        except Exception as exc:
+            logger.error(f"Erro ao enviar msg feedback: {exc}")
+            return {"error": str(exc)}
+
+    return {"status": "sent"}
 
 
 @router.get("/estatisticas")
