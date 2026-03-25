@@ -3878,13 +3878,62 @@ function SearchProtocolo({setAba}){
 }
 
 /* ─── APP ──────────────────────────────────────────────────────── */
+/* ─── AUDIO: Sirene SOS via Web Audio API ───────────────────── */
+const _audioCtxRef={current:null};
+function _getAudioCtx(){
+  if(!_audioCtxRef.current) _audioCtxRef.current=new(window.AudioContext||window.webkitAudioContext)();
+  if(_audioCtxRef.current.state==='suspended') _audioCtxRef.current.resume();
+  return _audioCtxRef.current;
+}
+function tocarSirene(){
+  try{
+    const ctx=_getAudioCtx();const now=ctx.currentTime;
+    [{f:440,t:0,d:.2},{f:880,t:.25,d:.2},{f:440,t:.5,d:.2},{f:880,t:.75,d:.2},{f:440,t:1,d:.3}]
+    .forEach(({f,t,d})=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sawtooth';o.frequency.setValueAtTime(f,now+t);
+      g.gain.setValueAtTime(.4,now+t);g.gain.exponentialRampToValueAtTime(.001,now+t+d);
+      o.start(now+t);o.stop(now+t+d);
+    });
+  }catch(e){}
+}
+function tocarBipe(freq=1000,dur=.12,vol=.25){
+  try{
+    const ctx=_getAudioCtx();const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);o.type='sine';
+    o.frequency.setValueAtTime(freq,ctx.currentTime);
+    g.gain.setValueAtTime(vol,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+
 function App(){
   useApiPolling();
   const [aba,setAba]=useState('central');
   const [hora,setHora]=useState(new Date());
   const [mutado,setMutado]=useState(false);
   const sos=SOS.length;
+  const prevSosRef=useRef(0);
+  const sireneTimerRef=useRef(null);
   useEffect(()=>{const t=setInterval(()=>setHora(new Date()),1000);return()=>clearInterval(t);},[]);
+
+  /* ── SOS AUDIO: sirene quando novo alerta chega ── */
+  useEffect(()=>{
+    if(mutado){clearInterval(sireneTimerRef.current);prevSosRef.current=sos;return;}
+    if(sos>prevSosRef.current){
+      /* Novo alerta SOS — toca sirene e repete a cada 15s */
+      tocarSirene();
+      clearInterval(sireneTimerRef.current);
+      sireneTimerRef.current=setInterval(()=>{if(SOS.length>0&&!mutado)tocarSirene();},15000);
+    }
+    if(sos===0){clearInterval(sireneTimerRef.current);}
+    prevSosRef.current=sos;
+    return()=>clearInterval(sireneTimerRef.current);
+  },[sos,mutado]);
+
+  /* ── Som ao navegar para aba SOS com alertas ativos ── */
+  useEffect(()=>{if(aba==='sos'&&sos>0&&!mutado)tocarSirene();},[aba]);
 
   const ABAS=[
     {id:'central',icon:<Ico.grid/>,label:'Painel'},
