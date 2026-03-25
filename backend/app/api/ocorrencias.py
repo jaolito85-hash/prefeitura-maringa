@@ -1,8 +1,18 @@
 """
 ocorrencias.py — Endpoints REST para a aba Ocorrências
 """
+import logging
+import os
+
+import httpx
 from fastapi import APIRouter, Query
 from app.services.supabase_client import get_supabase
+
+logger = logging.getLogger("api.ocorrencias")
+
+EVOLUTION_API_URL = os.environ.get("EVOLUTION_API_URL", "")
+EVOLUTION_API_KEY = os.environ.get("EVOLUTION_API_KEY", "")
+WA_INSTANCE_NAME = os.environ.get("WA_INSTANCE_NAME", "maringa-demo")
 
 router = APIRouter()
 
@@ -68,3 +78,79 @@ async def atualizar_status_ocorrencia(ocorrencia_id: str, body: dict):
 
     result = sb.table("ocorrencias").update(update_data).eq("id", ocorrencia_id).execute()
     return result.data[0] if result.data else {}
+
+
+@router.post("/{ocorrencia_id}/handoff")
+async def handoff_toggle(ocorrencia_id: str, body: dict):
+    """Ativa/desativa handoff (atendimento humano) para um cidadão."""
+    sb = get_supabase()
+    telefone = body.get("telefone", "")
+    ativo = body.get("ativo", False)
+    operador = body.get("operador", "admin")
+
+    # Atualizar sessao_conversa se existir
+    try:
+        sb.table("sessoes_conversa").update({
+            "handoff_ativo": ativo,
+            "handoff_operador": operador if ativo else "",
+        }).eq("telefone", telefone).execute()
+    except Exception:
+        pass  # Sessão pode ter expirado
+
+    # Enviar mensagem ao cidadão via Evolution API
+    if EVOLUTION_API_URL and EVOLUTION_API_KEY:
+        numero = telefone.lstrip("+")
+        if ativo:
+            msg = "Um atendente humano está entrando na conversa para te ajudar."
+        else:
+            msg = "O atendimento voltou ao nosso assistente virtual. Se precisar de ajuda humana novamente, é só pedir."
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(
+                    f"{EVOLUTION_API_URL}/message/sendText/{WA_INSTANCE_NAME}",
+                    headers={"apikey": EVOLUTION_API_KEY},
+                    json={"number": numero, "text": msg},
+                )
+        except Exception as exc:
+            logger.error(f"Erro ao enviar msg handoff: {exc}")
+
+    return {"status": "ok", "handoff_ativo": ativo}
+
+
+@router.post("/{ocorrencia_id}/send-message")
+async def send_human_message(ocorrencia_id: str, body: dict):
+    """Envia mensagem do operador humano para o cidadão via WhatsApp."""
+    telefone = body.get("telefone", "")
+    mensagem = body.get("mensagem", "")
+    operador = body.get("operador", "Atendente")
+
+    if not telefone or not mensagem:
+        return {"error": "telefone e mensagem obrigatórios"}
+
+    # Salvar no relato
+    sb = get_supabase()
+    try:
+        sb.table("ocorrencias_relatos").insert({
+            "ocorrencia_id": ocorrencia_id,
+            "telefone": "operador",
+            "nome": operador,
+            "mensagem": f"[ATENDENTE] {mensagem}",
+        }).execute()
+    except Exception as exc:
+        logger.error(f"Erro ao salvar msg do operador: {exc}")
+
+    # Enviar via Evolution API
+    if EVOLUTION_API_URL and EVOLUTION_API_KEY:
+        numero = telefone.lstrip("+")
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(
+                    f"{EVOLUTION_API_URL}/message/sendText/{WA_INSTANCE_NAME}",
+                    headers={"apikey": EVOLUTION_API_KEY},
+                    json={"number": numero, "text": f"*{operador}:*\n{mensagem}"},
+                )
+        except Exception as exc:
+            logger.error(f"Erro ao enviar msg operador: {exc}")
+            return {"error": str(exc)}
+
+    return {"status": "sent"}

@@ -1774,43 +1774,7 @@ function ocMaskPhone(phone){
   return phone;
 }
 
-/* Mock citizen/chat data for each occurrence — keyed by ocorrencia id */
-const OC_MOCK_CITIZENS={};
-function ocGetCitizens(ocId,oc){
-  if(!oc||!ocId)return[];
-  if(OC_MOCK_CITIZENS[ocId])return OC_MOCK_CITIZENS[ocId];
-  const names=[
-    {name:'Maria Silva',phone:'5544991500066'},{name:'Carlos Eduardo',phone:'5544988700022'},
-    {name:'Ana Paula',phone:'5544996300041'},{name:'Pedro Ramos',phone:'5544993400017'},
-    {name:'Lucia Fernandes',phone:'5544997800055'},{name:'Roberto Costa',phone:'5544992100033'},
-    {name:'Simone Alves',phone:'5544994500009'},{name:'Marcos Vinicius',phone:'5544990800071'},
-    {name:'Dona Rosa',phone:'5544996700028'},{name:'Lucas Torres',phone:'5544995600044'},
-    {name:'Rafael Neto',phone:'5544990300052'},{name:'Fernanda Lima',phone:'5544998200037'},
-  ];
-  const titulo=oc?.titulo||oc?.title||'Ocorrência';
-  const bairro=oc?.bairro||'';
-  const nCitizens=Math.max(1,Math.min(oc?.total_relatos||1,4));
-  const safeId=typeof ocId==='number'?ocId:parseInt(ocId)||0;
-  const offset=(safeId*3)%names.length;
-  const citizens=[];
-  for(let i=0;i<nCitizens;i++){
-    const n=names[(offset+i)%names.length];
-    if(!n||!n.name)continue;
-    const initials=n.name.split(' ').map(w=>w?.[0]||'').join('').slice(0,2);
-    const h=14+Math.floor(Math.random()*4);const m=Math.floor(Math.random()*60);
-    const timeStr=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
-    const chatMsgs=[
-      {from:'cidadao',msg:i===0?`${titulo} aqui no ${bairro}! Situação complicada.`:`Confirmando a ocorrência no ${bairro}. Vi agora.`,time:timeStr},
-      {from:'bot',msg:`Obrigado ${n.name.split(' ')[0]}! Sua denúncia foi registrada com o protocolo #${oc?.protocolo||'MGA-2026-?????'}. Equipe será acionada.`,time:timeStr},
-    ];
-    if(i===0){
-      chatMsgs.push({from:'cidadao',msg:'Ainda está acontecendo, mandem alguém por favor.',time:String(h).padStart(2,'0')+':'+String(Math.min(m+8,59)).padStart(2,'0')});
-    }
-    citizens.push({id:'c'+safeId+'_'+i,name:n.name,phone:n.phone,initials,msgs:chatMsgs.filter(c=>c.from==='cidadao').length,time:timeStr,chat:chatMsgs,fotos:Math.floor(Math.random()*4)+1,videos:Math.floor(Math.random()*2)});
-  }
-  OC_MOCK_CITIZENS[ocId]=citizens;
-  return citizens;
-}
+/* (Mock citizen data removed — now fetched from API) */
 
 function Ocorrencias(){
   const [sel,setSel]=useState(null);
@@ -1827,7 +1791,18 @@ function Ocorrencias(){
   const [routeBase,setRouteBase]=useState(null);
   const [routeIncident,setRouteIncident]=useState(null);
   const [loadingRoute,setLoadingRoute]=useState(false);
+  const [relatosPorOc,setRelatosPorOc]=useState({});
   const chatBodyRef=useRef(null);
+
+  /* Fetch relatos when selecting an occurrence */
+  useEffect(()=>{
+    if(!sel)return;
+    if(relatosPorOc[sel.id])return;
+    fetch(API_URL+'/api/ocorrencias/'+sel.id+'/relatos')
+      .then(r=>r.ok?r.json():[])
+      .then(data=>{setRelatosPorOc(prev=>({...prev,[sel.id]:data||[]}));})
+      .catch(()=>{});
+  },[sel?.id]);
 
   async function handleTraceRoute(item){
     setLoadingRoute(true);
@@ -1871,35 +1846,33 @@ function Ocorrencias(){
   }
 
   /* Handoff toggle */
-  function toggleHandoff(citizenId){
-    setHandoffMap(prev=>{
-      const next={...prev};
-      const citizens=ocGetCitizens(sel.id,sel);
-      const citizen=citizens.find(c=>c.id===citizenId);
-      const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-      if(next[citizenId]){
-        delete next[citizenId];
-        if(citizen)citizen.chat.push({from:'system',msg:'Conversa devolvida para a IA. Bot ativo novamente.',time:now});
-      } else {
-        next[citizenId]=true;
-        if(citizen)citizen.chat.push({from:'system',msg:'Atendente humano assumiu esta conversa. Bot pausado.',time:now});
-      }
-      return next;
-    });
+  async function toggleHandoff(citizenPhone){
+    const ativo=!handoffMap[citizenPhone];
+    if(ativo){
+      setHandoffMap(prev=>({...prev,[citizenPhone]:true}));
+    } else {
+      setHandoffMap(prev=>{const copy={...prev};delete copy[citizenPhone];return copy;});
+    }
+    try{
+      await fetch(API_URL+'/api/ocorrencias/'+sel.id+'/handoff',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({telefone:citizenPhone,ativo,operador:'admin'})
+      });
+    }catch(e){console.error('Handoff error:',e);}
   }
 
   /* Send human message */
-  function sendHuman(){
+  async function sendHuman(){
     if(!humanMsg.trim()||!viewCitizen||!sel)return;
-    const citizens=ocGetCitizens(sel.id,sel);
-    const citizen=citizens.find(c=>c.id===viewCitizen);
-    if(!citizen)return;
-    const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    citizen.chat.push({from:'humano',msg:humanMsg.trim(),time:now});
-    citizen.msgs++;
-    setHumanMsg('');
-    /* force re-render */
-    setViewCitizen(v=>v);
+    try{
+      await fetch(API_URL+'/api/ocorrencias/'+sel.id+'/send-message',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({telefone:viewCitizen,mensagem:humanMsg.trim(),operador:'Atendente'})
+      });
+      const data=await fetch(API_URL+'/api/ocorrencias/'+sel.id+'/relatos').then(r=>r.json());
+      setRelatosPorOc(prev=>({...prev,[sel.id]:data}));
+      setHumanMsg('');
+    }catch(e){console.error('Send error:',e);}
   }
 
   /* Lightbox keyboard */
@@ -1917,7 +1890,7 @@ function Ocorrencias(){
   /* Scroll chat to bottom */
   useEffect(()=>{
     if(chatBodyRef.current)chatBodyRef.current.scrollTop=chatBodyRef.current.scrollHeight;
-  },[viewCitizen,handoffMap,humanMsg]);
+  },[viewCitizen,handoffMap,relatosPorOc]);
 
   /* Close panel on Escape */
   useEffect(()=>{
@@ -1927,8 +1900,41 @@ function Ocorrencias(){
   },[sel,viewCitizen,lbOpen]);
 
   const panelOpen=!!sel;
-  const currentCitizens=sel?ocGetCitizens(sel.id,sel):[];
+
+  const currentCitizens=useMemo(()=>{
+    if(!sel)return[];
+    const relatos=relatosPorOc[sel.id]||[];
+    const byPhone={};
+    relatos.forEach(r=>{
+      if(r.telefone==='operador')return;
+      if(!byPhone[r.telefone]){
+        byPhone[r.telefone]={
+          id:r.telefone,
+          name:r.nome||'Cidadão',
+          phone:r.telefone||'',
+          initials:(r.nome||'C').split(' ').map(w=>w?.[0]||'').join('').slice(0,2).toUpperCase(),
+          msgs:0,
+          time:'',
+          relatos:[],
+        };
+      }
+      byPhone[r.telefone].msgs++;
+      byPhone[r.telefone].time=new Date(r.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      byPhone[r.telefone].relatos.push(r);
+    });
+    return Object.values(byPhone);
+  },[sel?.id,relatosPorOc]);
+
   const activeCitizen=viewCitizen?currentCitizens.find(c=>c.id===viewCitizen):null;
+
+  const allRelatosForChat=useMemo(()=>{
+    if(!sel||!viewCitizen)return[];
+    const relatos=relatosPorOc[sel.id]||[];
+    return relatos
+      .filter(r=>r.telefone===viewCitizen||r.telefone==='operador')
+      .sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+  },[sel?.id,viewCitizen,relatosPorOc]);
+
   const currentStep=sel?(OC_STATUS_STEP[sel.status]||0):0;
   const hasAnyHandoff=sel&&currentCitizens.some(c=>handoffMap[c.id]);
 
@@ -1972,10 +1978,11 @@ function Ocorrencias(){
             const sev=o?.severidade||'baixa';
             const step=OC_STATUS_STEP[o.status]||0;
             const isSel=sel?.id===o.id;
-            const citizens=ocGetCitizens(o.id,o);
             const realUrls=(o?.midia_urls||[]).filter(Boolean);
-            const totalMedia=realUrls.length>0?realUrls.length:citizens.reduce((a,c)=>a+(c.fotos||0)+(c.videos||0),0);
-            const cardHandoff=citizens.some(c=>handoffMap[c.id]);
+            const totalMedia=realUrls.length;
+            const cardRelatos=relatosPorOc[o.id]||[];
+            const cardPhones=[...new Set(cardRelatos.filter(r=>r.telefone!=='operador').map(r=>r.telefone))];
+            const cardHandoff=cardPhones.some(p=>handoffMap[p]);
             return(
               <div key={o.id} className={`oc-card ${isSel?'selected':''}`} onClick={()=>{setSel(o);setViewCitizen(null);}}>
                 <div className="oc-card-top">
@@ -1989,7 +1996,7 @@ function Ocorrencias(){
                 <div className="oc-card-bottom">
                   <span className={`oc-status-text ${OC_STATUS_CLS[step]}`}>{OC_STATUS_LABELS[step]}</span>
                   <div className="oc-right-info">
-                    <span className="oc-reporters"><OC_SVG.people width={14} height={14}/> {citizens.length}</span>
+                    <span className="oc-reporters"><OC_SVG.people width={14} height={14}/> {o.total_relatos||0}</span>
                     {totalMedia>0&&<span className="oc-attach"><OC_SVG.attach width={13} height={13}/> {totalMedia}</span>}
                   </div>
                 </div>
@@ -2046,17 +2053,12 @@ function Ocorrencias(){
                 const urls=(sel?.midia_urls||[]).filter(Boolean);
                 const fotos=urls.filter(u=>!(/\.(mp4|mov|3gp|webm)/i.test(u)||u.includes('video')));
                 const videos=urls.filter(u=>/\.(mp4|mov|3gp|webm)/i.test(u)||u.includes('video'));
-                const totalMedia=urls.length;
-                // Fallback: se sem URLs reais, usar contagem mock
-                const mockTotal=currentCitizens.reduce((a,c)=>a+(c.fotos||0)+(c.videos||0),0);
-                const showCount=totalMedia>0?totalMedia:mockTotal;
-                if(showCount<=0)return null;
+                if(urls.length<=0)return null;
                 return(
                   <>
                     <div className="oc-section-label">Evidências</div>
                     <div className="oc-photos-btn" onClick={()=>{
-                      const allPhotos=fotos.length>0?fotos:Array.from({length:currentCitizens.reduce((a,c)=>a+(c.fotos||0),0)},(_,i)=>null);
-                      setLbPhotos(allPhotos);setLbTotal(allPhotos.length||1);setLbCurrent(0);setLbOpen(true);
+                      setLbPhotos(fotos);setLbTotal(fotos.length||1);setLbCurrent(0);setLbOpen(true);
                     }}>
                       <OC_SVG.camera width={20} height={20}/>
                       <span className="oc-photos-btn-text">Ver evidências</span>
@@ -2132,11 +2134,10 @@ function Ocorrencias(){
                 {handoffMap[viewCitizen]?<><OC_SVG.handoffRelease width={16} height={16}/> Devolver para IA</>:<><OC_SVG.handoffTake width={16} height={16}/> Assumir conversa</>}
               </button>
               <div className="oc-chat-area">
-                {(activeCitizen?.chat||[]).filter(Boolean).map((m,i)=>{
-                  if(m?.from==='system')return <div key={i} className="oc-chat-bubble oc-bubble-system"><span>{m.msg}</span></div>;
-                  if(m?.from==='humano')return <div key={i} className="oc-chat-bubble oc-bubble-human"><div className="oc-chat-sender">Atendente</div>{m.msg}<div className="oc-chat-time">{m?.time}</div></div>;
-                  if(m?.from==='cidadao')return <div key={i} className="oc-chat-bubble oc-bubble-citizen"><div className="oc-chat-sender">{activeCitizen?.name||'Cidadão'}</div>{m.msg}<div className="oc-chat-time">{m?.time}</div></div>;
-                  return <div key={i} className="oc-chat-bubble oc-bubble-bot"><div className="oc-chat-sender">NodeData</div>{m.msg}<div className="oc-chat-time">{m?.time}</div></div>;
+                {allRelatosForChat.map((r,i)=>{
+                  const time=new Date(r.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+                  if(r.telefone==='operador')return <div key={i} className="oc-chat-bubble oc-bubble-human"><div className="oc-chat-sender">{r.nome||'Atendente'}</div>{r.mensagem}<div className="oc-chat-time">{time}</div></div>;
+                  return <div key={i} className="oc-chat-bubble oc-bubble-citizen"><div className="oc-chat-sender">{activeCitizen?.name||'Cidadão'}</div>{r.mensagem}<div className="oc-chat-time">{time}</div></div>;
                 })}
               </div>
             </div>
