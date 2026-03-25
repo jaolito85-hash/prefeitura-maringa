@@ -385,6 +385,23 @@ def processar_midia(event: dict, sb: Client, registro_id: str, tabela: str) -> s
     except Exception as exc:
         logger.error(f"Erro ao atualizar midia_urls: {exc}")
 
+    # ── 7. Se é relato de ocorrência, salvar URL também na tabela ocorrencias ──
+    # Nota: nas chamadas do worker, registro_id é o ID da ocorrência (não do relato)
+    if tabela == "ocorrencias_relatos":
+        try:
+            oc_id = registro_id
+            oc_result = sb.table("ocorrencias").select("midia_urls").eq("id", oc_id).execute()
+            oc_urls = oc_result.data[0].get("midia_urls") or [] if oc_result.data else []
+            is_video = any(public_url.endswith(e) for e in (".mp4", ".3gp", ".mov"))
+            sb.table("ocorrencias").update({
+                "midia_urls": oc_urls + [public_url],
+                "tem_foto": not is_video or any(not u.endswith((".mp4", ".3gp", ".mov")) for u in oc_urls),
+                "tem_video": is_video or any(u.endswith((".mp4", ".3gp", ".mov")) for u in oc_urls),
+            }).eq("id", oc_id).execute()
+            logger.info(f"Mídia também salva em ocorrencias/{oc_id}")
+        except Exception as exc:
+            logger.error(f"Erro ao copiar mídia pra ocorrência: {exc}")
+
     return None  # Sucesso
 
 
@@ -1655,10 +1672,12 @@ def processar_ocorrencia(event: dict, sb: Client) -> None:
                 enviar_whatsapp(telefone, erro_midia)
 
         if not tem_midia:
-            etapa = "aguardando_midia"
+            etapa = "aguardando_midia_opcional"
             resposta = (f"{icone} Ocorrência registrada com localização!{aviso_urgente}\n"
                         f"📍 {endereco_inicial}\n\n"
-                        f"📸 Se puder, envie uma foto do problema.\n\n"
+                        f"📸 Se for seguro, envie uma foto ou vídeo do local. "
+                        f"Isso ajuda muito as equipes!\n\n"
+                        f"Se não puder, envie *pular* que seguimos sem foto.\n\n"
                         f"📋 Protocolo: {protocolo}")
         else:
             etapa = "finalizado"
@@ -1806,15 +1825,27 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
         if tem_midia:
             processar_midia(event, sb, novo_registro_id, "ocorrencias_relatos")
 
-        criar_sessao(sb, telefone, "ocorrencia", "finalizado", novo_registro_id,
-                     {"protocolo": novo_protocolo, "categoria": categoria})
-        finalizar_sessao(sb, telefone)
-
         local_texto = endereco or bairro or "Localização registrada"
         icone = "🚨" if severidade in ("alta", "critica") else "⚠️"
-        resposta = (f"📍 Endereço registrado: {local_texto}\n\n"
-                    f"{icone} Equipe notificada. Obrigado!\n"
-                    f"📋 Protocolo: {novo_protocolo}")
+
+        if tem_midia:
+            # Já tem mídia — finalizar
+            criar_sessao(sb, telefone, "ocorrencia", "finalizado", novo_registro_id,
+                         {"protocolo": novo_protocolo, "categoria": categoria})
+            finalizar_sessao(sb, telefone)
+            resposta = (f"📍 Endereço registrado: {local_texto}\n\n"
+                        f"{icone} Ocorrência completa! Equipe notificada.\n"
+                        f"📋 Protocolo: {novo_protocolo}")
+        else:
+            # Pedir foto opcional
+            criar_sessao(sb, telefone, "ocorrencia", "aguardando_midia_opcional", novo_registro_id,
+                         {"protocolo": novo_protocolo, "categoria": categoria})
+            resposta = (f"📍 Endereço registrado: {local_texto}\n\n"
+                        f"📸 Se for seguro, envie uma foto ou vídeo do local. "
+                        f"Isso ajuda muito as equipes!\n\n"
+                        f"Se não puder, envie *pular* que seguimos sem foto.\n\n"
+                        f"📋 Protocolo: {novo_protocolo}")
+
         enviar_whatsapp(telefone, resposta)
         logger.info(f"Nova ocorrência (pós-endereço): {novo_protocolo} cat={categoria}")
         return
@@ -1860,13 +1891,38 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
                     f"✅ Equipe notificada. Obrigado!\n"
                     f"📋 Protocolo: {protocolo}")
 
+    elif etapa_atual == "aguardando_midia_opcional":
+        _PULAR = {"pular", "nao", "não", "n", "nope", "skip", "sem foto", "sem video"}
+        if tem_midia:
+            # Recebeu foto/vídeo — salvar e finalizar
+            erro_midia = processar_midia(event, sb, registro_id, "ocorrencias_relatos")
+            if erro_midia:
+                enviar_whatsapp(telefone, erro_midia)
+                return
+            nova_etapa = "finalizado"
+            resposta = (f"📸 Evidência recebida! Obrigado.\n\n"
+                        f"✅ Ocorrência completa. Equipe notificada!\n"
+                        f"📋 Protocolo: {protocolo}")
+        elif texto and texto.strip().lower().rstrip("!.") in _PULAR:
+            # Cidadão pulou — finalizar sem foto
+            nova_etapa = "finalizado"
+            resposta = (f"✅ Tudo certo! Ocorrência registrada sem foto.\n\n"
+                        f"Equipe já foi notificada.\n"
+                        f"📋 Protocolo: {protocolo}")
+        else:
+            # Mandou texto que não é "pular" — lembrar que pode enviar foto ou pular
+            nova_etapa = "aguardando_midia_opcional"
+            resposta = (f"📸 Envie uma foto/vídeo do local, ou digite *pular* pra seguir sem foto.")
+
     elif tem_midia:
         erro_midia = processar_midia(event, sb, registro_id, "ocorrencias_relatos")
         if erro_midia:
             enviar_whatsapp(telefone, erro_midia)
             return
-        nova_etapa = etapa_atual
-        resposta = f"📸 Evidência recebida! Obrigado."
+        nova_etapa = "finalizado"
+        resposta = (f"📸 Evidência recebida! Obrigado.\n\n"
+                    f"✅ Equipe notificada.\n"
+                    f"📋 Protocolo: {protocolo}")
 
     else:
         nova_etapa = etapa_atual

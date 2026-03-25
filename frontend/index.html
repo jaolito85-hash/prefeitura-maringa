@@ -432,6 +432,7 @@ tbody tr:nth-child(even) td{background:rgba(255,255,255,.01)}
 .oc-lightbox.open{display:flex}
 .oc-lightbox-close{position:absolute;top:1.5rem;right:1.5rem;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .oc-lightbox-img{max-width:85vw;max-height:70vh;background:#12141c;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#626878;font-size:1rem;padding:3rem 5rem;border:1px solid rgba(255,255,255,.06)}
+img.oc-lightbox-img{object-fit:contain;padding:0;display:block}
 .oc-lightbox-nav{display:flex;gap:1rem;align-items:center}
 .oc-lightbox-nav button{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
 .oc-lightbox-nav button:hover{background:rgba(255,255,255,.15)}
@@ -1818,6 +1819,7 @@ function Ocorrencias(){
   const [sevFilter,setSevFilter]=useState('todas');
   const [typeFilter,setTypeFilter]=useState('todos');
   const [lbOpen,setLbOpen]=useState(false);
+  const [lbPhotos,setLbPhotos]=useState([]);
   const [lbTotal,setLbTotal]=useState(0);
   const [lbCurrent,setLbCurrent]=useState(0);
   const [humanMsg,setHumanMsg]=useState('');
@@ -1971,7 +1973,8 @@ function Ocorrencias(){
             const step=OC_STATUS_STEP[o.status]||0;
             const isSel=sel?.id===o.id;
             const citizens=ocGetCitizens(o.id,o);
-            const totalMedia=citizens.reduce((a,c)=>a+c.fotos+c.videos,0);
+            const realUrls=(o?.midia_urls||[]).filter(Boolean);
+            const totalMedia=realUrls.length>0?realUrls.length:citizens.reduce((a,c)=>a+(c.fotos||0)+(c.videos||0),0);
             const cardHandoff=citizens.some(c=>handoffMap[c.id]);
             return(
               <div key={o.id} className={`oc-card ${isSel?'selected':''}`} onClick={()=>{setSel(o);setViewCitizen(null);}}>
@@ -2039,17 +2042,28 @@ function Ocorrencias(){
                 ))}
               </div>
 
-              {(()=>{const totalMedia=currentCitizens.reduce((a,c)=>a+c.fotos+c.videos,0);const totalFotos=currentCitizens.reduce((a,c)=>a+c.fotos,0);const totalVideos=currentCitizens.reduce((a,c)=>a+c.videos,0);
-                return totalMedia>0?(
+              {(()=>{
+                const urls=(sel?.midia_urls||[]).filter(Boolean);
+                const fotos=urls.filter(u=>!(/\.(mp4|mov|3gp|webm)/i.test(u)||u.includes('video')));
+                const videos=urls.filter(u=>/\.(mp4|mov|3gp|webm)/i.test(u)||u.includes('video'));
+                const totalMedia=urls.length;
+                // Fallback: se sem URLs reais, usar contagem mock
+                const mockTotal=currentCitizens.reduce((a,c)=>a+(c.fotos||0)+(c.videos||0),0);
+                const showCount=totalMedia>0?totalMedia:mockTotal;
+                if(showCount<=0)return null;
+                return(
                   <>
                     <div className="oc-section-label">Evidências</div>
-                    <div className="oc-photos-btn" onClick={()=>{setLbTotal(totalFotos||1);setLbCurrent(0);setLbOpen(true);}}>
+                    <div className="oc-photos-btn" onClick={()=>{
+                      const allPhotos=fotos.length>0?fotos:Array.from({length:currentCitizens.reduce((a,c)=>a+(c.fotos||0),0)},(_,i)=>null);
+                      setLbPhotos(allPhotos);setLbTotal(allPhotos.length||1);setLbCurrent(0);setLbOpen(true);
+                    }}>
                       <OC_SVG.camera width={20} height={20}/>
                       <span className="oc-photos-btn-text">Ver evidências</span>
-                      <span className="oc-photos-btn-count">{totalFotos} fotos · {totalVideos} vídeos</span>
+                      <span className="oc-photos-btn-count">{fotos.length} fotos · {videos.length} vídeos</span>
                     </div>
                   </>
-                ):null;
+                );
               })()}
 
               <div className="oc-section-label">Cidadãos que reportaram</div>
@@ -2143,7 +2157,10 @@ function Ocorrencias(){
       {lbOpen&&(
         <div className="oc-lightbox open" onClick={e=>{if(e.target===e.currentTarget)setLbOpen(false);}}>
           <button className="oc-lightbox-close" onClick={()=>setLbOpen(false)}>&#10005;</button>
-          <div className="oc-lightbox-img">Foto {lbCurrent+1}</div>
+          {lbPhotos[lbCurrent]?
+            <img className="oc-lightbox-img" src={lbPhotos[lbCurrent]} alt={`Foto ${lbCurrent+1}`} style={{objectFit:'contain',padding:0}}/>
+            :<div className="oc-lightbox-img">Foto {lbCurrent+1}</div>
+          }
           <div className="oc-lightbox-nav">
             <button onClick={()=>setLbCurrent(c=>(c-1+lbTotal)%lbTotal)}>&#8249;</button>
             <span className="oc-lightbox-counter">{lbCurrent+1} / {lbTotal}</span>
