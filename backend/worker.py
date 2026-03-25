@@ -162,14 +162,62 @@ AES_KEY = os.environ.get("AES_KEY", "")
 
 
 def gerar_protocolo(sb: Client) -> str:
+    """Gera protocolo MGA-YYYY-XXXXX usando sequence do Postgres.
+    Se a sequence estiver defasada (ex: dados de seed à frente), reajusta
+    automaticamente para MAX(protocolo)+1 antes de gerar."""
+    ano = date.today().year
     try:
         result = sb.rpc("nextval", {"seq_name": "protocolo_seq"}).execute()
-        seq = result.data
-        return f"MGA-{date.today().year}-{str(seq).zfill(5)}"
+        seq = int(result.data)
+
+        # Verificar se já existe protocolo com esse número (conflito com seed)
+        candidato = f"MGA-{ano}-{str(seq).zfill(5)}"
+        check = sb.table("denuncias").select("id").eq("protocolo", candidato).execute()
+        if not check.data:
+            return candidato
+
+        # Conflito detectado — buscar o maior número existente e reajustar a sequence
+        logger.warning(f"Conflito de protocolo detectado: {candidato} já existe. Reajustando sequence...")
+        max_result = sb.rpc("executesql", {
+            "query": f"SELECT COALESCE(MAX(CAST(SUBSTRING(protocolo FROM '[0-9]+$') AS INTEGER)), 0) AS max_num FROM denuncias WHERE protocolo LIKE 'MGA-{ano}-%'"
+        }).execute()
+
+        # Fallback: buscar via select se a RPC não existir
+        if max_result.data and isinstance(max_result.data, list) and len(max_result.data) > 0:
+            max_num = int(max_result.data[0].get("max_num", seq))
+        else:
+            # Buscar todos protocolos e achar o maior manualmente
+            all_p = sb.table("denuncias").select("protocolo").like("protocolo", f"MGA-{ano}-%").execute()
+            nums = []
+            for row in (all_p.data or []):
+                try:
+                    nums.append(int(row["protocolo"].split("-")[-1]))
+                except (ValueError, IndexError):
+                    pass
+            max_num = max(nums) if nums else seq
+
+        new_seq = max_num + 1
+        # Reajustar a sequence no Postgres
+        try:
+            sb.rpc("executesql", {"query": f"SELECT setval('protocolo_seq', {new_seq}, false)"}).execute()
+        except Exception:
+            # Se a RPC não existir, a sequence será corrigida na próxima tentativa
+            pass
+
+        logger.info(f"Sequence reajustada para {new_seq}")
+        return f"MGA-{ano}-{str(new_seq).zfill(5)}"
+
     except Exception as exc:
-        logger.error(f"Falha ao gerar protocolo: {exc}")
-        import uuid
-        return f"MGA-{date.today().year}-{str(uuid.uuid4())[:8].upper()}"
+        logger.error(f"Falha ao gerar protocolo via sequence: {exc}")
+        # Fallback: buscar MAX manualmente
+        try:
+            all_p = sb.table("denuncias").select("protocolo").like("protocolo", f"MGA-{ano}-%").order("protocolo", desc=True).limit(1).execute()
+            if all_p.data:
+                max_num = int(all_p.data[0]["protocolo"].split("-")[-1])
+                return f"MGA-{ano}-{str(max_num + 1).zfill(5)}"
+        except Exception as exc2:
+            logger.error(f"Fallback protocolo também falhou: {exc2}")
+        return f"MGA-{ano}-{str(uuid.uuid4())[:8].upper()}"
 
 
 AVISO_TRUNCAGEM = (
