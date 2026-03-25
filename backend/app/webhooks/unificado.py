@@ -72,6 +72,13 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
     elif "extendedTextMessage" in msg:
         texto = msg["extendedTextMessage"].get("text", "")
     elif "imageMessage" in msg:
+        # ── DEBUG: log completo do payload de imagem ──
+        # Copia msg sem base64 pra não poluir o log (base64 pode ter megabytes)
+        msg_debug = {k: v for k, v in msg.items() if k != "base64"}
+        if "imageMessage" in msg_debug and "jpegThumbnail" in (msg_debug["imageMessage"] or {}):
+            msg_debug["imageMessage"] = {k: v for k, v in msg_debug["imageMessage"].items() if k != "jpegThumbnail"}
+            msg_debug["imageMessage"]["jpegThumbnail"] = "[OMITIDO]"
+        logger.info(f"=== PAYLOAD IMAGEM COMPLETO ===\n{json.dumps(msg_debug, indent=2, default=str)}")
         texto = msg["imageMessage"].get("caption", "")
         tipo_midia = "imagem"
         file_length = msg["imageMessage"].get("fileLength")
