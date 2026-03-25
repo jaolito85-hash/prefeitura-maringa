@@ -691,7 +691,33 @@ def processar_denuncia(event: dict, sb: Client) -> None:
         return
 
     # ── NOVA DENUNCIA (categoria já definida pela IA) ──
+    tem_midia = event.get("tem_midia", False)
+    tem_loc = event.get("tem_localizacao", False)
+
+    # ── BUG 2 FIX: Se NÃO tem mídia, NÃO gera protocolo ainda ──
+    # Cria sessão aguardando mídia sem registro no banco.
+    # O protocolo e registro só são criados quando a foto/vídeo chegar.
+    if not tem_midia:
+        placeholder_id = str(uuid.uuid4())
+        criar_sessao(sb, telefone, "denuncia", "aguardando_midia", placeholder_id,
+                     {"push_name": push_name, "mensagem_original": texto,
+                      "categoria": categoria, "_placeholder": True})
+        cat_label = categoria.replace("_", " ")
+        resposta = (f"✅ Recebido, {push_name or 'cidadão'}! Sua denúncia de *{cat_label}* "
+                    f"foi identificada.\n\n"
+                    f"📸 Agora envie uma *foto ou vídeo* como evidência.\n"
+                    f"Isso é essencial para registrar a denúncia e gerar seu protocolo.\n\n"
+                    f"_Aguardando sua evidência..._")
+        enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+        logger.info(f"Aguardando mídia de {telefone} para criar denúncia ({categoria})")
+        return
+
+    # ── Tem mídia na primeira mensagem — cria registro completo ──
     protocolo = gerar_protocolo(sb)
+
+    # Classificar origem da foto (red flag)
+    foto_info = classificar_foto_origem(event)
+    logger.info(f"📷 Classificação foto: {foto_info}")
 
     insert_data = {
         "protocolo": protocolo,
@@ -700,9 +726,14 @@ def processar_denuncia(event: dict, sb: Client) -> None:
         "categoria": categoria,
         "mensagem": texto,
         "status": "novo",
+        "foto_origem": foto_info["foto_origem"],
+        "foto_flag": foto_info["foto_flag"],
+        "foto_flag_motivo": foto_info["foto_flag_motivo"],
     }
-    # Salvar localização se veio junto com a primeira mensagem
-    tem_loc = event.get("tem_localizacao", False)
+    if foto_info["foto_flag"] != "none":
+        logger.info(f"🚩 Red flag detectada: {foto_info['foto_flag']} — {foto_info['foto_flag_motivo']}")
+
+    # Salvar localização se veio junto
     if tem_loc and event.get("latitude"):
         insert_data["latitude"] = event["latitude"]
         insert_data["longitude"] = event["longitude"]
@@ -714,14 +745,6 @@ def processar_denuncia(event: dict, sb: Client) -> None:
         else:
             insert_data["bairro"] = f"GPS: {event['latitude']:.4f}, {event['longitude']:.4f}"
 
-    # ── Classificar origem da foto (red flag) ──
-    foto_info = classificar_foto_origem(event)
-    insert_data["foto_origem"] = foto_info["foto_origem"]
-    insert_data["foto_flag"] = foto_info["foto_flag"]
-    insert_data["foto_flag_motivo"] = foto_info["foto_flag_motivo"]
-    if foto_info["foto_flag"] != "none":
-        logger.info(f"🚩 Red flag detectada: {foto_info['foto_flag']} — {foto_info['foto_flag_motivo']}")
-
     res = sb.table("denuncias").insert(insert_data).execute()
 
     if not res.data:
@@ -731,25 +754,12 @@ def processar_denuncia(event: dict, sb: Client) -> None:
     registro_id = res.data[0]["id"]
     logger.info(f"Denuncia criada: {protocolo} ({categoria})")
 
-    # Determinar proxima etapa
-    tem_midia = event.get("tem_midia", False)
-    tem_loc = event.get("tem_localizacao", False)
+    # Processar mídia (upload para storage)
+    erro_midia = processar_midia(event, sb, registro_id, "denuncias")
+    if erro_midia:
+        enviar_whatsapp(telefone, erro_midia)
 
-    # Processar mídia se veio junto com a primeira mensagem
-    if tem_midia:
-        erro_midia = processar_midia(event, sb, registro_id, "denuncias")
-        if erro_midia:
-            enviar_whatsapp(telefone, erro_midia)
-            # Continua o fluxo mesmo com erro de mídia
-
-    if not tem_midia:
-        etapa = "aguardando_midia"
-        resposta = (f"✅ Recebido, {push_name or 'cidadão'}! Sua denúncia de *{categoria.replace('_', ' ')}* "
-                    f"foi registrada.\n\n"
-                    f"📸 Consegue enviar uma foto ou vídeo como evidência? "
-                    f"Isso fortalece muito a investigação.\n\n"
-                    f"📋 Protocolo: {protocolo}")
-    elif not tem_loc:
+    if not tem_loc:
         etapa = "aguardando_endereco"
         resposta = (f"✅ Evidência recebida! Agora preciso da localização.\n\n"
                     f"📍 Envie o endereço ou clique em: 📎 > Localização\n\n"
@@ -758,10 +768,8 @@ def processar_denuncia(event: dict, sb: Client) -> None:
         # Denúncia completa — checar se é elegível pro Cidadão Ativo
         valor = _buscar_valor_recompensa(sb, categoria)
         if valor:
-            # Verificar se já tem CPF/PIX de denúncia anterior (mesmo telefone)
             dados_ant = _buscar_dados_anteriores(sb, telefone)
             if dados_ant:
-                # Já tem dados! Cria recompensa automaticamente
                 _criar_recompensa(sb, registro_id, protocolo, valor,
                                   dados_ant["cpf_encrypted"],
                                   dados_ant["chave_pix_encrypted"],
@@ -851,42 +859,26 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
             enviar_whatsapp(telefone, resposta)
             return
 
-        # Categoria escolhida! Agora cria o registro da denúncia
-        protocolo = gerar_protocolo(sb)
+        # Categoria escolhida! NÃO cria registro ainda — aguarda mídia primeiro
         mensagem_original = contexto.get("mensagem_original", texto)
-        # Procura o label amigável
         cat_label = cat_escolhida.replace("_", " ")
         for _, cat_id, label, _ in MENU_CATEGORIAS:
             if cat_id == cat_escolhida:
                 cat_label = label
                 break
 
-        insert_data = {
-            "protocolo": protocolo,
-            "telefone": telefone,
-            "nome": push_name or None,
-            "categoria": cat_escolhida,
-            "mensagem": mensagem_original,
-            "status": "novo",
-        }
-        res = sb.table("denuncias").insert(insert_data).execute()
-        if not res.data:
-            logger.error("Falha ao criar denuncia após menu")
-            enviar_whatsapp(telefone, "Desculpe, ocorreu um erro. Tente novamente.")
-            return
-
-        registro_id = res.data[0]["id"]
-        logger.info(f"Denuncia criada via menu: {protocolo} ({cat_escolhida})")
-
+        placeholder_id = str(uuid.uuid4())
         etapa = "aguardando_midia"
         resposta = (f"✅ Registrado como *{cat_label}*!\n\n"
-                    f"📸 Agora envie uma foto ou vídeo como evidência.\n"
-                    f"Isso fortalece muito a investigação.\n\n"
-                    f"📋 Protocolo: {protocolo}")
+                    f"📸 Agora envie uma *foto ou vídeo* como evidência.\n"
+                    f"Isso é essencial para gerar seu protocolo.\n\n"
+                    f"_Aguardando sua evidência..._")
 
-        criar_sessao(sb, telefone, "denuncia", etapa, registro_id,
-                     {"protocolo": protocolo, "categoria": cat_escolhida})
+        criar_sessao(sb, telefone, "denuncia", etapa, placeholder_id,
+                     {"push_name": push_name, "mensagem_original": mensagem_original,
+                      "categoria": cat_escolhida, "_placeholder": True})
         enviar_whatsapp(telefone, resposta)
+        logger.info(f"Menu: categoria={cat_escolhida}, aguardando mídia de {telefone}")
         return
 
     if not registro_id:
@@ -999,6 +991,52 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
     # ══════════════════════════════════════════════════════════
 
     if tem_midia and etapa_atual == "aguardando_midia":
+        # ── BUG 2 FIX: Se registro_id é placeholder, criar o registro agora ──
+        is_placeholder = contexto.get("_placeholder", False)
+        if is_placeholder:
+            mensagem_original = contexto.get("mensagem_original", texto)
+            cat = contexto.get("categoria", categoria) or categoria
+            protocolo = gerar_protocolo(sb)
+
+            # Classificar origem da foto (red flag) — BUG 1 FIX
+            foto_info = classificar_foto_origem(event)
+            logger.info(f"📷 Classificação foto (continuação): {foto_info}")
+
+            insert_data_new = {
+                "protocolo": protocolo,
+                "telefone": telefone,
+                "nome": push_name or None,
+                "categoria": cat,
+                "mensagem": mensagem_original,
+                "status": "novo",
+                "foto_origem": foto_info["foto_origem"],
+                "foto_flag": foto_info["foto_flag"],
+                "foto_flag_motivo": foto_info["foto_flag_motivo"],
+            }
+            if foto_info["foto_flag"] != "none":
+                logger.info(f"🚩 Red flag detectada: {foto_info['foto_flag']} — {foto_info['foto_flag_motivo']}")
+
+            res = sb.table("denuncias").insert(insert_data_new).execute()
+            if not res.data:
+                logger.error("Falha ao criar denuncia na etapa aguardando_midia")
+                enviar_whatsapp(telefone, "Desculpe, ocorreu um erro. Tente novamente.")
+                return
+            registro_id = res.data[0]["id"]
+            categoria = cat
+            contexto["protocolo"] = protocolo
+            contexto["categoria"] = categoria
+            contexto.pop("_placeholder", None)
+            logger.info(f"Denuncia criada ao receber mídia: {protocolo} ({categoria})")
+        else:
+            # Registro já existe — atualizar red flag com os metadados da foto
+            foto_info = classificar_foto_origem(event)
+            logger.info(f"📷 Classificação foto (update): {foto_info}")
+            update_data["foto_origem"] = foto_info["foto_origem"]
+            update_data["foto_flag"] = foto_info["foto_flag"]
+            update_data["foto_flag_motivo"] = foto_info["foto_flag_motivo"]
+            if foto_info["foto_flag"] != "none":
+                logger.info(f"🚩 Red flag detectada: {foto_info['foto_flag']} — {foto_info['foto_flag_motivo']}")
+
         erro_midia = processar_midia(event, sb, registro_id, "denuncias")
         if erro_midia:
             enviar_whatsapp(telefone, erro_midia)
@@ -1006,7 +1044,8 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
         update_data["status"] = "novo"
         nova_etapa = "aguardando_endereco"
         resposta = (f"📸 Evidência recebida! Obrigado.\n\n"
-                    f"📍 Agora me diz o endereço ou envia sua localização: 📎 > Localização")
+                    f"📍 Agora me diz o endereço ou envia sua localização: 📎 > Localização\n\n"
+                    f"📋 Protocolo: {protocolo}")
 
     elif tem_loc:
         lat = event.get("latitude")

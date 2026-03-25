@@ -103,14 +103,35 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
             file_length = None
 
     # ── Extrair metadados de origem da foto (red flag) ──
+    # Evolution API pode colocar messageContextInfo dentro de imageMessage ou no nível msg
     msg_context = msg.get("messageContextInfo", {}) or {}
     is_forwarded = msg_context.get("isForwarded", False)
     forwarding_score = msg_context.get("forwardingScore", 0) or 0
     media_key_timestamp = None
+
     if "imageMessage" in msg:
-        media_key_timestamp = msg["imageMessage"].get("mediaKeyTimestamp")
+        img = msg["imageMessage"]
+        media_key_timestamp = img.get("mediaKeyTimestamp")
+        # Fallback: isForwarded/forwardingScore podem vir dentro de imageMessage.contextInfo
+        img_ctx = img.get("contextInfo", {}) or {}
+        if not is_forwarded:
+            is_forwarded = img_ctx.get("isForwarded", False)
+        if not forwarding_score:
+            forwarding_score = img_ctx.get("forwardingScore", 0) or 0
+        # Log completo para debug de red flag
+        logger.info(f"📷 imageMessage metadata: mediaKeyTimestamp={media_key_timestamp}, "
+                    f"isForwarded={is_forwarded}, forwardingScore={forwarding_score}, "
+                    f"contextInfo keys={list(img_ctx.keys())}, "
+                    f"msgContextInfo keys={list(msg_context.keys())}")
     elif "videoMessage" in msg:
-        media_key_timestamp = msg["videoMessage"].get("mediaKeyTimestamp")
+        vid = msg["videoMessage"]
+        media_key_timestamp = vid.get("mediaKeyTimestamp")
+        vid_ctx = vid.get("contextInfo", {}) or {}
+        if not is_forwarded:
+            is_forwarded = vid_ctx.get("isForwarded", False)
+        if not forwarding_score:
+            forwarding_score = vid_ctx.get("forwardingScore", 0) or 0
+
     if media_key_timestamp is not None:
         try:
             media_key_timestamp = int(media_key_timestamp)
