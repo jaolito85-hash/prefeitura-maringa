@@ -102,6 +102,21 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
         except (ValueError, TypeError):
             file_length = None
 
+    # ── Extrair metadados de origem da foto (red flag) ──
+    msg_context = msg.get("messageContextInfo", {}) or {}
+    is_forwarded = msg_context.get("isForwarded", False)
+    forwarding_score = msg_context.get("forwardingScore", 0) or 0
+    media_key_timestamp = None
+    if "imageMessage" in msg:
+        media_key_timestamp = msg["imageMessage"].get("mediaKeyTimestamp")
+    elif "videoMessage" in msg:
+        media_key_timestamp = msg["videoMessage"].get("mediaKeyTimestamp")
+    if media_key_timestamp is not None:
+        try:
+            media_key_timestamp = int(media_key_timestamp)
+        except (ValueError, TypeError):
+            media_key_timestamp = None
+
     tem_localizacao = False
     latitude = None
     longitude = None
@@ -128,6 +143,9 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
         "file_length": file_length,
         "mimetype": mimetype,
         "media_base64": media_base64,
+        "is_forwarded": is_forwarded,
+        "forwarding_score": forwarding_score,
+        "media_key_timestamp": media_key_timestamp,
     }
 
 
@@ -351,6 +369,9 @@ def _montar_evento(dados: dict, request: Request, classificacao: dict,
         "file_length": dados.get("file_length"),
         "mimetype": dados.get("mimetype"),
         "media_base64": dados.get("media_base64", ""),
+        "is_forwarded": dados.get("is_forwarded", False),
+        "forwarding_score": dados.get("forwarding_score", 0),
+        "media_key_timestamp": dados.get("media_key_timestamp"),
         "texto_truncado": dados.get("texto_truncado", False),
         "classificacao": classificacao,
         "is_continuacao": is_continuacao,

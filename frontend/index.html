@@ -1595,7 +1595,8 @@ function Denuncias(){
   const [tab,setTab]=useState('lista');
   const [sel,setSel]=useState(null);
   const [fc,setFc]=useState('');
-  const lista=DEN.filter(d=>!fc||d.categoria===fc);
+  const [filtroSuspeitas,setFiltroSuspeitas]=useState(false);
+  const lista=DEN.filter(d=>(!fc||d.categoria===fc)&&(!filtroSuspeitas||(d.foto_flag==='medium'||d.foto_flag==='high')));
   const pago=DEN.filter(d=>d.status==='recompensa_paga').reduce((a,d)=>a+(d.valor_recompensa||0),0);
   const apagar=DEN.filter(d=>d.status==='procedente').reduce((a,d)=>a+(d.valor_recompensa||0),0);
   const analise=DEN.filter(d=>d.status==='em_analise').reduce((a,d)=>a+(d.valor_recompensa||0),0);
@@ -1624,11 +1625,12 @@ function Denuncias(){
         <div className={`tab ${tab==='lista'?'active':''}`} onClick={()=>setTab('lista')}>Denúncias</div>
         <div className={`tab ${tab==='graficos'?'active':''}`} onClick={()=>setTab('graficos')}>Gráficos</div>
         <div className="tab-spacer"/>
-        <div style={{display:'flex',alignItems:'flex-end',paddingBottom:10}}>
+        <div style={{display:'flex',alignItems:'flex-end',paddingBottom:10,gap:8}}>
           <select value={fc} onChange={e=>setFc(e.target.value)}>
             <option value="">Todas categorias</option>
             {Object.entries(CAT_DEN).map(([k,v])=><option key={k} value={k}>{v.icon} {v.label}</option>)}
           </select>
+          <button onClick={()=>setFiltroSuspeitas(!filtroSuspeitas)} style={{padding:'6px 12px',fontSize:12,fontWeight:600,borderRadius:6,border:filtroSuspeitas?'1px solid #e74c3c':'1px solid var(--border)',background:filtroSuspeitas?'rgba(231,76,60,.15)':'transparent',color:filtroSuspeitas?'#e74c3c':'var(--text-muted)',cursor:'pointer',whiteSpace:'nowrap',transition:'all .2s'}}>🚩 Suspeitas{filtroSuspeitas?` (${DEN.filter(d=>d.foto_flag==='medium'||d.foto_flag==='high').length})`:''}</button>
         </div>
       </div>
       {tab==='lista'?(
@@ -1641,7 +1643,7 @@ function Denuncias(){
                 const sta=S_DEN[d.status]||{label:d.status,badge:'b-gray'};
                 return(
                   <tr key={d.id} onClick={()=>setSel(d)} style={{cursor:'pointer',background:sel?.id===d.id?'rgba(5,150,105,.04)':''}}>
-                    <td><span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{d.protocolo}</span>{d.midia_urls&&d.midia_urls.length>0&&<span title={`${d.midia_urls.length} evidência(s)`} style={{marginLeft:6,fontSize:11,opacity:.7}}>📎</span>}</td>
+                    <td><span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>{d.protocolo}</span>{d.midia_urls&&d.midia_urls.length>0&&<span title={`${d.midia_urls.length} evidência(s)`} style={{marginLeft:6,fontSize:11,opacity:.7}}>📎</span>}{d.foto_flag==='high'&&<span title={`⚠ ${d.foto_flag_motivo||'Foto encaminhada de outra conversa'}`} style={{marginLeft:4,fontSize:13,cursor:'help',color:'#e74c3c'}}>⚠</span>}{d.foto_flag==='medium'&&<span title={`⚠ ${d.foto_flag_motivo||'Foto da galeria com mais de 24h'}`} style={{marginLeft:4,fontSize:13,cursor:'help',color:'#f1c40f'}}>⚠</span>}{d.foto_flag==='low'&&<span title={d.foto_flag_motivo||'Foto enviada da galeria'} style={{marginLeft:4,fontSize:13,cursor:'help',color:'#e67e22'}}>🕐</span>}{d.foto_flag==='none'&&d.foto_origem==='camera_direta'&&<span title="Foto tirada na hora" style={{marginLeft:4,fontSize:11,cursor:'help',color:'#2ecc71'}}>✓</span>}</td>
                     <td><span className={`badge ${cat.badge}`}>{cat.icon?`${cat.icon} `:''}{cat.label}</span></td>
                     <td style={{maxWidth:280}}><span className="truncate" style={{display:'block',maxWidth:280}}>{d.mensagem}</span></td>
                     <td>{d.bairro}</td>
@@ -1680,6 +1682,10 @@ function Denuncias(){
                 <div style={{marginBottom:22}}>
                   <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>
                     <span style={{fontSize:14}}>📎</span> Evidências ({sel.midia_urls.length})
+                    {sel.foto_flag==='high'&&<span style={{fontSize:11,fontWeight:700,color:'#e74c3c',background:'rgba(231,76,60,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>🔴 {sel.foto_flag_motivo||'Foto encaminhada'}</span>}
+                    {sel.foto_flag==='medium'&&<span style={{fontSize:11,fontWeight:700,color:'#f1c40f',background:'rgba(241,196,15,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>🟡 {sel.foto_flag_motivo||'Foto da galeria antiga'}</span>}
+                    {sel.foto_flag==='low'&&<span style={{fontSize:11,fontWeight:700,color:'#e67e22',background:'rgba(230,126,34,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>🟠 {sel.foto_flag_motivo||'Foto da galeria'}</span>}
+                    {sel.foto_flag==='none'&&sel.foto_origem==='camera_direta'&&<span style={{fontSize:11,fontWeight:700,color:'#2ecc71',background:'rgba(46,204,113,.12)',padding:'2px 8px',borderRadius:4,marginLeft:6}}>✅ Foto tirada na hora</span>}
                   </div>
                   <div style={{display:'grid',gridTemplateColumns:sel.midia_urls.length===1?'1fr':'1fr 1fr',gap:10}}>
                     {sel.midia_urls.map((url,i)=>{

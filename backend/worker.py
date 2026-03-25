@@ -102,6 +102,61 @@ def _identificar_categoria_menu(texto: str) -> str | None:
     return None
 
 
+def classificar_foto_origem(event: dict) -> dict:
+    """Classifica a origem da foto baseado nos metadados da Evolution API.
+    Retorna dict com foto_origem, foto_flag e foto_flag_motivo."""
+    is_forwarded = event.get("is_forwarded", False)
+    forwarding_score = event.get("forwarding_score", 0) or 0
+    media_key_timestamp = event.get("media_key_timestamp")
+    received_at = event.get("received_at", "")
+
+    # Sem mídia de imagem → desconhecida
+    tipo_midia = event.get("tipo_midia")
+    if tipo_midia != "imagem":
+        return {"foto_origem": "desconhecida", "foto_flag": "none", "foto_flag_motivo": ""}
+
+    # 1. Foto encaminhada → RED FLAG ALTA
+    if is_forwarded or forwarding_score > 0:
+        return {
+            "foto_origem": "encaminhada",
+            "foto_flag": "high",
+            "foto_flag_motivo": "Foto encaminhada de outra conversa",
+        }
+
+    # 2. Comparar mediaKeyTimestamp com horário de recebimento
+    if media_key_timestamp and received_at:
+        try:
+            ts_media = datetime.fromtimestamp(media_key_timestamp, tz=timezone.utc)
+            ts_received = datetime.fromisoformat(received_at.replace("Z", "+00:00"))
+            diff_seconds = (ts_received - ts_media).total_seconds()
+
+            # Foto tirada na hora (< 5 min)
+            if diff_seconds < 300:
+                return {
+                    "foto_origem": "camera_direta",
+                    "foto_flag": "none",
+                    "foto_flag_motivo": "Foto tirada na hora",
+                }
+            # Foto da galeria antiga (> 24h)
+            elif diff_seconds > 86400:
+                return {
+                    "foto_origem": "galeria_antiga",
+                    "foto_flag": "medium",
+                    "foto_flag_motivo": "Foto da galeria com mais de 24h",
+                }
+            # Foto da galeria recente (entre 5min e 24h)
+            else:
+                return {
+                    "foto_origem": "galeria_recente",
+                    "foto_flag": "low",
+                    "foto_flag_motivo": "Foto enviada da galeria",
+                }
+        except (ValueError, TypeError, OSError):
+            pass
+
+    return {"foto_origem": "desconhecida", "foto_flag": "none", "foto_flag_motivo": ""}
+
+
 # Chave AES para criptografia (em produção, vem do .env)
 AES_KEY = os.environ.get("AES_KEY", "")
 
@@ -610,6 +665,14 @@ def processar_denuncia(event: dict, sb: Client) -> None:
             insert_data["bairro"] = bairro_geo
         else:
             insert_data["bairro"] = f"GPS: {event['latitude']:.4f}, {event['longitude']:.4f}"
+
+    # ── Classificar origem da foto (red flag) ──
+    foto_info = classificar_foto_origem(event)
+    insert_data["foto_origem"] = foto_info["foto_origem"]
+    insert_data["foto_flag"] = foto_info["foto_flag"]
+    insert_data["foto_flag_motivo"] = foto_info["foto_flag_motivo"]
+    if foto_info["foto_flag"] != "none":
+        logger.info(f"🚩 Red flag detectada: {foto_info['foto_flag']} — {foto_info['foto_flag_motivo']}")
 
     res = sb.table("denuncias").insert(insert_data).execute()
 
