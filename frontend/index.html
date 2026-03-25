@@ -273,6 +273,170 @@ tbody tr:nth-child(even) td{background:rgba(255,255,255,.01)}
 @media(max-width:1200px){.den-summary-row{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:768px){.den-summary-row{grid-template-columns:repeat(2,1fr)}.den-toolbar{flex-direction:column;align-items:stretch}}
 
+/* ─── OCORRÊNCIAS v3 ─────────────────────────────────────────── */
+.oc-layout{display:flex;height:100%;width:100%;overflow:hidden;position:relative}
+.oc-sidebar{width:380px;min-width:380px;background:#0e1017;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;overflow:hidden}
+.oc-sidebar-header{padding:1.25rem 1.25rem .85rem;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.oc-sidebar-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.oc-sidebar-title h2{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;color:#f2f2f5;margin:0}
+.oc-sidebar-title .oc-count{background:rgba(196,30,58,.12);color:#c41e3a;font-size:.82rem;font-weight:700;padding:.25rem .65rem;border-radius:99px}
+.oc-filters{display:flex;flex-direction:column;gap:.5rem}
+.oc-filter-row{display:flex;gap:.3rem;flex-wrap:wrap}
+.oc-fbtn{padding:.35rem .7rem;background:#12141c;border:1px solid rgba(255,255,255,.06);border-radius:6px;color:#626878;font-family:'Outfit',sans-serif;font-size:.76rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.oc-fbtn:hover{border-color:rgba(255,255,255,.12);color:#a0a5b4}
+.oc-fbtn.active{background:rgba(196,30,58,.12);border-color:rgba(196,30,58,.3);color:#c41e3a;font-weight:700}
+.oc-cards-list{flex:1;overflow-y:auto;padding:.65rem;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.08) transparent}
+.oc-cards-list::-webkit-scrollbar{width:4px}
+.oc-cards-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:99px}
+.oc-card{background:#12141c;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:.9rem 1rem;margin-bottom:.5rem;cursor:pointer;transition:all .25s;position:relative;animation:oc-fadeInUp .3s ease both}
+.oc-card:hover{border-color:rgba(255,255,255,.12);transform:translateX(3px)}
+.oc-card.selected{border-color:#c41e3a;background:#181b25}
+.oc-card.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:#c41e3a;border-radius:14px 0 0 14px}
+.oc-card-top{display:flex;align-items:flex-start;gap:.6rem}
+.oc-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.oc-icon svg{width:18px;height:18px}
+.oc-icon.arvore{background:rgba(46,204,113,.1);color:#2ecc71}
+.oc-icon.incendio{background:rgba(231,76,60,.1);color:#e74c3c}
+.oc-icon.acidente{background:rgba(230,126,34,.1);color:#e67e22}
+.oc-icon.alagamento{background:rgba(52,152,219,.1);color:#3498db}
+.oc-icon.animal{background:rgba(155,89,182,.1);color:#9b59b6}
+.oc-icon.gas{background:rgba(241,196,15,.1);color:#f1c40f}
+.oc-card-info{flex:1;min-width:0}
+.oc-card-title{font-size:.92rem;font-weight:700;color:#f2f2f5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oc-card-meta{font-size:.78rem;color:#626878;font-weight:500;margin-top:.2rem}
+.oc-sev{font-size:.68rem;font-weight:800;letter-spacing:.04em;padding:.2rem .5rem;border-radius:99px;text-transform:uppercase;flex-shrink:0}
+.oc-sev.critica{background:rgba(231,76,60,.15);color:#e74c3c}
+.oc-sev.alta{background:rgba(230,126,34,.15);color:#e67e22}
+.oc-sev.media{background:rgba(241,196,15,.15);color:#f1c40f}
+.oc-sev.baixa{background:rgba(52,152,219,.15);color:#3498db}
+.oc-card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:.55rem}
+.oc-status-text{font-size:.78rem;font-weight:700}
+.oc-status-text.aberto{color:#f1c40f}
+.oc-status-text.encaminhada{color:#3498db}
+.oc-status-text.no-local{color:#9b59b6}
+.oc-status-text.resolvido{color:#2ecc71}
+.oc-right-info{display:flex;align-items:center;gap:.75rem}
+.oc-reporters{display:flex;align-items:center;gap:.3rem;font-size:.78rem;font-weight:700;color:#c41e3a}
+.oc-reporters svg{width:14px;height:14px}
+.oc-attach{display:flex;align-items:center;gap:.25rem;font-size:.75rem;color:#626878;font-weight:500}
+.oc-attach svg{width:13px;height:13px}
+.oc-progress-mini{display:flex;gap:3px;margin-top:.5rem}
+.oc-p-step{height:3px;flex:1;border-radius:99px;background:rgba(255,255,255,.06)}
+.oc-p-step.done{background:#2ecc71}
+.oc-p-step.current{background:#c41e3a;animation:oc-pulse-s 2s infinite}
+@keyframes oc-pulse-s{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes oc-fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.oc-card:nth-child(1){animation-delay:.03s}.oc-card:nth-child(2){animation-delay:.06s}.oc-card:nth-child(3){animation-delay:.09s}
+.oc-card:nth-child(4){animation-delay:.12s}.oc-card:nth-child(5){animation-delay:.15s}.oc-card:nth-child(6){animation-delay:.18s}
+.oc-card-handoff{display:none;align-items:center;gap:.3rem;font-size:.7rem;font-weight:700;color:#e74c3c;margin-top:.4rem}
+.oc-card-handoff.visible{display:flex}
+.oc-card-handoff .hd{width:5px;height:5px;border-radius:50%;background:#e74c3c;animation:oc-blink 1.2s infinite}
+@keyframes oc-blink{0%,100%{opacity:1}50%{opacity:.3}}
+.oc-map-area{flex:1;position:relative;background:#08090c}
+.oc-side-panel{width:440px;background:#0e1017;border-left:1px solid rgba(255,255,255,.06);height:100%;display:flex;flex-direction:column;overflow:hidden;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);flex-shrink:0;position:absolute;right:0;top:0;bottom:0;z-index:10}
+.oc-side-panel.open{transform:translateX(0)}
+.oc-side-header{padding:1.25rem 1.5rem 1rem;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.oc-side-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+.oc-side-proto{font-size:.82rem;color:#626878;font-weight:600}
+.oc-side-close{width:30px;height:30px;border-radius:6px;background:#12141c;border:1px solid rgba(255,255,255,.06);color:#a0a5b4;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.85rem;transition:all .2s}
+.oc-side-close:hover{border-color:rgba(255,255,255,.12);color:#f2f2f5}
+.oc-side-title{font-size:1.2rem;font-weight:800;color:#f2f2f5;margin-bottom:.5rem;letter-spacing:-.02em}
+.oc-side-tags{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.65rem}
+.oc-side-tag{font-size:.72rem;font-weight:700;padding:.2rem .55rem;border-radius:99px}
+.oc-side-tag.sev-critica{background:rgba(231,76,60,.12);color:#e74c3c}
+.oc-side-tag.sev-alta{background:rgba(230,126,34,.12);color:#e67e22}
+.oc-side-tag.sev-media{background:rgba(241,196,15,.12);color:#f1c40f}
+.oc-side-tag.sev-baixa{background:rgba(52,152,219,.12);color:#3498db}
+.oc-side-tag.status-t{background:rgba(52,152,219,.12);color:#3498db}
+.oc-side-tag.reporters-t{background:rgba(196,30,58,.12);color:#c41e3a}
+.oc-side-tag.bairro-t{background:rgba(255,255,255,.05);color:#a0a5b4}
+.oc-side-location{display:flex;align-items:center;gap:.4rem;font-size:.85rem;color:#a0a5b4;font-weight:500}
+.oc-side-location svg{width:15px;height:15px;color:#c41e3a;flex-shrink:0}
+.oc-side-body{flex:1;overflow-y:auto;padding:0 1.5rem 1rem;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.08) transparent}
+.oc-side-body::-webkit-scrollbar{width:4px}
+.oc-side-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:99px}
+.oc-section-label{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#626878;margin:1.25rem 0 .6rem}
+.oc-section-label:first-child{margin-top:1rem}
+.oc-status-flow{display:flex;gap:0}
+.oc-sf-step{flex:1;padding:.5rem .3rem;text-align:center;font-size:.72rem;font-weight:700;background:#12141c;border:1px solid rgba(255,255,255,.06);color:#626878;cursor:pointer;transition:all .2s}
+.oc-sf-step:first-child{border-radius:6px 0 0 6px}
+.oc-sf-step:last-child{border-radius:0 6px 6px 0}
+.oc-sf-step:not(:last-child){border-right:none}
+.oc-sf-step.done{background:rgba(46,204,113,.08);border-color:rgba(46,204,113,.2);color:#2ecc71}
+.oc-sf-step.current{background:rgba(196,30,58,.12);border-color:rgba(196,30,58,.3);color:#c41e3a}
+.oc-photos-btn{display:flex;align-items:center;gap:.5rem;padding:.65rem 1rem;background:#12141c;border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;transition:all .2s;width:100%}
+.oc-photos-btn:hover{border-color:rgba(255,255,255,.12);transform:translateY(-1px)}
+.oc-photos-btn svg{width:20px;height:20px;color:#2ecc71}
+.oc-photos-btn-text{font-size:.88rem;font-weight:600;color:#f2f2f5}
+.oc-photos-btn-count{font-size:.78rem;color:#626878;font-weight:500;margin-left:auto}
+.oc-citizen-item{display:flex;align-items:center;gap:.65rem;padding:.75rem .85rem;background:#12141c;border:1px solid rgba(255,255,255,.06);border-radius:10px;cursor:pointer;transition:all .2s;margin-bottom:.4rem}
+.oc-citizen-item:hover{border-color:rgba(255,255,255,.12);transform:translateX(3px)}
+.oc-citizen-avatar{width:38px;height:38px;border-radius:50%;background:#181b25;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:800;color:#626878;flex-shrink:0}
+.oc-citizen-info{flex:1;min-width:0}
+.oc-citizen-name{font-size:.9rem;font-weight:700;color:#f2f2f5}
+.oc-citizen-phone{font-size:.75rem;color:#626878;font-weight:500;margin-top:.1rem}
+.oc-citizen-right{text-align:right;flex-shrink:0}
+.oc-citizen-msgs{font-size:.75rem;color:#a0a5b4;font-weight:600}
+.oc-citizen-time{font-size:.68rem;color:#626878;margin-top:.1rem}
+.oc-citizen-handoff-badge{display:none;align-items:center;gap:.25rem;font-size:.65rem;font-weight:700;color:#e74c3c;margin-top:.25rem}
+.oc-citizen-handoff-badge.visible{display:flex}
+.oc-citizen-handoff-badge .hd{width:5px;height:5px;border-radius:50%;background:#e74c3c;animation:oc-blink 1.2s infinite}
+.oc-chat-back{display:flex;align-items:center;gap:.4rem;padding:.5rem 0;cursor:pointer;color:#a0a5b4;font-size:.85rem;font-weight:600;transition:color .2s;margin-bottom:.5rem;background:none;border:none;font-family:'Outfit',sans-serif}
+.oc-chat-back:hover{color:#f2f2f5}
+.oc-chat-back svg{width:16px;height:16px}
+.oc-chat-citizen-header{display:flex;align-items:center;gap:.6rem;padding:.65rem .85rem;background:#12141c;border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-bottom:.75rem}
+.oc-chat-citizen-header .oc-citizen-avatar{width:34px;height:34px;font-size:.75rem}
+.oc-ch-name{font-size:.9rem;font-weight:700;color:#f2f2f5}
+.oc-ch-phone{font-size:.75rem;color:#626878;font-weight:500}
+.oc-handoff-btn{width:100%;padding:.6rem .75rem;border-radius:10px;font-family:'Outfit',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.45rem;border:none;margin-bottom:.75rem}
+.oc-handoff-btn.take{background:rgba(230,126,34,.12);color:#e67e22;border:1px solid rgba(230,126,34,.25)}
+.oc-handoff-btn.take:hover{background:rgba(230,126,34,.2)}
+.oc-handoff-btn.release{background:rgba(231,76,60,.15);color:#e74c3c;border:1px solid rgba(231,76,60,.3);animation:oc-handoff-pulse 2s infinite}
+.oc-handoff-btn.release:hover{background:rgba(231,76,60,.25)}
+.oc-handoff-btn svg{width:16px;height:16px}
+@keyframes oc-handoff-pulse{0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,.3)}50%{box-shadow:0 0 0 6px rgba(231,76,60,0)}}
+.oc-handoff-active-bar{display:none;align-items:center;justify-content:center;gap:.4rem;padding:.4rem;font-size:.75rem;font-weight:700;color:#e74c3c;background:rgba(231,76,60,.06);border-radius:6px;margin-bottom:.5rem}
+.oc-handoff-active-bar.visible{display:flex}
+.oc-handoff-active-bar .hd{width:6px;height:6px;border-radius:50%;background:#e74c3c;animation:oc-blink 1.2s infinite}
+.oc-chat-area{display:flex;flex-direction:column;gap:.65rem}
+.oc-chat-bubble{max-width:92%;padding:.75rem 1rem;border-radius:14px;font-size:.88rem;font-weight:500;line-height:1.55;color:#f2f2f5;position:relative}
+.oc-chat-bubble .oc-chat-sender{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem}
+.oc-chat-bubble .oc-chat-time{font-size:.68rem;color:#626878;margin-top:.35rem;text-align:right;font-weight:500}
+.oc-bubble-citizen{background:#1a1d28;border:1px solid rgba(255,255,255,.05);align-self:flex-start;border-bottom-left-radius:4px}
+.oc-bubble-citizen .oc-chat-sender{color:#a0a5b4}
+.oc-bubble-bot{background:#0f3a2a;border:1px solid rgba(46,204,113,.12);align-self:flex-end;border-bottom-right-radius:4px}
+.oc-bubble-bot .oc-chat-sender{color:#2ecc71}
+.oc-bubble-human{background:#2a1a08;border:1px solid rgba(230,126,34,.15);align-self:flex-end;border-bottom-right-radius:4px}
+.oc-bubble-human .oc-chat-sender{color:#e67e22}
+.oc-bubble-system{text-align:center;padding:.4rem 0;align-self:center}
+.oc-bubble-system span{font-size:.72rem;font-weight:600;color:#626878;background:#12141c;padding:.25rem .65rem;border-radius:99px;border:1px solid rgba(255,255,255,.06)}
+.oc-human-input-area{display:none;padding:.75rem 1.5rem;border-top:1px solid rgba(255,255,255,.06);background:rgba(230,126,34,.04);flex-shrink:0}
+.oc-human-input-area.visible{display:block}
+.oc-human-input-label{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#e67e22;margin-bottom:.4rem}
+.oc-human-input-row{display:flex;gap:.4rem}
+.oc-human-input{flex:1;background:#12141c;border:1px solid rgba(230,126,34,.2);border-radius:10px;padding:.55rem .75rem;color:#f2f2f5;font-family:'Outfit',sans-serif;font-size:.88rem;font-weight:500;outline:none;resize:none;min-height:40px;max-height:100px}
+.oc-human-input::placeholder{color:#626878}
+.oc-human-input:focus{border-color:rgba(230,126,34,.4)}
+.oc-human-send{width:40px;height:40px;border-radius:10px;background:#e67e22;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0}
+.oc-human-send:hover{background:#d35400}
+.oc-human-send svg{width:18px;height:18px}
+.oc-side-actions{padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;gap:.5rem;flex-shrink:0}
+.oc-side-actions-row{display:flex;gap:.5rem}
+.oc-act-btn{flex:1;padding:.6rem .75rem;border-radius:10px;font-family:'Outfit',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.4rem;border:none}
+.oc-act-primary{background:#c41e3a;color:#fff}.oc-act-primary:hover{background:#a8192f}
+.oc-act-secondary{background:#12141c;border:1px solid rgba(255,255,255,.06);color:#a0a5b4}.oc-act-secondary:hover{border-color:rgba(255,255,255,.12);color:#f2f2f5}
+.oc-act-green{background:rgba(46,204,113,.15);color:#2ecc71;border:1px solid rgba(46,204,113,.2)}.oc-act-green:hover{background:rgba(46,204,113,.25)}
+.oc-act-blue{background:rgba(52,152,219,.15);color:#3498db;border:1px solid rgba(52,152,219,.2)}.oc-act-blue:hover{background:rgba(52,152,219,.25)}
+.oc-team-select{width:100%;background:#12141c;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:.55rem .75rem;color:#a0a5b4;font-family:'Outfit',sans-serif;font-size:.85rem;font-weight:600;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23626878' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .7rem center;padding-right:2rem}
+.oc-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:1rem}
+.oc-lightbox.open{display:flex}
+.oc-lightbox-close{position:absolute;top:1.5rem;right:1.5rem;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.oc-lightbox-img{max-width:85vw;max-height:70vh;background:#12141c;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#626878;font-size:1rem;padding:3rem 5rem;border:1px solid rgba(255,255,255,.06)}
+.oc-lightbox-nav{display:flex;gap:1rem;align-items:center}
+.oc-lightbox-nav button{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.oc-lightbox-nav button:hover{background:rgba(255,255,255,.15)}
+.oc-lightbox-counter{font-size:.85rem;color:#a0a5b4;font-weight:600}
+
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;border:none;font-family:inherit;letter-spacing:.1px}
 .btn-primary{background:linear-gradient(135deg,var(--accent) 0%,var(--accent-dark) 100%);color:#fff;box-shadow:0 2px 12px rgba(16,185,129,.2)}.btn-primary:hover{background:linear-gradient(135deg,#34d399 0%,var(--accent) 100%);box-shadow:0 4px 20px rgba(16,185,129,.3);transform:translateY(-1px)}
@@ -1562,14 +1726,103 @@ function Mapa(){
   );
 }
 
-/* ─── OCORRÊNCIAS ──────────────────────────────────────────────── */
+/* ─── OCORRÊNCIAS (v3 REDESIGN) ───────────────────────────────── */
+
+/* SVG icons for ocorrencias types — created via React.createElement */
+const OC_SVG={
+  arvore:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},React.createElement('path',{d:'M12 3l-7 9h4l-3 9h12l-3-9h4z'})),
+  incendio:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},React.createElement('path',{d:'M12 2c.5 3.5 4 6 4 10a4 4 0 01-8 0c0-4 3.5-6.5 4-10z'})),
+  acidente:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},[React.createElement('circle',{key:'c',cx:12,cy:8,r:4}),React.createElement('path',{key:'p1',d:'M12 12v9'}),React.createElement('path',{key:'p2',d:'M8 21h8'})]),
+  alagamento:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},React.createElement('path',{d:'M2 12c1.5-2 3.5-2 5 0s3.5 2 5 0 3.5-2 5 0 3.5 2 5 0'})),
+  animal:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},[React.createElement('circle',{key:'c1',cx:11,cy:4,r:2}),React.createElement('circle',{key:'c2',cx:18,cy:8,r:2}),React.createElement('circle',{key:'c3',cx:4,cy:8,r:2}),React.createElement('path',{key:'p',d:'M12 12c-2 0-4 2-4 4s2 4 4 4 4-2 4-4-2-4-4-4z'})]),
+  gas:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},[React.createElement('circle',{key:'c',cx:12,cy:12,r:10}),React.createElement('path',{key:'p1',d:'M12 8v4'}),React.createElement('path',{key:'p2',d:'M12 16h.01'})]),
+  people:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},[React.createElement('path',{key:'p1',d:'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2'}),React.createElement('circle',{key:'c',cx:9,cy:7,r:4}),React.createElement('path',{key:'p2',d:'M22 21v-2a4 4 0 00-3-3.87'}),React.createElement('path',{key:'p3',d:'M16 3.13a4 4 0 010 7.75'})]),
+  attach:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},React.createElement('path',{d:'M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48'})),
+  camera:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},[React.createElement('path',{key:'p',d:'M14.5 4h-5L7 7H4a2 2 0 00-2 2v9a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2.5-3z'}),React.createElement('circle',{key:'c',cx:12,cy:13,r:3})]),
+  pin:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},[React.createElement('path',{key:'p',d:'M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z'}),React.createElement('circle',{key:'c',cx:12,cy:10,r:3})]),
+  back:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},[React.createElement('path',{key:'p1',d:'M19 12H5'}),React.createElement('path',{key:'p2',d:'M12 19l-7-7 7-7'})]),
+  send:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round',...props},[React.createElement('path',{key:'p1',d:'M22 2L11 13'}),React.createElement('path',{key:'p2',d:'M22 2l-7 20-4-9-9-4z'})]),
+  handoffTake:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},[React.createElement('path',{key:'p1',d:'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2'}),React.createElement('circle',{key:'c',cx:9,cy:7,r:4}),React.createElement('path',{key:'p2',d:'M22 11h-6'})]),
+  handoffRelease:(props)=>React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',...props},[React.createElement('path',{key:'p1',d:'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2'}),React.createElement('circle',{key:'c',cx:9,cy:7,r:4}),React.createElement('path',{key:'p2',d:'M19 8l3 3-3 3'})]),
+};
+
+/* Map API categories to icon types */
+const OC_TYPE_MAP={
+  buraco_via:'acidente',conservacao_de_vias:'acidente',
+  iluminacao_publica:'gas',
+  arborizacao:'arvore',queda_arvore:'arvore',arvore_caida:'arvore',
+  incendio:'incendio',
+  drenagem:'alagamento',enchente_alagamento:'alagamento',alagamento:'alagamento',
+  animal_solto:'animal',animal:'animal',
+  vendaval:'gas',acidente:'acidente',
+  outros_urbanos:'gas',geral:'gas',
+};
+/* Map API status to step index */
+const OC_STATUS_STEP={aberto:0,equipe_caminho:1,em_atendimento:2,resolvido:3};
+const OC_STATUS_LABELS=['Aberto','Encaminhada','No Local','Resolvido'];
+const OC_STATUS_CLS=['aberto','encaminhada','no-local','resolvido'];
+
+/* Phone masking: +55 44 9xxxxx66 */
+function ocMaskPhone(phone){
+  if(!phone)return'+55 44 9xxxxx00';
+  const digits=phone.replace(/\D/g,'');
+  if(digits.length>=12){
+    const cc=digits.slice(0,2);const ddd=digits.slice(2,4);const first=digits[4];const last2=digits.slice(-2);
+    return`+${cc} ${ddd} ${first}xxxxx${last2}`;
+  }
+  return phone;
+}
+
+/* Mock citizen/chat data for each occurrence — keyed by ocorrencia id */
+const OC_MOCK_CITIZENS={};
+function ocGetCitizens(ocId,oc){
+  if(OC_MOCK_CITIZENS[ocId])return OC_MOCK_CITIZENS[ocId];
+  const names=[
+    {name:'Maria Silva',phone:'5544991500066'},{name:'Carlos Eduardo',phone:'5544988700022'},
+    {name:'Ana Paula',phone:'5544996300041'},{name:'Pedro Ramos',phone:'5544993400017'},
+    {name:'Lucia Fernandes',phone:'5544997800055'},{name:'Roberto Costa',phone:'5544992100033'},
+    {name:'Simone Alves',phone:'5544994500009'},{name:'Marcos Vinicius',phone:'5544990800071'},
+    {name:'Dona Rosa',phone:'5544996700028'},{name:'Lucas Torres',phone:'5544995600044'},
+    {name:'Rafael Neto',phone:'5544990300052'},{name:'Fernanda Lima',phone:'5544998200037'},
+  ];
+  const titulo=oc.titulo||'Ocorrência';
+  const bairro=oc.bairro||'';
+  const nCitizens=Math.max(1,Math.min(oc.total_relatos||1,4));
+  const offset=(ocId*3)%names.length;
+  const citizens=[];
+  for(let i=0;i<nCitizens;i++){
+    const n=names[(offset+i)%names.length];
+    const initials=n.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+    const h=14+Math.floor(Math.random()*4);const m=Math.floor(Math.random()*60);
+    const timeStr=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+    const chatMsgs=[
+      {from:'cidadao',msg:i===0?`${titulo} aqui no ${bairro}! Situação complicada.`:`Confirmando a ocorrência no ${bairro}. Vi agora.`,time:timeStr},
+      {from:'bot',msg:`Obrigado ${n.name.split(' ')[0]}! Sua denúncia foi registrada com o protocolo #${oc.protocolo||'MGA-2026-?????'}. Equipe será acionada.`,time:timeStr},
+    ];
+    if(i===0){
+      chatMsgs.push({from:'cidadao',msg:'Ainda está acontecendo, mandem alguém por favor.',time:String(h).padStart(2,'0')+':'+String(m+8).padStart(2,'0')});
+    }
+    citizens.push({id:'c'+ocId+'_'+i,name:n.name,phone:n.phone,initials,msgs:chatMsgs.filter(c=>c.from==='cidadao').length,time:timeStr,chat:chatMsgs,fotos:Math.floor(Math.random()*4)+1,videos:Math.floor(Math.random()*2)});
+  }
+  OC_MOCK_CITIZENS[ocId]=citizens;
+  return citizens;
+}
+
 function Ocorrencias(){
   const [sel,setSel]=useState(null);
-  const [f,setF]=useState('ativas');
+  const [viewCitizen,setViewCitizen]=useState(null);
+  const [handoffMap,setHandoffMap]=useState({});
+  const [sevFilter,setSevFilter]=useState('todas');
+  const [typeFilter,setTypeFilter]=useState('todos');
+  const [lbOpen,setLbOpen]=useState(false);
+  const [lbTotal,setLbTotal]=useState(0);
+  const [lbCurrent,setLbCurrent]=useState(0);
+  const [humanMsg,setHumanMsg]=useState('');
   const [routeData,setRouteData]=useState(null);
   const [routeBase,setRouteBase]=useState(null);
   const [routeIncident,setRouteIncident]=useState(null);
   const [loadingRoute,setLoadingRoute]=useState(false);
+  const chatBodyRef=useRef(null);
 
   async function handleTraceRoute(item){
     setLoadingRoute(true);
@@ -1580,120 +1833,321 @@ function Ocorrencias(){
     setLoadingRoute(false);
   }
 
-  const lista=OC.filter(o=>f==='ativas'?o.status!=='resolvido':f==='resolvido'?o.status==='resolvido':true);
+  /* Filtered list */
+  const lista=OC.filter(o=>{
+    if(sevFilter!=='todas'&&o.severidade!==sevFilter)return false;
+    if(typeFilter!=='todos'){
+      const t=OC_TYPE_MAP[o.categoria]||'gas';
+      if(t!==typeFilter)return false;
+    }
+    return o.status!=='resolvido';
+  });
+
+  /* Status update helper */
+  async function updateStatus(ocId,newStatus){
+    try{
+      const res=await fetch(API_URL+'/api/ocorrencias/'+ocId+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:newStatus})});
+      if(res.ok){
+        if(sel&&sel.id===ocId)setSel(prev=>({...prev,status:newStatus}));
+      } else {
+        const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));
+      }
+    }catch(e){alert('Erro: '+e.message);}
+  }
+
+  /* Status flow click */
+  function handleStatusClick(stepIdx){
+    if(!sel)return;
+    const statusKeys=['aberto','equipe_caminho','em_atendimento','resolvido'];
+    const currentStep=OC_STATUS_STEP[sel.status]||0;
+    if(stepIdx<=currentStep)return;
+    if(stepIdx===3&&!confirm('Marcar ocorrência como resolvida?'))return;
+    updateStatus(sel.id,statusKeys[stepIdx]);
+  }
+
+  /* Handoff toggle */
+  function toggleHandoff(citizenId){
+    setHandoffMap(prev=>{
+      const next={...prev};
+      const citizens=ocGetCitizens(sel.id,sel);
+      const citizen=citizens.find(c=>c.id===citizenId);
+      const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      if(next[citizenId]){
+        delete next[citizenId];
+        if(citizen)citizen.chat.push({from:'system',msg:'Conversa devolvida para a IA. Bot ativo novamente.',time:now});
+      } else {
+        next[citizenId]=true;
+        if(citizen)citizen.chat.push({from:'system',msg:'Atendente humano assumiu esta conversa. Bot pausado.',time:now});
+      }
+      return next;
+    });
+  }
+
+  /* Send human message */
+  function sendHuman(){
+    if(!humanMsg.trim()||!viewCitizen||!sel)return;
+    const citizens=ocGetCitizens(sel.id,sel);
+    const citizen=citizens.find(c=>c.id===viewCitizen);
+    if(!citizen)return;
+    const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    citizen.chat.push({from:'humano',msg:humanMsg.trim(),time:now});
+    citizen.msgs++;
+    setHumanMsg('');
+    /* force re-render */
+    setViewCitizen(v=>v);
+  }
+
+  /* Lightbox keyboard */
+  useEffect(()=>{
+    function handleKey(e){
+      if(!lbOpen)return;
+      if(e.key==='Escape')setLbOpen(false);
+      if(e.key==='ArrowRight')setLbCurrent(c=>(c+1)%lbTotal);
+      if(e.key==='ArrowLeft')setLbCurrent(c=>(c-1+lbTotal)%lbTotal);
+    }
+    window.addEventListener('keydown',handleKey);
+    return()=>window.removeEventListener('keydown',handleKey);
+  },[lbOpen,lbTotal]);
+
+  /* Scroll chat to bottom */
+  useEffect(()=>{
+    if(chatBodyRef.current)chatBodyRef.current.scrollTop=chatBodyRef.current.scrollHeight;
+  },[viewCitizen,handoffMap,humanMsg]);
+
+  /* Close panel on Escape */
+  useEffect(()=>{
+    function esc(e){if(e.key==='Escape'&&!lbOpen){if(viewCitizen){setViewCitizen(null);}else if(sel){setSel(null);}}}
+    window.addEventListener('keydown',esc);
+    return()=>window.removeEventListener('keydown',esc);
+  },[sel,viewCitizen,lbOpen]);
+
+  const panelOpen=!!sel;
+  const currentCitizens=sel?ocGetCitizens(sel.id,sel):[];
+  const activeCitizen=viewCitizen?currentCitizens.find(c=>c.id===viewCitizen):null;
+  const currentStep=sel?(OC_STATUS_STEP[sel.status]||0):0;
+  const hasAnyHandoff=sel&&currentCitizens.some(c=>handoffMap[c.id]);
+
+  /* Render card icon */
+  function CardIcon({type}){
+    const Svg=OC_SVG[type]||OC_SVG.gas;
+    return <div className={`oc-icon ${type}`}><Svg/></div>;
+  }
+
   return(
-    <div style={{display:'flex',height:'100%',overflow:'hidden',position:'relative'}}>
-      <div style={{width:380,flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',background:'var(--surface)'}}>
-        <div style={{padding:'16px',borderBottom:'1px solid var(--border)'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-            <span style={{fontWeight:600,fontSize:16,color:'#fff'}}>Ocorrências</span>
-            <span style={{fontSize:13,color:'var(--text-muted)'}}>{lista.length} {f==='ativas'?'ativas':'total'}</span>
+    <div className="oc-layout">
+      {/* LEFT SIDEBAR */}
+      <div className="oc-sidebar">
+        <div className="oc-sidebar-header">
+          <div className="oc-sidebar-title">
+            <h2>Ocorrências</h2>
+            <span className="oc-count">{lista.length} ativas</span>
           </div>
-          <select value={f} onChange={e=>setF(e.target.value)} style={{width:'100%'}}>
-            <option value="ativas">Ativas</option>
-            <option value="resolvido">Resolvidas</option>
-            <option value="todas">Todas</option>
-          </select>
+          <div className="oc-filters">
+            <div className="oc-filter-row">
+              {['todas','critica','alta','media','baixa'].map(s=>(
+                <button key={s} className={`oc-fbtn ${sevFilter===s?'active':''}`}
+                  onClick={()=>setSevFilter(s)}>
+                  {s==='todas'?'Todas':s==='critica'?'Crítica':s==='alta'?'Alta':s==='media'?'Média':'Baixa'}
+                </button>
+              ))}
+            </div>
+            <div className="oc-filter-row">
+              {[{k:'todos',l:'Todos tipos'},{k:'arvore',l:'Árvore'},{k:'incendio',l:'Incêndio'},{k:'acidente',l:'Acidente'},{k:'animal',l:'Animal'}].map(t=>(
+                <button key={t.k} className={`oc-fbtn ${typeFilter===t.k?'active':''}`}
+                  onClick={()=>setTypeFilter(t.k)}>
+                  {t.l}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="scrollable" style={{flex:1}}>
+        <div className="oc-cards-list">
           {lista.map(o=>{
-            const cat=CAT_OC[o.categoria]||{label:o.categoria,icon:'📌',c:'#8b949e'};
-            const sev=SEV[o.severidade]||SEV.baixa;
-            const sta=S_OC[o.status]||{label:o.status,badge:'b-gray'};
+            const type=OC_TYPE_MAP[o.categoria]||'gas';
+            const sev=o.severidade||'baixa';
+            const step=OC_STATUS_STEP[o.status]||0;
             const isSel=sel?.id===o.id;
+            const citizens=ocGetCitizens(o.id,o);
+            const totalMedia=citizens.reduce((a,c)=>a+c.fotos+c.videos,0);
+            const cardHandoff=citizens.some(c=>handoffMap[c.id]);
             return(
-              <div key={o.id} onClick={()=>setSel(isSel?null:o)} style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',cursor:'pointer',background:isSel?'rgba(5,150,105,.06)':'transparent',borderLeft:`3px solid ${isSel?'var(--accent)':'transparent'}`,transition:'all .12s'}}>
-                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:8}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10,flex:1,minWidth:0}}>
-                    <div style={{width:36,height:36,borderRadius:8,background:cat.c+'15',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>{cat.icon}</div>
-                    <div style={{minWidth:0}}>
-                      <div className="truncate" style={{fontSize:14,fontWeight:600,color:'var(--text)',lineHeight:1.3}}>{o.titulo}</div>
-                      <div style={{display:'flex',alignItems:'center',gap:4,marginTop:3,color:'var(--text-muted)',fontSize:12}}><Ico.pin/>{o.bairro}</div>
-                    </div>
+              <div key={o.id} className={`oc-card ${isSel?'selected':''}`} onClick={()=>{setSel(o);setViewCitizen(null);}}>
+                <div className="oc-card-top">
+                  <CardIcon type={type}/>
+                  <div className="oc-card-info">
+                    <div className="oc-card-title">{o.titulo}</div>
+                    <div className="oc-card-meta">{o.bairro} · {ago(o.created_at)}</div>
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:4,flexShrink:0}}>
-                    <div style={{width:6,height:6,borderRadius:'50%',background:sev.dot}}/>
-                    <span style={{fontSize:11,color:sev.c,fontWeight:500}}>{sev.label}</span>
+                  <span className={`oc-sev ${sev}`}>{sev==='critica'?'Crítica':sev==='alta'?'Alta':sev==='media'?'Média':'Baixa'}</span>
+                </div>
+                <div className="oc-card-bottom">
+                  <span className={`oc-status-text ${OC_STATUS_CLS[step]}`}>{OC_STATUS_LABELS[step]}</span>
+                  <div className="oc-right-info">
+                    <span className="oc-reporters"><OC_SVG.people width={14} height={14}/> {citizens.length}</span>
+                    {totalMedia>0&&<span className="oc-attach"><OC_SVG.attach width={13} height={13}/> {totalMedia}</span>}
                   </div>
                 </div>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                  <span className={`badge ${sta.badge}`}>{sta.label}</span>
-                  <span style={{fontSize:11,color:'var(--text-muted)'}}>{ago(o.created_at)}</span>
+                <div className="oc-progress-mini">
+                  {[0,1,2,3].map(i=><div key={i} className={`oc-p-step ${i<step?'done':i===step?'current':''}`}/>)}
                 </div>
-                {o.total_relatos>1&&(
-                  <div style={{marginTop:8,background:'rgba(5,150,105,.06)',border:'1px solid rgba(5,150,105,.15)',borderRadius:6,padding:'5px 10px',fontSize:12,color:'#4ade80'}}>
-                    👥 {o.total_relatos} cidadãos reportaram
-                  </div>
-                )}
+                <div className={`oc-card-handoff ${cardHandoff?'visible':''}`}>
+                  <span className="hd"></span> Atendimento humano ativo
+                </div>
               </div>
             );
           })}
         </div>
       </div>
-      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative'}}>
-        <div style={{flex:1,minHeight:0}}>
-          <MapboxMap items={lista} showBases={true} route={routeData}/>
-          {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
-        </div>
-        {sel&&(
-          <div className="card" style={{margin:16,padding:18,borderColor:'rgba(5,150,105,.25)',background:'rgba(5,150,105,.03)'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontWeight:600,fontSize:16,color:'#fff'}}>{sel.titulo}</div>
-                <div className="mono" style={{fontSize:12,color:'var(--text-muted)',marginTop:3}}>{sel.protocolo}</div>
+
+      {/* CENTER MAP */}
+      <div className="oc-map-area">
+        <MapboxMap items={lista} showBases={true} route={routeData}/>
+        {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
+      </div>
+
+      {/* SIDE PANEL */}
+      <div className={`oc-side-panel ${panelOpen?'open':''}`}>
+        {sel&&!viewCitizen&&(
+          <>
+            {/* Level 1: Occurrence overview */}
+            <div className="oc-side-header">
+              <div className="oc-side-header-top">
+                <span className="oc-side-proto">{sel.protocolo}</span>
+                <button className="oc-side-close" onClick={()=>{setSel(null);setViewCitizen(null);}}>&#10005;</button>
               </div>
-              <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0}}>
-                {sel.status==='aberto'&&(
-                  <button className="btn btn-outline" onClick={async()=>{
-                    try{
-                      const res=await fetch(API_URL+'/api/ocorrencias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'equipe_caminho'})});
-                      if(res.ok){setSel(prev=>({...prev,status:'equipe_caminho'}));}
-                      else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
-                    }catch(e){alert('Erro: '+e.message);}
-                  }}>🚔 Acionar Equipe</button>
-                )}
-                {sel.status==='equipe_caminho'&&(
-                  <button className="btn btn-outline" onClick={async()=>{
-                    try{
-                      const res=await fetch(API_URL+'/api/ocorrencias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'em_atendimento'})});
-                      if(res.ok){setSel(prev=>({...prev,status:'em_atendimento'}));}
-                      else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
-                    }catch(e){alert('Erro: '+e.message);}
-                  }}>🔧 Em Atendimento</button>
-                )}
-                {sel.status!=='resolvido'&&(
-                  <button className="btn btn-primary" onClick={async()=>{
-                    if(!confirm('Marcar ocorrência como resolvida?')) return;
-                    try{
-                      const res=await fetch(API_URL+'/api/ocorrencias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'resolvido'})});
-                      if(res.ok){setSel(prev=>({...prev,status:'resolvido'}));}
-                      else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
-                    }catch(e){alert('Erro: '+e.message);}
-                  }}>Resolver ✓</button>
-                )}
-                <button className="btn" style={{background:'var(--accent)',color:'#fff',border:'none'}}
-                  onClick={()=>handleTraceRoute(sel)}
-                  disabled={loadingRoute}>
-                  {loadingRoute?'Calculando...':'🗺️ Traçar Rota'}
-                </button>
-                <button onClick={()=>setSel(null)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:18,padding:4}}>✕</button>
+              <div className="oc-side-title">{sel.titulo}</div>
+              <div className="oc-side-tags">
+                <span className={`oc-side-tag sev-${sel.severidade||'baixa'}`}>{(sel.severidade||'baixa').toUpperCase()}</span>
+                <span className="oc-side-tag status-t">{OC_STATUS_LABELS[currentStep]}</span>
+                <span className="oc-side-tag reporters-t">{currentCitizens.length} cidadãos</span>
+                <span className="oc-side-tag bairro-t">{sel.bairro}</span>
+              </div>
+              <div className="oc-side-location">
+                <OC_SVG.pin width={15} height={15}/>
+                {sel.endereco||`${sel.bairro}, Maringá - PR`}
               </div>
             </div>
-            <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}>
-              <span className={`badge ${(S_OC[sel.status]||{}).badge||'b-gray'}`}>{(S_OC[sel.status]||{}).label||sel.status}</span>
-              <span className="badge b-green">{sel.total_relatos} cidadãos</span>
-              <span className={`badge ${SEV[sel.severidade]?'b-warn':'b-gray'}`}>{SEV[sel.severidade]?.label||sel.severidade}</span>
-              <span style={{fontSize:13,color:'var(--text-muted)'}}>{sel.bairro}</span>
-            </div>
-            {(sel.descricao||sel.endereco)&&(
-              <div style={{marginTop:10,fontSize:13,color:'var(--text-muted)',lineHeight:1.5}}>
-                {sel.descricao&&<div style={{marginBottom:4}}>{sel.descricao}</div>}
-                {sel.endereco&&<div style={{display:'flex',alignItems:'center',gap:4}}>📍 {sel.endereco}</div>}
+            <div className="oc-side-body">
+              <div className="oc-section-label">Status do atendimento</div>
+              <div className="oc-status-flow">
+                {OC_STATUS_LABELS.map((label,i)=>(
+                  <div key={i} className={`oc-sf-step ${i<currentStep?'done':i===currentStep?'current':''}`}
+                    onClick={()=>handleStatusClick(i)}>{label}</div>
+                ))}
               </div>
-            )}
-          </div>
+
+              {(()=>{const totalMedia=currentCitizens.reduce((a,c)=>a+c.fotos+c.videos,0);const totalFotos=currentCitizens.reduce((a,c)=>a+c.fotos,0);const totalVideos=currentCitizens.reduce((a,c)=>a+c.videos,0);
+                return totalMedia>0?(
+                  <>
+                    <div className="oc-section-label">Evidências</div>
+                    <div className="oc-photos-btn" onClick={()=>{setLbTotal(totalFotos||1);setLbCurrent(0);setLbOpen(true);}}>
+                      <OC_SVG.camera width={20} height={20}/>
+                      <span className="oc-photos-btn-text">Ver evidências</span>
+                      <span className="oc-photos-btn-count">{totalFotos} fotos · {totalVideos} vídeos</span>
+                    </div>
+                  </>
+                ):null;
+              })()}
+
+              <div className="oc-section-label">Cidadãos que reportaram</div>
+              {currentCitizens.map(c=>(
+                <div key={c.id} className="oc-citizen-item" onClick={()=>setViewCitizen(c.id)}>
+                  <div className="oc-citizen-avatar">{c.initials}</div>
+                  <div className="oc-citizen-info">
+                    <div className="oc-citizen-name">{c.name}</div>
+                    <div className="oc-citizen-phone">{ocMaskPhone(c.phone)}</div>
+                    <div className={`oc-citizen-handoff-badge ${handoffMap[c.id]?'visible':''}`}><span className="hd"></span> Humano ativo</div>
+                  </div>
+                  <div className="oc-citizen-right">
+                    <div className="oc-citizen-msgs">{c.msgs} msg</div>
+                    <div className="oc-citizen-time">{c.time}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="oc-side-actions">
+              <select className="oc-team-select">
+                <option>Designar equipe...</option>
+                <option>Equipe de Poda</option>
+                <option>Bombeiros</option>
+                <option>SAMU</option>
+                <option>Defesa Civil</option>
+                <option>Trânsito</option>
+                <option>Energética</option>
+              </select>
+              <div className="oc-side-actions-row">
+                <button className="oc-act-btn oc-act-primary" onClick={()=>{if(sel.status==='aberto')updateStatus(sel.id,'equipe_caminho');}}>Despachar</button>
+                <button className="oc-act-btn oc-act-blue" onClick={()=>handleTraceRoute(sel)} disabled={loadingRoute}>{loadingRoute?'Calculando...':'Traçar Rota'}</button>
+              </div>
+              <div className="oc-side-actions-row">
+                <button className="oc-act-btn oc-act-green" onClick={()=>{if(confirm('Marcar ocorrência como resolvida?'))updateStatus(sel.id,'resolvido');}}>Resolver</button>
+                <button className="oc-act-btn oc-act-secondary">Mesclar</button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {sel&&viewCitizen&&activeCitizen&&(
+          <>
+            {/* Level 2: Citizen chat */}
+            <div className="oc-side-header">
+              <div className="oc-side-header-top">
+                <span className="oc-side-proto">{sel.protocolo}</span>
+                <button className="oc-side-close" onClick={()=>{setSel(null);setViewCitizen(null);}}>&#10005;</button>
+              </div>
+              <button className="oc-chat-back" onClick={()=>setViewCitizen(null)}>
+                <OC_SVG.back width={16} height={16}/> Voltar para ocorrência
+              </button>
+              <div className="oc-chat-citizen-header">
+                <div className="oc-citizen-avatar">{activeCitizen.initials}</div>
+                <div>
+                  <div className="oc-ch-name">{activeCitizen.name}</div>
+                  <div className="oc-ch-phone">{ocMaskPhone(activeCitizen.phone)}</div>
+                </div>
+              </div>
+            </div>
+            <div className="oc-side-body" ref={chatBodyRef}>
+              {handoffMap[viewCitizen]&&(
+                <div className="oc-handoff-active-bar visible"><span className="hd"></span> Você está controlando esta conversa</div>
+              )}
+              <button className={`oc-handoff-btn ${handoffMap[viewCitizen]?'release':'take'}`}
+                onClick={()=>toggleHandoff(viewCitizen)}>
+                {handoffMap[viewCitizen]?<><OC_SVG.handoffRelease width={16} height={16}/> Devolver para IA</>:<><OC_SVG.handoffTake width={16} height={16}/> Assumir conversa</>}
+              </button>
+              <div className="oc-chat-area">
+                {activeCitizen.chat.map((m,i)=>{
+                  if(m.from==='system')return <div key={i} className="oc-chat-bubble oc-bubble-system"><span>{m.msg}</span></div>;
+                  if(m.from==='humano')return <div key={i} className="oc-chat-bubble oc-bubble-human"><div className="oc-chat-sender">Atendente</div>{m.msg}<div className="oc-chat-time">{m.time}</div></div>;
+                  if(m.from==='cidadao')return <div key={i} className="oc-chat-bubble oc-bubble-citizen"><div className="oc-chat-sender">{activeCitizen.name}</div>{m.msg}<div className="oc-chat-time">{m.time}</div></div>;
+                  return <div key={i} className="oc-chat-bubble oc-bubble-bot"><div className="oc-chat-sender">NodeData</div>{m.msg}<div className="oc-chat-time">{m.time}</div></div>;
+                })}
+              </div>
+            </div>
+            <div className={`oc-human-input-area ${handoffMap[viewCitizen]?'visible':''}`}>
+              <div className="oc-human-input-label">Respondendo como atendente</div>
+              <div className="oc-human-input-row">
+                <textarea className="oc-human-input" placeholder="Digite sua mensagem..." rows="1"
+                  value={humanMsg} onChange={e=>setHumanMsg(e.target.value)}
+                  onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendHuman();}}}/>
+                <button className="oc-human-send" onClick={sendHuman}><OC_SVG.send width={18} height={18}/></button>
+              </div>
+            </div>
+          </>
         )}
       </div>
+
+      {/* LIGHTBOX */}
+      {lbOpen&&(
+        <div className="oc-lightbox open" onClick={e=>{if(e.target===e.currentTarget)setLbOpen(false);}}>
+          <button className="oc-lightbox-close" onClick={()=>setLbOpen(false)}>&#10005;</button>
+          <div className="oc-lightbox-img">Foto {lbCurrent+1}</div>
+          <div className="oc-lightbox-nav">
+            <button onClick={()=>setLbCurrent(c=>(c-1+lbTotal)%lbTotal)}>&#8249;</button>
+            <span className="oc-lightbox-counter">{lbCurrent+1} / {lbTotal}</span>
+            <button onClick={()=>setLbCurrent(c=>(c+1)%lbTotal)}>&#8250;</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
