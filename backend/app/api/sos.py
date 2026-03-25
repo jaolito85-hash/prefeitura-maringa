@@ -97,19 +97,36 @@ async def listar_mensagens_sos(alerta_id: str):
 @router.post("/alertas/{alerta_id}/handoff")
 async def sos_handoff_toggle(alerta_id: str, body: dict):
     """Ativa/desativa handoff (atendimento humano) para a vítima SOS."""
+    from datetime import datetime, timezone, timedelta
+
     sb = get_supabase()
     telefone = body.get("telefone", "")
     ativo = body.get("ativo", False)
     operador = body.get("operador", "admin")
 
-    # Atualizar sessao_conversa
+    # Upsert sessão — garante que a sessão existe e não está expirada/finalizada
+    # Isso é crítico: se a sessão foi finalizada, o handoff não funciona
     try:
-        sb.table("sessoes_conversa").update({
-            "handoff_ativo": ativo,
-            "handoff_operador": operador if ativo else "",
-        }).eq("telefone", telefone).execute()
-    except Exception:
-        pass
+        if ativo:
+            expira_em = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+            sb.table("sessoes_conversa").upsert({
+                "telefone": telefone,
+                "canal": "sos_mulher",
+                "etapa": "handoff",
+                "registro_id": alerta_id,
+                "contexto": {"tipo": "emergencia", "handoff": True},
+                "expira_em": expira_em,
+                "handoff_ativo": True,
+                "handoff_operador": operador,
+            }, on_conflict="telefone").execute()
+        else:
+            sb.table("sessoes_conversa").update({
+                "handoff_ativo": False,
+                "handoff_operador": "",
+                "etapa": "finalizado",
+            }).eq("telefone", telefone).execute()
+    except Exception as exc:
+        logger.error(f"Erro ao atualizar sessão handoff SOS: {exc}")
 
     # Avisar a vítima
     if EVOLUTION_API_URL and EVOLUTION_API_KEY:

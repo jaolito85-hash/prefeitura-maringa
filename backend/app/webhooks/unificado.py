@@ -191,7 +191,10 @@ def _buscar_sessao_ativa(telefone: str) -> dict | None:
 
         if result.data and len(result.data) > 0:
             sessao = result.data[0]
-            # Sessao finalizada nao conta
+            # Handoff ativo SEMPRE retorna sessão (mesmo se "finalizado")
+            if sessao.get("handoff_ativo"):
+                return sessao
+            # Sessao finalizada sem handoff nao conta
             if sessao.get("etapa") == "finalizado":
                 return None
             return sessao
@@ -287,9 +290,37 @@ async def receber_webhook_unificado(
     sessao = _buscar_sessao_ativa(telefone)
 
     # ── 1b. HANDOFF ATIVO — operador controla a conversa, bot desligado ──
+    # Mensagem NÃO é processada pelo bot, mas É SALVA no histórico pra o operador ver
     if sessao and sessao.get("handoff_ativo"):
-        logger.info(f"🤝 Handoff ativo para {telefone} — bot ignorando mensagem")
-        return {"status": "ignored", "reason": "handoff_active"}
+        logger.info(f"🤝 Handoff ativo para {telefone} — salvando msg, bot desligado")
+        canal = sessao.get("canal", "")
+        registro_id = sessao.get("registro_id", "")
+        push_name = dados["push_name"]
+        msg_texto = texto or "[Mídia]"
+        if dados["tem_localizacao"]:
+            msg_texto = f"📍 Localização: {dados.get('latitude')}, {dados.get('longitude')}"
+
+        try:
+            sb = get_supabase()
+            if canal == "sos_mulher" and registro_id:
+                sb.table("sos_mensagens").insert({
+                    "alerta_id": registro_id,
+                    "telefone": telefone,
+                    "nome": push_name or None,
+                    "mensagem": msg_texto,
+                    "remetente": "cidadao",
+                }).execute()
+            elif canal == "ocorrencia" and registro_id:
+                sb.table("ocorrencias_relatos").insert({
+                    "ocorrencia_id": registro_id,
+                    "telefone": telefone,
+                    "nome": push_name or None,
+                    "mensagem": msg_texto,
+                }).execute()
+        except Exception as exc:
+            logger.error(f"Erro ao salvar msg durante handoff: {exc}")
+
+        return {"status": "saved_handoff", "reason": "handoff_active"}
 
     # ── 2. SOS RAPIDO — so se NAO tem sessao ativa ──
     # ⚠️ SOS é ANTES do rate limit — vida em risco NUNCA é bloqueada

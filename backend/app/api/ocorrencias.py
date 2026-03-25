@@ -89,19 +89,35 @@ async def atualizar_status_ocorrencia(ocorrencia_id: str, body: dict):
 @router.post("/{ocorrencia_id}/handoff")
 async def handoff_toggle(ocorrencia_id: str, body: dict):
     """Ativa/desativa handoff (atendimento humano) para um cidadão."""
+    from datetime import datetime, timezone, timedelta
+
     sb = get_supabase()
     telefone = body.get("telefone", "")
     ativo = body.get("ativo", False)
     operador = body.get("operador", "admin")
 
-    # Atualizar sessao_conversa se existir
+    # Upsert sessão — garante que a sessão existe e não está expirada/finalizada
     try:
-        sb.table("sessoes_conversa").update({
-            "handoff_ativo": ativo,
-            "handoff_operador": operador if ativo else "",
-        }).eq("telefone", telefone).execute()
-    except Exception:
-        pass  # Sessão pode ter expirado
+        if ativo:
+            expira_em = (datetime.now(timezone.utc) + timedelta(minutes=30)).isoformat()
+            sb.table("sessoes_conversa").upsert({
+                "telefone": telefone,
+                "canal": "ocorrencia",
+                "etapa": "handoff",
+                "registro_id": ocorrencia_id,
+                "contexto": {"handoff": True},
+                "expira_em": expira_em,
+                "handoff_ativo": True,
+                "handoff_operador": operador,
+            }, on_conflict="telefone").execute()
+        else:
+            sb.table("sessoes_conversa").update({
+                "handoff_ativo": False,
+                "handoff_operador": "",
+                "etapa": "finalizado",
+            }).eq("telefone", telefone).execute()
+    except Exception as exc:
+        logger.error(f"Erro ao atualizar sessão handoff: {exc}")
 
     # Enviar mensagem ao cidadão via Evolution API
     if EVOLUTION_API_URL and EVOLUTION_API_KEY:
