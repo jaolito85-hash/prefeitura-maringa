@@ -26,6 +26,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import settings
 from app.services.classificador import classificar_mensagem, detectar_sos_rapido
+from app.services.transcricao_audio import transcrever_audio, MAX_AUDIO_SECONDS
 from app.services.rate_limiter import (
     checar_limite_consulta_protocolo,
     checar_limite_diario,
@@ -66,6 +67,7 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
     tipo_midia = None
     file_length = None
     mimetype = None
+    audio_duration = None
 
     if "conversation" in msg:
         texto = msg["conversation"]
@@ -93,6 +95,7 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
         tipo_midia = "audio"
         file_length = msg["audioMessage"].get("fileLength")
         mimetype = msg["audioMessage"].get("mimetype")
+        audio_duration = msg["audioMessage"].get("seconds")
     elif "documentMessage" in msg:
         texto = msg["documentMessage"].get("caption", "")
         tipo_midia = "documento"
@@ -174,6 +177,7 @@ def _extrair_dados_evolution(payload: dict) -> dict[str, Any]:
         "is_forwarded": is_forwarded,
         "forwarding_score": forwarding_score,
         "media_key_timestamp": media_key_timestamp,
+        "audio_duration": audio_duration,
     }
 
 
@@ -221,6 +225,50 @@ async def receber_webhook_unificado(
 
     telefone = dados["telefone"]
     texto = dados["texto"]
+
+    # ── TRANSCRIÇÃO DE ÁUDIO (Whisper) ──
+    # Se o cidadão mandou áudio, transcreve antes de tudo.
+    # O texto transcrito entra no fluxo normal (classificação, sessão, etc.)
+    if dados["tipo_midia"] == "audio":
+        duration = dados.get("audio_duration")
+        # Checar duração (máx 30s)
+        if duration is not None and int(duration) > MAX_AUDIO_SECONDS:
+            logger.info(f"🎙️ Áudio longo demais de {telefone}: {duration}s (max {MAX_AUDIO_SECONDS}s)")
+            event = _montar_evento(dados, request, classificacao={
+                "canal": "saudacao",
+                "categoria": "audio_longo",
+                "resposta_whatsapp": (
+                    f"🎙️ Seu áudio tem mais de {MAX_AUDIO_SECONDS} segundos.\n\n"
+                    f"Por favor, envie um áudio de *no máximo {MAX_AUDIO_SECONDS} segundos* "
+                    f"para que eu consiga processar.\n\n"
+                    f"Ou se preferir, *digite sua mensagem* por texto."
+                ),
+            }, is_continuacao=False)
+            return _enfileirar(event, "queue:saudacoes")
+
+        # Transcrever
+        logger.info(f"🎙️ Transcrevendo áudio de {telefone} ({duration or '?'}s)...")
+        resultado = await transcrever_audio(
+            media_base64=dados.get("media_base64", ""),
+            message_id=dados.get("message_id", ""),
+            mimetype=dados.get("mimetype"),
+        )
+
+        if resultado["ok"]:
+            texto = resultado["texto"]
+            dados["texto"] = texto
+            dados["texto_original_audio"] = True  # Flag: veio de transcrição
+            dados["tipo_midia"] = None             # Não é mais mídia visual
+            dados["tem_midia"] = False              # Áudio já foi processado
+            logger.info(f"🎙️ Transcrição OK de {telefone}: '{texto[:80]}'")
+        else:
+            # Falha na transcrição — responde com erro
+            event = _montar_evento(dados, request, classificacao={
+                "canal": "saudacao",
+                "categoria": "audio_erro",
+                "resposta_whatsapp": resultado["erro"],
+            }, is_continuacao=False)
+            return _enfileirar(event, "queue:saudacoes")
 
     # ── PROTEÇÃO 1: TRUNCAR MENSAGENS LONGAS (600 chars) ──
     # Protege contra spam e economiza tokens da IA
