@@ -113,7 +113,7 @@ def classificar_foto_origem(event: dict) -> dict:
     # Sem mídia de imagem → desconhecida
     tipo_midia = event.get("tipo_midia")
     if tipo_midia != "imagem":
-        return {"foto_origem": "desconhecida", "foto_flag": "none", "foto_flag_motivo": ""}
+        return {"foto_origem": "desconhecida", "foto_flag": "unknown", "foto_flag_motivo": "Sem foto para verificar"}
 
     # 1. Foto encaminhada → RED FLAG ALTA
     if is_forwarded or forwarding_score > 0:
@@ -154,7 +154,7 @@ def classificar_foto_origem(event: dict) -> dict:
         except (ValueError, TypeError, OSError):
             pass
 
-    return {"foto_origem": "desconhecida", "foto_flag": "none", "foto_flag_motivo": ""}
+    return {"foto_origem": "desconhecida", "foto_flag": "unknown", "foto_flag_motivo": "Origem não verificada"}
 
 
 # Chave AES para criptografia (em produção, vem do .env)
