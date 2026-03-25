@@ -304,6 +304,25 @@ async def receber_webhook_unificado(
         }, is_continuacao=False)
         return _enfileirar(event, "queue:consultas")
 
+    # ── 3b. INTENÇÃO DE CONSULTA — palavras-chave sem protocolo ──
+    _PALAVRAS_CONSULTA = {
+        "protocolo", "consultar", "consulta", "status",
+        "meu caso", "minha denúncia", "minha denuncia",
+        "minha ocorrência", "minha ocorrencia",
+        "acompanhar", "como está", "como esta", "como tá", "como ta",
+        "resultado", "andamento", "verificar",
+    }
+    if not sessao and texto and not protocolo_match:
+        texto_lower = texto.strip().lower()
+        detectou_consulta = any(p in texto_lower for p in _PALAVRAS_CONSULTA)
+        if detectou_consulta:
+            logger.info(f"🔍 Intenção de consulta detectada de {telefone}: {texto[:60]}")
+            event = _montar_evento(dados, request, classificacao={
+                "canal": "consulta_protocolo",
+                "categoria": "intencao_consulta",
+            }, is_continuacao=False)
+            return _enfileirar(event, "queue:consultas")
+
     # ── 4. SAUDAÇÃO RÁPIDA — só se NÃO tem sessão ativa ──
     # Se tem sessão, a mensagem pode ser resposta a uma pergunta (ex: "ok" = aceitar)
     _SAUDACOES_RAPIDAS = {
@@ -332,6 +351,7 @@ async def receber_webhook_unificado(
             "sos_mulher": "queue:sos",
             "ocorrencia": "queue:ocorrencias",
             "feedback": "queue:feedbacks",
+            "consulta_protocolo": "queue:consultas",
         }
         fila = fila_map.get(canal, "queue:feedbacks")
 
@@ -360,7 +380,7 @@ async def receber_webhook_unificado(
             resposta = (f"Olá{', ' + push if push else ''}! 👋\n"
                         f"Sou a Clara, assistente da Prefeitura de Maringá.\n\n"
                         f"Como posso ajudar?\n"
-                        f"📢 Denúncia\n📍 Ocorrência urbana\n💬 Feedback\n🆘 SOS Mulher")
+                        f"📢 Denúncia\n📍 Ocorrência urbana\n💬 Feedback\n🔍 Consultar protocolo\n🆘 SOS Mulher")
         # Enfileira como saudacao pra responder sem criar registro
         event = _montar_evento(dados, request, classificacao=classificacao, is_continuacao=False)
         return _enfileirar(event, "queue:saudacoes")

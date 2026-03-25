@@ -11,6 +11,7 @@ import json
 import logging
 import math
 import os
+import re
 import secrets
 import sys
 import time
@@ -2131,8 +2132,10 @@ def _msg_protocolo_privado(protocolo: str) -> str:
 
 def processar_consulta_protocolo(event: dict, sb: Client) -> None:
     """
-    Cidadão enviou um número de protocolo pelo WhatsApp.
-    Busca em todas as tabelas e responde com o status amigável.
+    Processa consultas de protocolo — dois fluxos:
+    1. INTENÇÃO: cidadão quer consultar mas não mandou o protocolo → cria sessão
+    2. PROTOCOLO DIRETO: cidadão mandou MGA-XXXX-XXXXX → busca e responde
+    3. CONTINUAÇÃO: cidadão está na sessão e mandou o protocolo → busca e responde
 
     PROTEÇÕES:
     - Rate limit: se rate_limited=True, só avisa que excedeu o limite
@@ -2140,6 +2143,47 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
     """
     telefone = event.get("telefone", "desconhecido")
     classificacao = event.get("classificacao", {})
+    is_continuacao = event.get("is_continuacao", False)
+
+    # ── FLUXO 1: Intenção de consulta (sem protocolo) ──
+    if classificacao.get("categoria") == "intencao_consulta" and not is_continuacao:
+        logger.info(f"🔍 Intenção de consulta: criando sessão para {telefone}")
+        criar_sessao(sb, telefone, "consulta_protocolo", "aguardando_protocolo",
+                     "", {"tipo": "consulta_protocolo"})
+        enviar_whatsapp(telefone,
+            "🔍 Para consultar sua denúncia ou ocorrência, me envie o número do protocolo.\n\n"
+            "Exemplo: *MGA-2026-00607*\n\n"
+            "O protocolo foi informado quando você fez o registro.")
+        return
+
+    # ── FLUXO 3: Continuação — cidadão mandou o protocolo na sessão ──
+    if is_continuacao:
+        sessao = event.get("sessao", {})
+        etapa = sessao.get("etapa", "")
+        texto = (event.get("texto") or "").strip()
+
+        if etapa == "aguardando_protocolo":
+            # Tenta extrair protocolo do texto
+            protocolo_match = re.search(r"MGA-\d{4}-\d{4,6}", texto.upper())
+            if protocolo_match:
+                protocolo = protocolo_match.group(0)
+                logger.info(f"🔍 Protocolo recebido na sessão: {protocolo} de {telefone}")
+                finalizar_sessao(sb, telefone)
+                # Redireciona para a busca real
+                _buscar_e_responder_protocolo(sb, telefone, protocolo)
+                return
+            else:
+                # Texto não contém protocolo válido
+                enviar_whatsapp(telefone,
+                    "❌ Não consegui identificar o protocolo.\n\n"
+                    "O formato correto é *MGA-2026-XXXXX*.\n\n"
+                    "Tente novamente ou envie sua mensagem normalmente para outro atendimento.")
+                return
+        # Sessão em etapa desconhecida — finaliza
+        finalizar_sessao(sb, telefone)
+        return
+
+    # ── FLUXO 2: Protocolo direto (MGA-XXXX-XXXXX detectado no webhook) ──
     protocolo = classificacao.get("protocolo_consulta", "").strip().upper()
 
     if not protocolo:
@@ -2157,10 +2201,17 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
         )
         return
 
+    _buscar_e_responder_protocolo(sb, telefone, protocolo)
+
+
+def _buscar_e_responder_protocolo(sb: Client, telefone: str, protocolo: str) -> None:
+    """
+    Busca protocolo em todas as tabelas e responde ao cidadão via WhatsApp.
+    Usado tanto pela consulta direta quanto pela continuação de sessão.
+    """
     logger.info(f"🔍 Consulta protocolo: {protocolo} de {telefone}")
 
     # ── PROTEÇÃO 4: Privacidade — só consulta protocolos do próprio número ──
-    # Verifica se o protocolo pertence a esse telefone checando sessoes_conversa
     protocolo_pertence_ao_telefone = _verificar_dono_protocolo(sb, protocolo, telefone)
 
     # ── Busca em denúncias ──
@@ -2172,7 +2223,6 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
         if result.data:
             d = result.data[0]
 
-            # ── PROTEÇÃO 4: Verifica se o protocolo pertence a esse telefone ──
             dono_telefone = d.get("telefone", "")
             if not protocolo_pertence_ao_telefone and dono_telefone != telefone:
                 enviar_whatsapp(telefone, _msg_protocolo_privado(protocolo))
@@ -2185,13 +2235,15 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
                 "novo": "📋 *Recebida* — Sua denúncia foi registrada e aguarda análise.",
                 "em_analise": "🔍 *Em análise* — A equipe está verificando sua denúncia.",
                 "em_campo": "🚔 *Em campo* — Agentes foram ao local verificar.",
+                "procedente": "✅ *Procedente* — Sua denúncia foi considerada procedente!",
                 "resolvido": "✅ *Resolvida* — Sua denúncia foi tratada. Obrigado!",
+                "rejeitada": "❌ *Rejeitada* — Infelizmente sua denúncia foi rejeitada após análise.",
+                "improcedente": "⚠️ *Improcedente* — Após verificação, a denúncia não foi confirmada no local informado.",
                 "arquivado": "📁 *Arquivada* — Denúncia arquivada após análise.",
             }
             msg += status_map.get(d["status"], f"Status: {d['status']}")
 
             if d.get("cidadania_ativa"):
-                # Buscar status da recompensa
                 try:
                     rec = sb.table("recompensas").select(
                         "status, valor"
@@ -2223,7 +2275,6 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
         if result.data:
             o = result.data[0]
 
-            # ── PROTEÇÃO 4: Privacidade ──
             if not protocolo_pertence_ao_telefone:
                 enviar_whatsapp(telefone, _msg_protocolo_privado(protocolo))
                 return
@@ -2235,7 +2286,9 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
 
             status_map = {
                 "ativo": "🟡 *Ativa* — Em monitoramento.",
+                "encaminhada": "📤 *Encaminhada* — Sua ocorrência foi encaminhada para a equipe responsável.",
                 "em_atendimento": "🚔 *Em atendimento* — Equipe no local.",
+                "no_local": "📍 *No local* — A equipe já está no local atendendo sua ocorrência!",
                 "resolvido": "✅ *Resolvida* — Situação normalizada.",
             }
             msg += status_map.get(o["status"], f"Status: {o['status']}")
@@ -2253,7 +2306,6 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
         if result.data:
             f = result.data[0]
 
-            # ── PROTEÇÃO 4: Privacidade ──
             if not protocolo_pertence_ao_telefone and f.get("telefone") != telefone:
                 enviar_whatsapp(telefone, _msg_protocolo_privado(protocolo))
                 return
@@ -2284,7 +2336,6 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
         if result.data:
             s = result.data[0]
 
-            # ── PROTEÇÃO 4: Privacidade ──
             if not protocolo_pertence_ao_telefone and s.get("telefone") != telefone:
                 enviar_whatsapp(telefone, _msg_protocolo_privado(protocolo))
                 return
@@ -2326,6 +2377,7 @@ def processar_saudacao(event: dict, sb: Client) -> None:
                     f"📢 Fazer uma denúncia\n"
                     f"📍 Reportar ocorrência urbana\n"
                     f"💬 Enviar feedback\n"
+                    f"🔍 Consultar protocolo\n"
                     f"🆘 SOS Mulher")
 
     enviar_whatsapp(telefone, resposta)
