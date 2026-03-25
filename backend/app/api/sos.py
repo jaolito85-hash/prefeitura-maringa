@@ -84,6 +84,43 @@ async def salvar_notas(alerta_id: str, body: dict):
     return result.data[0] if result.data else {}
 
 
+@router.post("/alertas/{alerta_id}/handoff")
+async def sos_handoff_toggle(alerta_id: str, body: dict):
+    """Ativa/desativa handoff (atendimento humano) para a vítima SOS."""
+    sb = get_supabase()
+    telefone = body.get("telefone", "")
+    ativo = body.get("ativo", False)
+    operador = body.get("operador", "admin")
+
+    # Atualizar sessao_conversa
+    try:
+        sb.table("sessoes_conversa").update({
+            "handoff_ativo": ativo,
+            "handoff_operador": operador if ativo else "",
+        }).eq("telefone", telefone).execute()
+    except Exception:
+        pass
+
+    # Avisar a vítima
+    if EVOLUTION_API_URL and EVOLUTION_API_KEY:
+        numero = telefone.lstrip("+")
+        if ativo:
+            msg = "Um atendente está entrando na conversa para te ajudar."
+        else:
+            msg = "O atendimento voltou ao nosso assistente virtual."
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(
+                    f"{EVOLUTION_API_URL}/message/sendText/{WA_INSTANCE_NAME}",
+                    headers={"apikey": EVOLUTION_API_KEY},
+                    json={"number": numero, "text": msg},
+                )
+        except Exception as exc:
+            logger.error(f"Erro ao enviar msg handoff SOS: {exc}")
+
+    return {"status": "ok", "handoff_ativo": ativo}
+
+
 @router.post("/alertas/{alerta_id}/send-message")
 async def send_sos_message(alerta_id: str, body: dict):
     """Envia mensagem do operador para a vítima via WhatsApp."""

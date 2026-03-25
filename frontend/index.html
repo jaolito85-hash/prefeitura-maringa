@@ -2493,10 +2493,25 @@ function SOSMulher(){
   const [chatModal,setChatModal]=useState(null);
   const [sosMsg,setSosMsg]=useState('');
   const [sosSending,setSosSending]=useState(false);
-  const [sosChatHandoff,setSosChatHandoff]=useState(false);
+  const [sosHandoff,setSosHandoff]=useState(false);
 
   // Atualiza notas quando muda a seleção
   useEffect(()=>{setNotas(sel?.notas||'');},[sel?.id]);
+
+  // Reset handoff ao fechar modal
+  useEffect(()=>{if(!chatModal)setSosHandoff(false);},[chatModal]);
+
+  async function toggleSosHandoff(){
+    if(!chatModal) return;
+    const novoEstado=!sosHandoff;
+    setSosHandoff(novoEstado);
+    try{
+      await fetch(API_URL+'/api/sos/alertas/'+chatModal.id+'/handoff',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({telefone:chatModal.telefone,ativo:novoEstado,operador:'admin'})
+      });
+    }catch(e){console.error('Handoff error:',e);}
+  }
 
   async function sendSosMessage(){
     if(!sosMsg.trim()||!chatModal) return;
@@ -2786,18 +2801,20 @@ function SOSMulher(){
                     if(res.ok){alert('✅ Alerta resolvido.');setChatModal(null);setSel(null);}}catch(e){alert('Erro: '+e.message);}
                   }}>✓ Resolver</button>
                 </div>
-                {/* Assumir Conversa */}
+                {/* Assumir Conversa — handoff real (desliga bot de IA) */}
                 <div style={{borderTop:'1px solid var(--border)',paddingTop:16}}>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-                    <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px'}}>Conversa com a Vítima</div>
-                    <button className={`btn ${sosChatHandoff?'btn-danger':'btn-primary'}`} style={{fontSize:11,padding:'5px 12px'}}
-                      onClick={()=>setSosChatHandoff(!sosChatHandoff)}>
-                      {sosChatHandoff?'✕ Encerrar conversa':'💬 Assumir conversa'}
-                    </button>
-                  </div>
-                  {sosChatHandoff&&(
+                  {sosHandoff&&(
+                    <div className="oc-handoff-active-bar visible" style={{marginBottom:12}}>
+                      <span className="hd"></span> Você está controlando esta conversa — IA desligada
+                    </div>
+                  )}
+                  <button className={`oc-handoff-btn ${sosHandoff?'release':'take'}`}
+                    onClick={toggleSosHandoff}>
+                    {sosHandoff?'🔴 Devolver para IA':'💬 Assumir conversa'}
+                  </button>
+                  {sosHandoff&&(
                     <div style={{background:'rgba(220,38,38,.04)',border:'1px solid rgba(220,38,38,.12)',borderRadius:8,padding:14}}>
-                      <div style={{fontSize:12,color:'#f87171',fontWeight:500,marginBottom:10}}>⚠️ Cuidado: suas mensagens serão enviadas diretamente para o WhatsApp da vítima.</div>
+                      <div style={{fontSize:12,color:'#f87171',fontWeight:500,marginBottom:10}}>⚠️ Bot de IA desligado. Suas mensagens vão direto para o WhatsApp da vítima.</div>
                       <div style={{display:'flex',gap:8}}>
                         <textarea value={sosMsg} onChange={e=>setSosMsg(e.target.value)}
                           placeholder="Digite sua mensagem para a vítima..."

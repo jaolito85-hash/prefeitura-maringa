@@ -286,6 +286,11 @@ async def receber_webhook_unificado(
     # NAO codigos SOS. Isso evita falso-positivo de SOS durante conversa.
     sessao = _buscar_sessao_ativa(telefone)
 
+    # ── 1b. HANDOFF ATIVO — operador controla a conversa, bot desligado ──
+    if sessao and sessao.get("handoff_ativo"):
+        logger.info(f"🤝 Handoff ativo para {telefone} — bot ignorando mensagem")
+        return {"status": "ignored", "reason": "handoff_active"}
+
     # ── 2. SOS RAPIDO — so se NAO tem sessao ativa ──
     # ⚠️ SOS é ANTES do rate limit — vida em risco NUNCA é bloqueada
     if not sessao and texto and detectar_sos_rapido(texto):
