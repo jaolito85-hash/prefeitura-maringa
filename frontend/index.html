@@ -1446,20 +1446,39 @@ function Central({sos}){
   const [routeIncident,setRouteIncident]=useState(null);
   const [loadingRoute,setLoadingRoute]=useState(false);
   const [selFeed,setSelFeed]=useState(null);
+  const [denEquipe,setDenEquipe]=useState('');
+  const [denHandoff,setDenHandoff]=useState(false);
+  const [denMsg,setDenMsg]=useState('');
+  const [denSending,setDenSending]=useState(false);
 
   async function handleTraceRoute(item){
     setLoadingRoute(true);
+    let destLat=item.lat,destLng=item.lng;
+    /* Geocoding se não tem coordenadas */
+    if(!destLat||!destLng){
+      const endereco=item.endereco||item.bairro;
+      if(!endereco){alert('Sem endereço ou coordenadas.');setLoadingRoute(false);return;}
+      try{
+        const geoRes=await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(endereco+', Maringá, Paraná, Brasil')}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
+        const geoData=await geoRes.json();
+        if(geoData.features?.length){destLng=geoData.features[0].center[0];destLat=geoData.features[0].center[1];}
+        else{alert('Não foi possível localizar o endereço.');setLoadingRoute(false);return;}
+      }catch(e){setLoadingRoute(false);return;}
+    }
     const isSOS=!!item.sos_cadastros;
-    const base=nearestBase(item.lat,item.lng,isSOS?'pm':'gcm');
+    const base=nearestBase(destLat,destLng,isSOS?'pm':'gcm');
     if(!base){setLoadingRoute(false);return;}
-    const r=await fetchRoute(base.lng,base.lat,item.lng,item.lat);
-    if(r){setRouteData(r);setRouteBase(base);setRouteIncident(item);}
+    const r=await fetchRoute(base.lng,base.lat,destLng,destLat);
+    if(r){setRouteData(r);setRouteBase(base);setRouteIncident({...item,lat:destLat,lng:destLng});}
     setLoadingRoute(false);
   }
 
+  /* Reset ao trocar seleção */
+  useEffect(()=>{setDenEquipe('');setDenHandoff(false);setDenMsg('');},[selFeed?.id]);
+
   const feed=[
-    ...OC.slice(0,4).map(o=>({...o,tipo:'oc'})),
-    ...DEN.slice(0,3).map(d=>({...d,tipo:'den'})),
+    ...OC.filter(o=>o.status!=='resolvido').map(o=>({...o,tipo:'oc'})),
+    ...DEN.filter(d=>!['procedente','improcedente','rejeitada','recompensa_paga','arquivado'].includes(d.status)).map(d=>({...d,tipo:'den'})),
     ...SOS.map(s=>({...s,tipo:'sos'})),
   ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   return(
@@ -1513,7 +1532,7 @@ function Central({sos}){
                   <div style={{fontSize:12,color:'var(--text-muted)',marginBottom:8}}>{item.bairro||item.endereco||(item.latitude?'📍 GPS':'—')}</div>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
                     <span className={`badge ${st.badge}`} style={{fontSize:10,padding:'2px 8px'}}>{st.label}</span>
-                    {(item.latitude||item.sos_cadastros?.latitude)&&(
+                    {(item.latitude||item.endereco||item.bairro||item.sos_cadastros?.latitude)&&(
                       <button className="btn btn-primary" style={{fontSize:10,padding:'3px 8px',marginLeft:'auto'}}
                         onClick={(e)=>{e.stopPropagation();handleTraceRoute(item);}}
                         disabled={loadingRoute}>
@@ -1531,110 +1550,173 @@ function Central({sos}){
       {selFeed&&(()=>{
         const f=selFeed;const isSOS=f.tipo==='sos';const isDen=f.tipo==='den';const isOC=f.tipo==='oc';
         const cat=isDen?CAT_DEN[f.categoria]:isOC?CAT_OC[f.categoria]:null;
-        const statusMap=isSOS?{ativo:{label:'Ativo',badge:'b-red'},resolvido:{label:'Resolvido',badge:'b-green'}}:isDen?S_DEN:S_OC;
+        const statusMap=isSOS?{ativo:{label:'Ativo',badge:'b-red'},attending:{label:'Em atendimento',badge:'b-warn'},resolvido:{label:'Resolvido',badge:'b-green'}}:isDen?S_DEN:S_OC;
         const st=statusMap[f.status]||{label:f.status||'—',badge:'b-gray'};
         const titulo=isSOS?'🚨 SOS Mulher':isDen?'📢 Denúncia':'⚠️ Ocorrência';
         const dataHora=f.created_at?new Date(f.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
         return(
           <div className="modal-overlay" onClick={()=>setSelFeed(null)}>
-            <div className="modal-box" onClick={e=>e.stopPropagation()} style={{maxWidth:580}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 22px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
-                <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div className="modal-box" onClick={e=>e.stopPropagation()} style={{maxWidth:660,maxHeight:'92vh'}}>
+              {/* Header */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
                   <span style={{fontSize:15}}>{titulo}</span>
                   {f.protocolo&&<span className="mono" style={{fontSize:11,color:'var(--text-muted)'}}>{f.protocolo}</span>}
                   {cat&&<span className={`badge ${cat.badge}`} style={{fontSize:10}}>{cat.icon?`${cat.icon} `:''}{cat.label}</span>}
+                  <span className={`badge ${st.badge}`} style={{fontSize:10}}>{st.label}</span>
                 </div>
                 <button onClick={()=>setSelFeed(null)} style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',cursor:'pointer',borderRadius:8,border:'none',background:'none',fontSize:18}}>✕</button>
               </div>
-              <div className="scrollable" style={{flex:1,padding:'20px 22px',minHeight:0}}>
-                {/* Resumo / mensagem */}
-                <p style={{fontSize:14,lineHeight:1.7,marginBottom:18,color:'var(--text)'}}>{f.mensagem||f.titulo||f.sos_cadastros?.nome||'Sem descrição'}</p>
-                {/* Evidencias */}
+              <div className="scrollable" style={{flex:1,padding:'16px 20px',minHeight:0}}>
+                {/* Mensagem */}
+                <p style={{fontSize:14,lineHeight:1.7,marginBottom:14,color:'var(--text)'}}>{f.mensagem||f.titulo||f.sos_cadastros?.nome||'Sem descrição'}</p>
+
+                {/* Evidências */}
                 {f.midia_urls&&f.midia_urls.length>0&&(
-                  <div style={{marginBottom:18}}>
-                    <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:8}}>📎 Evidências ({f.midia_urls.length})</div>
+                  <div style={{marginBottom:14}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:8}}>Evidências ({f.midia_urls.length})</div>
                     <div style={{display:'grid',gridTemplateColumns:f.midia_urls.length===1?'1fr':'1fr 1fr',gap:8}}>
                       {f.midia_urls.map((url,i)=>{
                         const isVideo=/\.(mp4|mov|avi|webm)/i.test(url)||url.includes('video');
                         return isVideo?(
-                          <div key={i} style={{borderRadius:10,overflow:'hidden',border:'1px solid var(--border)',background:'#000'}}>
-                            <video src={url} controls muted playsInline style={{width:'100%',maxHeight:200,objectFit:'contain',display:'block'}}/>
+                          <div key={i} style={{borderRadius:8,overflow:'hidden',border:'1px solid var(--border)',background:'#000'}}>
+                            <video src={url} controls muted playsInline style={{width:'100%',maxHeight:180,objectFit:'contain',display:'block'}}/>
                           </div>
                         ):(
-                          <div key={i} style={{borderRadius:10,overflow:'hidden',border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(url,'_blank')}>
-                            <img src={url} alt={`Evidência ${i+1}`} style={{width:'100%',maxHeight:200,objectFit:'cover',display:'block'}}/>
+                          <div key={i} style={{borderRadius:8,overflow:'hidden',border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(url,'_blank')}>
+                            <img src={url} alt={`Evidência ${i+1}`} style={{width:'100%',maxHeight:180,objectFit:'cover',display:'block'}}/>
                           </div>
                         );
                       })}
                     </div>
                   </div>
                 )}
+
                 {/* SOS: dados da vítima */}
                 {isSOS&&f.sos_cadastros&&(
-                  <div style={{marginBottom:18,padding:14,borderRadius:10,background:'rgba(220,38,38,.06)',border:'1px solid rgba(220,38,38,.15)'}}>
-                    <div style={{fontSize:11,fontWeight:600,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Dados da Vítima</div>
-                    {[
-                      ['Nome',f.sos_cadastros.nome],
-                      ['Telefone',f.sos_cadastros.telefone],
-                      ['Endereço',f.sos_cadastros.endereco],
-                      ['Agressor',f.sos_cadastros.nome_agressor],
-                      ['Contato Confiança',f.sos_cadastros.contato_confianca],
-                    ].filter(([,v])=>v).map(([l,v])=>(
-                      <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid rgba(220,38,38,.08)',fontSize:13}}>
-                        <span style={{color:'var(--text-muted)'}}>{l}</span>
-                        <span style={{fontWeight:500,color:'#fca5a5'}}>{v}</span>
-                      </div>
-                    ))}
+                  <div style={{marginBottom:14,padding:12,borderRadius:8,background:'rgba(220,38,38,.06)',border:'1px solid rgba(220,38,38,.15)'}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:8}}>Dados da Vítima</div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                      {[['Nome',f.sos_cadastros.nome],['Endereço',f.sos_cadastros.endereco],['Agressor',f.sos_cadastros.agressor],['Contato',f.sos_cadastros.contato_confianca_nome]].filter(([,v])=>v).map(([l,v])=>(
+                        <div key={l} style={{background:'rgba(0,0,0,.2)',borderRadius:6,padding:'6px 10px'}}>
+                          <div style={{fontSize:9,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',marginBottom:2}}>{l}</div>
+                          <div style={{fontSize:12,color:l==='Agressor'?'#f87171':'var(--text)',fontWeight:500}}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-                {/* Dados gerais */}
-                <div style={{display:'grid',gap:8,fontSize:13,marginBottom:18}}>
+
+                {/* Info grid */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,fontSize:12,marginBottom:14}}>
                   {[
-                    ['Status',st.label],
-                    ['Data/Hora',dataHora],
-                    f.bairro&&['Bairro',f.bairro],
+                    ['Bairro',f.bairro||'—'],
                     f.endereco&&['Endereço',f.endereco],
-                    !f.bairro&&!f.endereco&&f.latitude&&['Localização',`📍 ${Number(f.latitude).toFixed(5)}, ${Number(f.longitude).toFixed(5)}`],
+                    ['Data/Hora',dataHora],
                     isDen&&['Cidadania Ativa',f.cidadania_ativa?'✓ Sim':'Não'],
                     isDen&&f.valor_recompensa&&['Recompensa',`R$ ${Number(f.valor_recompensa).toLocaleString('pt-BR')}`],
-                    isOC&&f.total_relatos&&['Relatos',f.total_relatos],
+                    isOC&&f.total_relatos&&['Relatos',`${f.total_relatos} cidadãos`],
                     isOC&&['Severidade',f.severidade||'normal'],
+                    f.latitude&&['GPS',`${Number(f.latitude).toFixed(4)}, ${Number(f.longitude).toFixed(4)}`],
                   ].filter(Boolean).map(([l,v])=>(
-                    <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'8px 12px',background:'rgba(255,255,255,.02)',borderRadius:8,border:'1px solid var(--border)'}}>
-                      <span style={{color:'var(--text-muted)'}}>{l}</span>
-                      <span style={{fontWeight:500,color:l==='Status'?({Ativo:'#f87171',Novo:'#3b82f6',Aberto:'#fbbf24',Procedente:'#4ade80'}[v]||'var(--text)'):l==='Cidadania Ativa'&&f.cidadania_ativa?'#4ade80':l==='Recompensa'?'#4ade80':'var(--text)'}}>{v}</span>
+                    <div key={l} style={{background:'rgba(255,255,255,.02)',borderRadius:6,border:'1px solid var(--border)',padding:'6px 10px'}}>
+                      <div style={{fontSize:9,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:2}}>{l}</div>
+                      <div style={{fontWeight:500,color:l==='Cidadania Ativa'&&f.cidadania_ativa?'#4ade80':l==='Recompensa'?'#4ade80':'var(--text)'}}>{v}</div>
                     </div>
                   ))}
                 </div>
-                {/* Botões de ação */}
-                <div style={{display:'flex',gap:8}}>
-                  {(f.latitude||f.sos_cadastros?.latitude)&&(
-                    <button className="btn btn-primary" style={{flex:1,justifyContent:'center'}}
-                      onClick={()=>{handleTraceRoute(f);setSelFeed(null);}}>
-                      🗺️ Traçar Rota no Mapa
-                    </button>
-                  )}
-                  {isDen&&(
-                    <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}}
-                      onClick={async()=>{
-                        try{
-                          const res=await fetch(API_URL+'/api/denuncias/'+f.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'procedente',operador:'admin'})});
-                          if(res.ok){alert('✅ Denúncia marcada como procedente!');setSelFeed(null);}
-                          else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
-                        }catch(e){alert('Erro: '+e.message);}
-                      }}>✓ Procedente</button>
-                  )}
-                  {isOC&&f.status==='aberto'&&(
-                    <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}}
-                      onClick={async()=>{
-                        try{
-                          const res=await fetch(API_URL+'/api/ocorrencias/'+f.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'em_atendimento'})});
-                          if(res.ok){alert('✅ Equipe acionada!');setSelFeed(null);}
-                          else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText));}
-                        }catch(e){alert('Erro: '+e.message);}
-                      }}>🚔 Acionar Equipe</button>
-                  )}
-                </div>
+
+                {/* Encaminhamento info */}
+                {f.encaminhada_para&&(
+                  <div style={{marginBottom:14,padding:'10px 12px',background:'rgba(139,92,246,.08)',borderRadius:8,border:'1px solid rgba(139,92,246,.25)'}}>
+                    <span style={{color:'#a78bfa',fontWeight:600,fontSize:12}}>→ Encaminhada para: {f.encaminhada_para}</span>
+                    {f.encaminhada_em&&<span style={{color:'#8b5cf6',fontSize:10,fontWeight:500,marginLeft:10}}>{new Date(f.encaminhada_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>}
+                  </div>
+                )}
+
+                {/* ══ AÇÕES OPERACIONAIS (denúncia) ══ */}
+                {isDen&&(
+                  <>
+                    {/* Traçar rota + mapa externo */}
+                    <div style={{marginBottom:14}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:8}}>Localização & Rota</div>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                        <button className="btn btn-primary" style={{fontSize:12,padding:'8px 14px'}}
+                          onClick={()=>{handleTraceRoute(f);setSelFeed(null);}} disabled={loadingRoute}>
+                          {loadingRoute?'...':'🗺️ Traçar Rota no Mapa'}
+                        </button>
+                        {f.latitude&&<a href={`https://www.google.com/maps/dir/?api=1&destination=${f.latitude},${f.longitude}`} target="_blank" rel="noopener"
+                          style={{display:'flex',alignItems:'center',gap:4,background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:6,padding:'8px 14px',textDecoration:'none',color:'var(--text)',fontSize:12,fontWeight:600}}>
+                          Google Maps ↗</a>}
+                        {f.latitude&&<a href={`https://waze.com/ul?ll=${f.latitude},${f.longitude}&navigate=yes`} target="_blank" rel="noopener"
+                          style={{display:'flex',alignItems:'center',gap:4,background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:6,padding:'8px 14px',textDecoration:'none',color:'var(--text)',fontSize:12,fontWeight:600}}>
+                          🧭 Waze</a>}
+                      </div>
+                    </div>
+
+                    {/* Designar equipe + despachar */}
+                    <div style={{marginBottom:14}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:8}}>Despachar Equipe</div>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                        {['Polícia Civil','Guarda Municipal','Meio Ambiente','Fiscalização','ROMU'].map(orgao=>(
+                          <button key={orgao} className="btn btn-outline" style={{fontSize:11,padding:'6px 12px',borderColor:f.encaminhada_para===orgao?'var(--accent)':'',color:f.encaminhada_para===orgao?'var(--accent)':''}}
+                            onClick={async()=>{
+                              try{const res=await fetch(API_URL+'/api/denuncias/'+f.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'encaminhada',operador:'admin',encaminhada_para:orgao,notas:'Encaminhada para: '+orgao})});
+                              if(res.ok){const updated=await res.json();setSelFeed(prev=>({...prev,status:'encaminhada',encaminhada_para:orgao,encaminhada_em:updated.encaminhada_em||new Date().toISOString(),...updated}));}}
+                              catch(e){alert('Erro: '+e.message);}
+                            }}>{orgao}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* ══ AÇÕES OPERACIONAIS (ocorrência) ══ */}
+                {isOC&&(
+                  <div style={{marginBottom:14}}>
+                    <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                      <button className="btn btn-primary" style={{fontSize:12,padding:'8px 14px'}}
+                        onClick={()=>{handleTraceRoute(f);setSelFeed(null);}} disabled={loadingRoute}>
+                        {loadingRoute?'...':'🗺️ Traçar Rota'}
+                      </button>
+                      {f.status==='aberto'&&<button className="btn btn-outline" style={{fontSize:12,padding:'8px 14px'}}
+                        onClick={async()=>{
+                          try{const res=await fetch(API_URL+'/api/ocorrencias/'+f.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'encaminhada'})});
+                          if(res.ok)setSelFeed(prev=>({...prev,status:'encaminhada'}));}catch(e){alert('Erro: '+e.message);}
+                        }}>🚔 Acionar Equipe</button>}
+                      <button className="btn" style={{fontSize:12,padding:'8px 14px',background:'rgba(74,222,128,.1)',border:'1px solid rgba(74,222,128,.25)',color:'#4ade80'}}
+                        onClick={async()=>{
+                          if(!confirm('Marcar como resolvida?'))return;
+                          try{const res=await fetch(API_URL+'/api/ocorrencias/'+f.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'resolvido'})});
+                          if(res.ok)setSelFeed(null);}catch(e){alert('Erro: '+e.message);}
+                        }}>✓ Resolver</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ══ AÇÕES SOS ══ */}
+                {isSOS&&(
+                  <div style={{marginBottom:14,display:'flex',gap:8,flexWrap:'wrap'}}>
+                    <button className="btn btn-primary" style={{fontSize:12,padding:'8px 14px'}}
+                      onClick={()=>{handleTraceRoute(f);setSelFeed(null);}} disabled={loadingRoute}>🗺️ Traçar Rota</button>
+                    <a href="tel:190" className="btn btn-danger" style={{fontSize:12,padding:'8px 14px',textDecoration:'none'}}>📞 190</a>
+                    <a href="tel:153" className="btn btn-outline" style={{fontSize:12,padding:'8px 14px',textDecoration:'none'}}>📞 153</a>
+                  </div>
+                )}
+              </div>
+
+              {/* Rodapé — ações finais */}
+              <div style={{padding:'12px 20px',borderTop:'1px solid var(--border)',display:'flex',gap:8,flexShrink:0}}>
+                {isDen&&<button className="btn btn-primary" style={{flex:1,justifyContent:'center',fontSize:12}} onClick={async()=>{
+                  try{const res=await fetch(API_URL+'/api/denuncias/'+f.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'procedente',operador:'admin'})});
+                  if(res.ok)setSelFeed(null);}catch(e){alert('Erro: '+e.message);}
+                }}>✓ Procedente</button>}
+                {isDen&&<button className="btn btn-danger" style={{flex:1,justifyContent:'center',fontSize:12}} onClick={async()=>{
+                  const motivo=prompt('Motivo (opcional):');
+                  try{const res=await fetch(API_URL+'/api/denuncias/'+f.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'improcedente',operador:'admin',notas:motivo||''})});
+                  if(res.ok)setSelFeed(null);}catch(e){alert('Erro: '+e.message);}
+                }}>✕ Improcedente</button>}
+                {(isOC||isSOS)&&<button className="btn btn-outline" style={{flex:1,justifyContent:'center',fontSize:12}} onClick={()=>setSelFeed(null)}>Fechar</button>}
               </div>
             </div>
           </div>
