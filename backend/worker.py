@@ -406,11 +406,13 @@ def processar_midia(event: dict, sb: Client, registro_id: str, tabela: str) -> s
     return None  # Sucesso
 
 
+SESSAO_TTL_MINUTOS = 5  # Tempo de vida da sessão (minutos)
+
 def criar_sessao(sb: Client, telefone: str, canal: str, etapa: str,
                  registro_id: str, contexto: dict) -> None:
     """Cria ou atualiza sessao de conversa pra esse telefone."""
     try:
-        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat()  # 1min — teste rápido
+        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=SESSAO_TTL_MINUTOS)).isoformat()
         sb.table("sessoes_conversa").upsert({
             "telefone": telefone,
             "canal": canal,
@@ -427,7 +429,7 @@ def criar_sessao(sb: Client, telefone: str, canal: str, etapa: str,
 def atualizar_sessao(sb: Client, telefone: str, etapa: str, contexto: dict) -> None:
     """Atualiza a etapa e contexto da sessao ativa sem mudar canal/registro_id."""
     try:
-        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat()  # 1min — teste rápido
+        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=SESSAO_TTL_MINUTOS)).isoformat()
         sb.table("sessoes_conversa").update({
             "etapa": etapa,
             "contexto": contexto,
@@ -1198,21 +1200,67 @@ def processar_sos(event: dict, sb: Client) -> None:
             _continuar_cadastro_sos(event, sb, sessao)
             return
 
-        # Continuação de SOS ativo — recebeu localização
+        # Continuação de SOS ativo — recebeu localização GPS
+        registro_id = sessao.get("registro_id") if sessao else None
         if tem_loc:
-            registro_id = sessao.get("registro_id") if sessao else None
             if registro_id:
                 sb.table("sos_alertas").update({
                     "latitude": event.get("latitude"),
                     "longitude": event.get("longitude"),
                 }).eq("id", registro_id).execute()
-                logger.warning(f"🚨 SOS localizacao atualizada para {telefone}")
+                logger.warning(f"🚨 SOS localizacao GPS atualizada para {telefone}")
             enviar_whatsapp(telefone, "📍 Localização recebida. Equipe a caminho. Mantenha-se segura.")
             finalizar_sessao(sb, telefone)
             return
 
-        # Qualquer outra mensagem durante SOS ativo
-        enviar_whatsapp(telefone, "✓ Recebido. Se puder, envie sua localização: 📎 > Localização")
+        # Continuação de SOS ativo — recebeu endereço por texto
+        if texto and len(texto) >= 3:
+            logger.warning(f"🚨 SOS endereço texto de {telefone}: {texto[:80]}")
+            # Tenta geocodificar o endereço pra obter coordenadas
+            update_data = {}
+            try:
+                geo_url = (
+                    f"https://api.mapbox.com/geocoding/v5/mapbox.places/"
+                    f"{texto}, Maringá, Paraná, Brasil.json"
+                    f"?access_token=pk.eyJ1Ijoibm9kZWRhdGEiLCJhIjoiY21tejgxMm1hMDVxajJ3cTU2Z3ZrNTBiZSJ9.t6vT60mOCmGpYrHfRSykrw"
+                    f"&limit=1&language=pt"
+                )
+                geo_res = httpx.get(geo_url, timeout=10)
+                geo_data = geo_res.json()
+                if geo_data.get("features"):
+                    coords = geo_data["features"][0]["center"]
+                    update_data["latitude"] = coords[1]
+                    update_data["longitude"] = coords[0]
+                    logger.info(f"🚨 SOS geocodificado: {texto} → {coords[1]:.5f}, {coords[0]:.5f}")
+            except Exception as exc:
+                logger.warning(f"Geocoding falhou para SOS: {exc}")
+
+            # Salvar endereço no alerta (e coordenadas se geocodificou)
+            if registro_id:
+                # Buscar cadastro e atualizar endereço lá também
+                try:
+                    alerta = sb.table("sos_alertas").select("cadastro_id").eq("id", registro_id).execute()
+                    cad_id = alerta.data[0].get("cadastro_id") if alerta.data else None
+                    if cad_id:
+                        sb.table("sos_cadastros").update({"endereco": texto}).eq("id", cad_id).execute()
+                except Exception:
+                    pass
+                if update_data:
+                    sb.table("sos_alertas").update(update_data).eq("id", registro_id).execute()
+
+            enviar_whatsapp(telefone,
+                f"📍 Endereço registrado: *{texto}*\n\n"
+                "Equipe a caminho. Mantenha-se segura.\n\n"
+                "Se puder, envie também a localização pelo celular (📎 > Localização) para maior precisão.")
+            finalizar_sessao(sb, telefone)
+            return
+
+        # Mensagem muito curta ou mídia — reforça pedido
+        enviar_whatsapp(telefone,
+            "✓ Recebido. Para te encontrar, envie:\n\n"
+            "📍 Sua *localização* pelo celular (📎 > Localização)\n"
+            "ou\n"
+            "📝 Seu *endereço completo* por texto (rua, número, bairro)")
         return
 
     # ── NOVO SOS — emergência ──
