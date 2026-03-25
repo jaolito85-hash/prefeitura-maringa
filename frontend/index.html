@@ -3096,154 +3096,116 @@ function Feedbacks(){
   const catEntries=Object.entries(catCountAll).sort((a,b)=>b[1]-a[1]);
   const catTotal=Math.max(allFbk.length,1);
 
-  /* Feedbacks por hora (últimas 24h) */
-  const horaCount=Array(24).fill(0);
-  allFbk.forEach(f=>{
-    const d=new Date(f.created_at);const now=new Date();
-    if(now-d<86400000) horaCount[d.getHours()]++;
-  });
-  const horaMax=Math.max(...horaCount,1);
-
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-      {/* ── Header: Painel de Controle ── */}
-      <div style={{padding:'20px 28px 0',flexShrink:0,background:'var(--surface)'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+      {/* ── Header compacto ── */}
+      <div style={{padding:'14px 24px',flexShrink:0,background:'var(--surface)',borderBottom:'1px solid var(--border)'}}>
+        {/* Título + filtros */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
           <div>
-            <div style={{fontSize:22,fontWeight:800,color:'#fff',fontFamily:"'Outfit',sans-serif"}}>Painel de Controle</div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Visão geral da cidade em tempo real</div>
+            <div style={{fontSize:18,fontWeight:800,color:'#fff',fontFamily:"'Outfit',sans-serif"}}>Painel de Controle</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:1}}>Visão geral da cidade em tempo real</div>
           </div>
-          <div style={{display:'flex',gap:8}}>
-            <div style={{display:'flex',alignItems:'center',gap:10}}>
-              <select value={filtCat} onChange={e=>setFiltCat(e.target.value)} style={{fontSize:11,padding:'5px 8px'}}>
-                <option value="">Categorias</option>
-                {Object.entries(CAT_FBK).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
-              </select>
-              <select value={filtPri} onChange={e=>setFiltPri(e.target.value)} style={{fontSize:11,padding:'5px 8px'}}>
-                <option value="">Prioridades</option>
-                <option value="critico">Crítico</option><option value="urgente">Urgente</option><option value="neutro">Neutro</option><option value="positivo">Positivo</option>
-              </select>
-              <select value={filtSta} onChange={e=>setFiltSta(e.target.value)} style={{fontSize:11,padding:'5px 8px'}}>
-                <option value="ativos">Ativos</option><option value="resolvido">Resolvidos</option><option value="todos">Todos</option>
-              </select>
-              {(filtCat||filtPri||filtSta!=='ativos')&&<button className="btn btn-outline" style={{fontSize:11,padding:'4px 10px'}} onClick={()=>{setFiltCat('');setFiltPri('');setFiltSta('ativos');}}>✕</button>}
-            </div>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <select value={filtCat} onChange={e=>setFiltCat(e.target.value)} style={{fontSize:11,padding:'4px 8px'}}>
+              <option value="">Categorias</option>
+              {Object.entries(CAT_FBK).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
+            </select>
+            <select value={filtPri} onChange={e=>setFiltPri(e.target.value)} style={{fontSize:11,padding:'4px 8px'}}>
+              <option value="">Prioridades</option>
+              <option value="critico">Crítico</option><option value="urgente">Urgente</option><option value="neutro">Neutro</option><option value="positivo">Positivo</option>
+            </select>
+            <select value={filtSta} onChange={e=>setFiltSta(e.target.value)} style={{fontSize:11,padding:'4px 8px'}}>
+              <option value="ativos">Ativos</option><option value="resolvido">Resolvidos</option><option value="todos">Todos</option>
+            </select>
+            {(filtCat||filtPri||filtSta!=='ativos')&&<button className="btn btn-outline" style={{fontSize:10,padding:'3px 8px'}} onClick={()=>{setFiltCat('');setFiltPri('');setFiltSta('ativos');}}>✕</button>}
           </div>
         </div>
 
-        {/* ── 4 Cards: AI Pulse + Feedbacks Hoje + Região + Categoria ── */}
-        <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr 1.2fr',gap:12,marginBottom:16}}>
+        {/* ── 4 Cards compactos ── */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:12}}>
           {/* AI Pulse */}
-          <div style={{background:'var(--card)',border:'1px solid rgba(220,38,38,.25)',borderRadius:10,padding:'16px 18px',position:'relative',overflow:'hidden'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-              <span style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px'}}>AI Pulse</span>
-              <span style={{fontSize:14,opacity:.5}}>✦</span>
+          <div style={{background:'var(--card)',border:'1px solid rgba(220,38,38,.2)',borderRadius:8,padding:'12px 14px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+              <span style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',letterSpacing:'.5px',textTransform:'uppercase'}}>AI Pulse</span>
+              <span style={{fontSize:12,opacity:.5}}>✦</span>
             </div>
-            <div style={{fontSize:13,lineHeight:1.6,color:'var(--text)',fontWeight:500,minHeight:60}}>{aiPulse}</div>
-            <div style={{fontSize:10,color:'var(--accent)',marginTop:8,fontWeight:500}}>{allFbk.length} feedbacks • Atualizado: {aiPulseTime?aiPulseTime.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—'}</div>
+            <div style={{fontSize:12,lineHeight:1.5,color:'var(--text)',fontWeight:500}}>{aiPulse}</div>
+            <div style={{fontSize:9,color:'var(--accent)',marginTop:6,fontWeight:500}}>{allFbk.length} feedbacks • {aiPulseTime?aiPulseTime.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—'}</div>
           </div>
           {/* Feedbacks Hoje */}
-          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-              <span style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px'}}>Feedbacks Hoje</span>
-              <span style={{color:'#22c55e',fontSize:13}}>↗</span>
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,padding:'12px 14px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+              <span style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',letterSpacing:'.5px',textTransform:'uppercase'}}>Feedbacks Hoje</span>
+              <span style={{color:'#22c55e',fontSize:12}}>↗</span>
             </div>
-            <div className="mono" style={{fontSize:36,fontWeight:700,color:'#fff',lineHeight:1}}>{feedbacksHoje}</div>
-            <div style={{fontSize:11,color:'var(--accent)',marginTop:6,fontWeight:500}}>Novos registros</div>
+            <div className="mono" style={{fontSize:28,fontWeight:700,color:'#fff',lineHeight:1}}>{feedbacksHoje}</div>
+            <div style={{fontSize:10,color:'var(--accent)',marginTop:4,fontWeight:500}}>Novos registros</div>
           </div>
           {/* Região Mais Ativa */}
-          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-              <span style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px'}}>Região Mais Ativa</span>
-              <span style={{color:'#dc2626',fontSize:13}}>◉</span>
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,padding:'12px 14px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+              <span style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',letterSpacing:'.5px',textTransform:'uppercase'}}>Região Mais Ativa</span>
+              <span style={{color:'#dc2626',fontSize:12}}>◉</span>
             </div>
-            <div style={{fontSize:22,fontWeight:700,color:'#fff',lineHeight:1.2}}>{topBairroEntry?.[0]||'—'}</div>
-            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6,fontWeight:500}}>{topBairroEntry?.[1]||0} feedbacks</div>
+            <div style={{fontSize:18,fontWeight:700,color:'#fff',lineHeight:1.2}}>{topBairroEntry?.[0]||'—'}</div>
+            <div style={{fontSize:10,color:'var(--text-muted)',marginTop:4,fontWeight:500}}>{topBairroEntry?.[1]||0} feedbacks</div>
           </div>
           {/* Principal Categoria */}
-          <div style={{background:'var(--card)',border:`1px solid ${topCatInfo.color}40`,borderRadius:10,padding:'16px 18px'}}>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-              <span style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px'}}>Principal Categoria</span>
-              <span style={{color:topCatInfo.color,fontSize:13}}>◈</span>
+          <div style={{background:'var(--card)',border:`1px solid ${topCatInfo.color}30`,borderRadius:8,padding:'12px 14px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+              <span style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',letterSpacing:'.5px',textTransform:'uppercase'}}>Principal Categoria</span>
+              <span style={{color:topCatInfo.color,fontSize:12}}>◈</span>
             </div>
-            <div style={{fontSize:18,fontWeight:700,color:'#fff',lineHeight:1.2}}>{topCatInfo.label}</div>
-            <div style={{fontSize:11,color:topCatInfo.color,marginTop:6,fontWeight:500}}>{topCatEntry?.[1]||0} feedbacks</div>
+            <div style={{fontSize:15,fontWeight:700,color:'#fff',lineHeight:1.2}}>{topCatInfo.label}</div>
+            <div style={{fontSize:10,color:topCatInfo.color,marginTop:4,fontWeight:500}}>{topCatEntry?.[1]||0} feedbacks</div>
           </div>
         </div>
 
-        {/* ── Row: Feedbacks por Hora + Sentimentos ── */}
-        <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr',gap:12,marginBottom:16}}>
-          {/* Feedbacks por Hora — area chart SVG */}
-          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
-            <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px',marginBottom:12,display:'flex',alignItems:'center',gap:6}}>📈 Feedbacks por Hora</div>
-            <svg viewBox="0 0 480 120" style={{width:'100%',height:100}}>
-              {/* Grid lines */}
-              {[0,30,60,90].map(y=><line key={y} x1="0" y1={y} x2="480" y2={y} stroke="rgba(255,255,255,.04)" strokeWidth="1"/>)}
-              {/* Area */}
-              <defs><linearGradient id="fbkAreaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity=".3"/><stop offset="100%" stopColor="#10b981" stopOpacity="0"/></linearGradient></defs>
-              <path d={`M0,110 ${horaCount.map((v,i)=>`L${i*20},${110-((v/horaMax)*90)}`).join(' ')} L${23*20},110 Z`} fill="url(#fbkAreaGrad)"/>
-              <polyline points={horaCount.map((v,i)=>`${i*20},${110-((v/horaMax)*90)}`).join(' ')} fill="none" stroke="#10b981" strokeWidth="2"/>
-              {horaCount.map((v,i)=>v>0?<circle key={i} cx={i*20} cy={110-((v/horaMax)*90)} r="3" fill="#10b981" stroke="#0d1117" strokeWidth="2"/>:null)}
-              {/* X labels */}
-              {[0,3,6,9,12,15,18,21].map(h=><text key={h} x={h*20} y="118" fill="#6b7280" fontSize="8" textAnchor="middle">{String(h).padStart(2,'0')}:00</text>)}
-            </svg>
-          </div>
+        {/* ── Sentimentos + Categorias lado a lado ── */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
           {/* Sentimentos */}
-          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
-            <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px',marginBottom:14,display:'flex',alignItems:'center',gap:6}}>◎ Sentimentos</div>
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,padding:'12px 14px'}}>
+            <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',letterSpacing:'.5px',textTransform:'uppercase',marginBottom:10,display:'flex',alignItems:'center',gap:5}}>◎ Sentimentos</div>
             {[
               {k:'positivo',label:'Positivo',color:'#22c55e'},
               {k:'neutro',label:'Neutro',color:'#3b82f6'},
               {k:'urgente',label:'Urgente',color:'#f59e0b'},
               {k:'critico',label:'Crítico',color:'#dc2626'},
             ].map(s=>(
-              <div key={s.k} style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-                <span style={{fontSize:12,fontWeight:600,color:s.color,width:60}}>{s.label}</span>
-                <div style={{flex:1,height:10,background:'rgba(255,255,255,.06)',borderRadius:5,overflow:'hidden'}}>
-                  <div style={{width:`${(sentCounts[s.k]/sentTotal)*100}%`,height:'100%',background:s.color,borderRadius:5,transition:'width .5s'}}/>
+              <div key={s.k} style={{display:'flex',alignItems:'center',gap:8,marginBottom:7}}>
+                <span style={{fontSize:11,fontWeight:600,color:s.color,width:52}}>{s.label}</span>
+                <div style={{flex:1,height:8,background:'rgba(255,255,255,.06)',borderRadius:4,overflow:'hidden'}}>
+                  <div style={{width:`${(sentCounts[s.k]/sentTotal)*100}%`,height:'100%',background:s.color,borderRadius:4,transition:'width .5s'}}/>
                 </div>
-                <span style={{fontSize:11,color:'var(--text-muted)',width:60,textAlign:'right'}}>{sentCounts[s.k]} ({Math.round((sentCounts[s.k]/sentTotal)*100)}%)</span>
+                <span style={{fontSize:10,color:'var(--text-muted)',width:55,textAlign:'right'}}>{sentCounts[s.k]} ({Math.round((sentCounts[s.k]/sentTotal)*100)}%)</span>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* ── Row: Categorias donut ── */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr',gap:12,marginBottom:16}}>
-          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
-            <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px',marginBottom:14,display:'flex',alignItems:'center',gap:6}}>🏷️ Categorias</div>
-            <div style={{display:'flex',alignItems:'center',gap:32}}>
-              {/* Donut SVG */}
-              <div style={{position:'relative',width:140,height:140,flexShrink:0}}>
-                <svg viewBox="0 0 42 42" style={{width:140,height:140,transform:'rotate(-90deg)'}}>
-                  {(()=>{
-                    let offset=0;
-                    return catEntries.map(([cat,count],i)=>{
-                      const pct=(count/catTotal)*100;
-                      const color=(CAT_FBK[cat]||{color:'#8b949e'}).color;
-                      const el=<circle key={cat} cx="21" cy="21" r="15.9" fill="none" stroke={color} strokeWidth="5"
-                        strokeDasharray={`${pct} ${100-pct}`} strokeDashoffset={-offset}/>;
-                      offset+=pct;
-                      return el;
-                    });
-                  })()}
+          {/* Categorias donut */}
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,padding:'12px 14px'}}>
+            <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',letterSpacing:'.5px',textTransform:'uppercase',marginBottom:10,display:'flex',alignItems:'center',gap:5}}>🏷️ Categorias</div>
+            <div style={{display:'flex',alignItems:'center',gap:16}}>
+              {/* Donut compacto */}
+              <div style={{position:'relative',width:80,height:80,flexShrink:0}}>
+                <svg viewBox="0 0 42 42" style={{width:80,height:80,transform:'rotate(-90deg)'}}>
+                  {(()=>{let offset=0;return catEntries.map(([cat,count])=>{const pct=(count/catTotal)*100;const color=(CAT_FBK[cat]||{color:'#8b949e'}).color;const el=<circle key={cat} cx="21" cy="21" r="15.9" fill="none" stroke={color} strokeWidth="5" strokeDasharray={`${pct} ${100-pct}`} strokeDashoffset={-offset}/>;offset+=pct;return el;});})()}
                 </svg>
                 <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-                  <div style={{fontSize:24,fontWeight:800,color:'#fff'}}>{allFbk.length}</div>
-                  <div style={{fontSize:9,color:'var(--text-muted)',fontWeight:500}}>feedbacks</div>
+                  <div style={{fontSize:16,fontWeight:800,color:'#fff'}}>{allFbk.length}</div>
+                  <div style={{fontSize:7,color:'var(--text-muted)',fontWeight:500}}>feedbacks</div>
                 </div>
               </div>
-              {/* Legend */}
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px 24px',flex:1}}>
-                {catEntries.map(([cat,count])=>{
-                  const info=CAT_FBK[cat]||{label:cat,color:'#8b949e',emoji:'📌'};
-                  const pct=Math.round((count/catTotal)*100);
+              {/* Legend compacta */}
+              <div style={{flex:1,display:'flex',flexDirection:'column',gap:3}}>
+                {catEntries.slice(0,8).map(([cat,count])=>{
+                  const info=CAT_FBK[cat]||{label:cat,color:'#8b949e'};
                   return(
-                    <div key={cat} style={{display:'flex',alignItems:'center',gap:8}}>
-                      <span style={{width:8,height:8,borderRadius:2,background:info.color,flexShrink:0}}/>
-                      <span style={{fontSize:12,color:'var(--text)',fontWeight:500,flex:1}}>{info.label}</span>
-                      <span style={{fontSize:11,color:'var(--text-muted)'}}>{pct}%</span>
-                      <span style={{fontSize:12,fontWeight:700,color:'#fff',width:24,textAlign:'right'}}>{count}</span>
+                    <div key={cat} style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span style={{width:6,height:6,borderRadius:2,background:info.color,flexShrink:0}}/>
+                      <span style={{fontSize:11,color:'var(--text)',fontWeight:500,flex:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{info.label}</span>
+                      <span style={{fontSize:10,color:'var(--text-muted)'}}>{Math.round((count/catTotal)*100)}%</span>
+                      <span style={{fontSize:11,fontWeight:700,color:'#fff',width:20,textAlign:'right'}}>{count}</span>
                     </div>
                   );
                 })}
@@ -3251,8 +3213,6 @@ function Feedbacks(){
             </div>
           </div>
         </div>
-
-        <div style={{borderBottom:'1px solid var(--border)'}}/>
       </div>
 
       {/* ── Grid de cards (sempre visível) ── */}
