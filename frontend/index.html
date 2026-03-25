@@ -3037,35 +3037,222 @@ function Feedbacks(){
     setFbkSending(false);
   }
 
+  /* ── AI PULSE — análise IA a cada 5 min ── */
+  const [aiPulse,setAiPulse]=useState('Analisando feedbacks da cidade...');
+  const [aiPulseTime,setAiPulseTime]=useState(null);
+  const aiPulseRef=useRef(null);
+
+  function gerarAiPulse(){
+    const all=FBK;
+    if(all.length===0){setAiPulse('Nenhum feedback registrado ainda.');setAiPulseTime(new Date());return;}
+    const criticos=all.filter(f=>f.prioridade==='critico').length;
+    const urgentes=all.filter(f=>f.prioridade==='urgente').length;
+    /* Top categoria */
+    const catCount={};all.forEach(f=>{const c=f.categoria||'outros';catCount[c]=(catCount[c]||0)+1;});
+    const topCat=Object.entries(catCount).sort((a,b)=>b[1]-a[1])[0];
+    const topCatLabel=CAT_FBK[topCat?.[0]]?.label||topCat?.[0]||'—';
+    /* Top bairro */
+    const bCount={};all.forEach(f=>{if(f.bairro)bCount[f.bairro]=(bCount[f.bairro]||0)+1;});
+    const topBairro=Object.entries(bCount).sort((a,b)=>b[1]-a[1])[0];
+    /* Sentimento dominante */
+    const negCount=all.filter(f=>f.sentimento==='negativo').length;
+    const posCount=all.filter(f=>f.sentimento==='positivo').length;
+    /* Gerar texto */
+    let txt='';
+    if(criticos>5) txt=`🔴 Crítico! ${criticos} feedbacks críticos detectados. Foco em ${topCatLabel}${topBairro?` na região ${topBairro[0]}`:''}.  Ação imediata necessária.`;
+    else if(urgentes>5) txt=`🟡 Atenção: ${urgentes} feedbacks urgentes. Principal tema: ${topCatLabel}. ${negCount>posCount?'Sentimento predominante negativo — monitorar de perto.':''}`;
+    else if(negCount>posCount*2) txt=`😔 Sentimento negativo predominante (${negCount} de ${all.length}). Principais reclamações em ${topCatLabel}${topBairro?`, concentradas em ${topBairro[0]}`:''}.`;
+    else if(posCount>negCount) txt=`😊 Tendência positiva! ${posCount} elogios de ${all.length} feedbacks. Destaque para ${topCatLabel}. Maringá está no caminho certo!`;
+    else txt=`📊 ${all.length} feedbacks analisados. ${topCatLabel} é o tema mais recorrente${topBairro?` (${topBairro[0]} lidera)':''}. ${criticos>0?`${criticos} críticos requerem atenção.`:'Situação estável.'}`;
+    setAiPulse(txt);setAiPulseTime(new Date());
+  }
+
+  useEffect(()=>{
+    gerarAiPulse();
+    aiPulseRef.current=setInterval(gerarAiPulse,300000);
+    return()=>clearInterval(aiPulseRef.current);
+  },[]);
+
+  /* ── Computed stats ── */
+  const allFbk=FBK;
+  const feedbacksHoje=allFbk.filter(f=>{const d=new Date(f.created_at);const t=new Date();return d.toDateString()===t.toDateString();}).length;
+  const bairroCount={};allFbk.forEach(f=>{if(f.bairro)bairroCount[f.bairro]=(bairroCount[f.bairro]||0)+1;});
+  const topBairroEntry=Object.entries(bairroCount).sort((a,b)=>b[1]-a[1])[0];
+  const catCountAll={};allFbk.forEach(f=>{const c=f.categoria||'outros';catCountAll[c]=(catCountAll[c]||0)+1;});
+  const topCatEntry=Object.entries(catCountAll).sort((a,b)=>b[1]-a[1])[0];
+  const topCatInfo=CAT_FBK[topCatEntry?.[0]]||{label:topCatEntry?.[0]||'—',color:'#8b949e'};
+
+  /* Sentimentos */
+  const sentCounts={positivo:0,neutro:0,urgente:0,critico:0};
+  allFbk.forEach(f=>{
+    if(f.prioridade==='positivo')sentCounts.positivo++;
+    else if(f.prioridade==='neutro')sentCounts.neutro++;
+    else if(f.prioridade==='urgente')sentCounts.urgente++;
+    else if(f.prioridade==='critico')sentCounts.critico++;
+  });
+  const sentTotal=Math.max(allFbk.length,1);
+
+  /* Categorias para donut */
+  const catEntries=Object.entries(catCountAll).sort((a,b)=>b[1]-a[1]);
+  const catTotal=Math.max(allFbk.length,1);
+
+  /* Feedbacks por hora (últimas 24h) */
+  const horaCount=Array(24).fill(0);
+  allFbk.forEach(f=>{
+    const d=new Date(f.created_at);const now=new Date();
+    if(now-d<86400000) horaCount[d.getHours()]++;
+  });
+  const horaMax=Math.max(...horaCount,1);
+
   return(
     <div style={{display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}}>
-      {/* ── Topo: título + filtros inline ── */}
-      <div style={{padding:'20px 28px',borderBottom:'1px solid var(--border)',flexShrink:0,background:'var(--surface)'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+      {/* ── Header: Painel de Controle ── */}
+      <div style={{padding:'20px 28px 0',flexShrink:0,background:'var(--surface)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
           <div>
-            <div style={{fontSize:20,fontWeight:700,color:'#fff'}}>Feedbacks</div>
-            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Gerencie e analise as ocorrências dos cidadãos</div>
+            <div style={{fontSize:22,fontWeight:800,color:'#fff',fontFamily:"'Outfit',sans-serif"}}>Painel de Controle</div>
+            <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Visão geral da cidade em tempo real</div>
           </div>
-          <span className="mono" style={{fontSize:13,color:'var(--text-secondary)'}}>{lista.length} feedbacks</span>
+          <div style={{display:'flex',gap:8}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <select value={filtCat} onChange={e=>setFiltCat(e.target.value)} style={{fontSize:11,padding:'5px 8px'}}>
+                <option value="">Categorias</option>
+                {Object.entries(CAT_FBK).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
+              </select>
+              <select value={filtPri} onChange={e=>setFiltPri(e.target.value)} style={{fontSize:11,padding:'5px 8px'}}>
+                <option value="">Prioridades</option>
+                <option value="critico">Crítico</option><option value="urgente">Urgente</option><option value="neutro">Neutro</option><option value="positivo">Positivo</option>
+              </select>
+              <select value={filtSta} onChange={e=>setFiltSta(e.target.value)} style={{fontSize:11,padding:'5px 8px'}}>
+                <option value="ativos">Ativos</option><option value="resolvido">Resolvidos</option><option value="todos">Todos</option>
+              </select>
+              {(filtCat||filtPri||filtSta!=='ativos')&&<button className="btn btn-outline" style={{fontSize:11,padding:'4px 10px'}} onClick={()=>{setFiltCat('');setFiltPri('');setFiltSta('ativos');}}>✕</button>}
+            </div>
+          </div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <select value={filtCat} onChange={e=>setFiltCat(e.target.value)}>
-            <option value="">Todas Categorias</option>
-            {Object.entries(CAT_FBK).map(([k,v])=><option key={k} value={k}>{v.emoji} {v.label}</option>)}
-          </select>
-          <select value={filtPri} onChange={e=>setFiltPri(e.target.value)}>
-            <option value="">Todas Prioridades</option>
-            {Object.entries(PRI_FBK).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
-          </select>
-          <select value={filtSta} onChange={e=>setFiltSta(e.target.value)}>
-            <option value="ativos">Cards Ativos</option>
-            <option value="resolvido">Resolvidos</option>
-            <option value="todos">Todos</option>
-          </select>
-          {(filtCat||filtPri||filtSta!=='ativos')&&(
-            <button className="btn btn-outline" style={{fontSize:12,padding:'6px 12px'}} onClick={()=>{setFiltCat('');setFiltPri('');setFiltSta('ativos');}}>✕ Limpar</button>
-          )}
+
+        {/* ── 4 Cards: AI Pulse + Feedbacks Hoje + Região + Categoria ── */}
+        <div style={{display:'grid',gridTemplateColumns:'1.3fr 1fr 1fr 1.2fr',gap:12,marginBottom:16}}>
+          {/* AI Pulse */}
+          <div style={{background:'var(--card)',border:'1px solid rgba(220,38,38,.25)',borderRadius:10,padding:'16px 18px',position:'relative',overflow:'hidden'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+              <span style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px'}}>AI Pulse</span>
+              <span style={{fontSize:14,opacity:.5}}>✦</span>
+            </div>
+            <div style={{fontSize:13,lineHeight:1.6,color:'var(--text)',fontWeight:500,minHeight:60}}>{aiPulse}</div>
+            <div style={{fontSize:10,color:'var(--accent)',marginTop:8,fontWeight:500}}>{allFbk.length} feedbacks • Atualizado: {aiPulseTime?aiPulseTime.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—'}</div>
+          </div>
+          {/* Feedbacks Hoje */}
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+              <span style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px'}}>Feedbacks Hoje</span>
+              <span style={{color:'#22c55e',fontSize:13}}>↗</span>
+            </div>
+            <div className="mono" style={{fontSize:36,fontWeight:700,color:'#fff',lineHeight:1}}>{feedbacksHoje}</div>
+            <div style={{fontSize:11,color:'var(--accent)',marginTop:6,fontWeight:500}}>Novos registros</div>
+          </div>
+          {/* Região Mais Ativa */}
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+              <span style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px'}}>Região Mais Ativa</span>
+              <span style={{color:'#dc2626',fontSize:13}}>◉</span>
+            </div>
+            <div style={{fontSize:22,fontWeight:700,color:'#fff',lineHeight:1.2}}>{topBairroEntry?.[0]||'—'}</div>
+            <div style={{fontSize:11,color:'var(--text-muted)',marginTop:6,fontWeight:500}}>{topBairroEntry?.[1]||0} feedbacks</div>
+          </div>
+          {/* Principal Categoria */}
+          <div style={{background:'var(--card)',border:`1px solid ${topCatInfo.color}40`,borderRadius:10,padding:'16px 18px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+              <span style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px'}}>Principal Categoria</span>
+              <span style={{color:topCatInfo.color,fontSize:13}}>◈</span>
+            </div>
+            <div style={{fontSize:18,fontWeight:700,color:'#fff',lineHeight:1.2}}>{topCatInfo.label}</div>
+            <div style={{fontSize:11,color:topCatInfo.color,marginTop:6,fontWeight:500}}>{topCatEntry?.[1]||0} feedbacks</div>
+          </div>
         </div>
+
+        {/* ── Row: Feedbacks por Hora + Sentimentos ── */}
+        <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr',gap:12,marginBottom:16}}>
+          {/* Feedbacks por Hora — area chart SVG */}
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
+            <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px',marginBottom:12,display:'flex',alignItems:'center',gap:6}}>📈 Feedbacks por Hora</div>
+            <svg viewBox="0 0 480 120" style={{width:'100%',height:100}}>
+              {/* Grid lines */}
+              {[0,30,60,90].map(y=><line key={y} x1="0" y1={y} x2="480" y2={y} stroke="rgba(255,255,255,.04)" strokeWidth="1"/>)}
+              {/* Area */}
+              <defs><linearGradient id="fbkAreaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity=".3"/><stop offset="100%" stopColor="#10b981" stopOpacity="0"/></linearGradient></defs>
+              <path d={`M0,110 ${horaCount.map((v,i)=>`L${i*20},${110-((v/horaMax)*90)}`).join(' ')} L${23*20},110 Z`} fill="url(#fbkAreaGrad)"/>
+              <polyline points={horaCount.map((v,i)=>`${i*20},${110-((v/horaMax)*90)}`).join(' ')} fill="none" stroke="#10b981" strokeWidth="2"/>
+              {horaCount.map((v,i)=>v>0?<circle key={i} cx={i*20} cy={110-((v/horaMax)*90)} r="3" fill="#10b981" stroke="#0d1117" strokeWidth="2"/>:null)}
+              {/* X labels */}
+              {[0,3,6,9,12,15,18,21].map(h=><text key={h} x={h*20} y="118" fill="#6b7280" fontSize="8" textAnchor="middle">{String(h).padStart(2,'0')}:00</text>)}
+            </svg>
+          </div>
+          {/* Sentimentos */}
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
+            <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px',marginBottom:14,display:'flex',alignItems:'center',gap:6}}>◎ Sentimentos</div>
+            {[
+              {k:'positivo',label:'Positivo',color:'#22c55e'},
+              {k:'neutro',label:'Neutro',color:'#3b82f6'},
+              {k:'urgente',label:'Urgente',color:'#f59e0b'},
+              {k:'critico',label:'Crítico',color:'#dc2626'},
+            ].map(s=>(
+              <div key={s.k} style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                <span style={{fontSize:12,fontWeight:600,color:s.color,width:60}}>{s.label}</span>
+                <div style={{flex:1,height:10,background:'rgba(255,255,255,.06)',borderRadius:5,overflow:'hidden'}}>
+                  <div style={{width:`${(sentCounts[s.k]/sentTotal)*100}%`,height:'100%',background:s.color,borderRadius:5,transition:'width .5s'}}/>
+                </div>
+                <span style={{fontSize:11,color:'var(--text-muted)',width:60,textAlign:'right'}}>{sentCounts[s.k]} ({Math.round((sentCounts[s.k]/sentTotal)*100)}%)</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Row: Categorias donut ── */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr',gap:12,marginBottom:16}}>
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px'}}>
+            <div style={{fontSize:11,fontWeight:600,color:'var(--text-muted)',letterSpacing:'.5px',marginBottom:14,display:'flex',alignItems:'center',gap:6}}>🏷️ Categorias</div>
+            <div style={{display:'flex',alignItems:'center',gap:32}}>
+              {/* Donut SVG */}
+              <div style={{position:'relative',width:140,height:140,flexShrink:0}}>
+                <svg viewBox="0 0 42 42" style={{width:140,height:140,transform:'rotate(-90deg)'}}>
+                  {(()=>{
+                    let offset=0;
+                    return catEntries.map(([cat,count],i)=>{
+                      const pct=(count/catTotal)*100;
+                      const color=(CAT_FBK[cat]||{color:'#8b949e'}).color;
+                      const el=<circle key={cat} cx="21" cy="21" r="15.9" fill="none" stroke={color} strokeWidth="5"
+                        strokeDasharray={`${pct} ${100-pct}`} strokeDashoffset={-offset}/>;
+                      offset+=pct;
+                      return el;
+                    });
+                  })()}
+                </svg>
+                <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+                  <div style={{fontSize:24,fontWeight:800,color:'#fff'}}>{allFbk.length}</div>
+                  <div style={{fontSize:9,color:'var(--text-muted)',fontWeight:500}}>feedbacks</div>
+                </div>
+              </div>
+              {/* Legend */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px 24px',flex:1}}>
+                {catEntries.map(([cat,count])=>{
+                  const info=CAT_FBK[cat]||{label:cat,color:'#8b949e',emoji:'📌'};
+                  const pct=Math.round((count/catTotal)*100);
+                  return(
+                    <div key={cat} style={{display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{width:8,height:8,borderRadius:2,background:info.color,flexShrink:0}}/>
+                      <span style={{fontSize:12,color:'var(--text)',fontWeight:500,flex:1}}>{info.label}</span>
+                      <span style={{fontSize:11,color:'var(--text-muted)'}}>{pct}%</span>
+                      <span style={{fontSize:12,fontWeight:700,color:'#fff',width:24,textAlign:'right'}}>{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{borderBottom:'1px solid var(--border)'}}/>
       </div>
 
       {/* ── Grid de cards (sempre visível) ── */}
@@ -3079,7 +3266,7 @@ function Feedbacks(){
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:16}}>
             {lista.map((f,i)=>{
               const cat=CAT_FBK[f.categoria]||{label:f.categoria||'N/A',emoji:'📌',color:'#8b949e'};
-              const pri=PRI_FBK[f.prioridade]||PRI_FBK.normal;
+              const pri=PRI_FBK[f.prioridade]||PRI_FBK.neutro;
               const sta=STA_FBK[f.status]||STA_FBK.aberto;
               return(
                 <div key={f.id} className="fb-card anim-card" onClick={()=>abrirConversa(f)}>
