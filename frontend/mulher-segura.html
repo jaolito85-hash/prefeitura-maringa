@@ -99,17 +99,24 @@ setInterval(function(){
 },10000);
 
 // === WAKE LOCK — impede a tela de apagar enquanto o rastreamento está ativo ===
+// No iOS Safari, Wake Lock SÓ funciona após gesto do usuário (tap/click)
+var wakeLockDisponivel=('wakeLock' in navigator);
+var wakeLockTentou=false;
+
 async function ativarWakeLock(){
+  if(!wakeLockDisponivel) return;
   try{
-    if('wakeLock' in navigator){
-      wakeLock=await navigator.wakeLock.request('screen');
-      wakeLock.addEventListener('release',function(){
-        msg("Tela desbloqueada — Wake Lock liberado","info");
-      });
+    wakeLock=await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release',function(){
+      // Silencioso — não poluir o log
+      wakeLock=null;
+    });
+    if(!wakeLockTentou){
       msg("Tela travada ativa ✓","ok");
+      wakeLockTentou=true;
     }
   }catch(e){
-    msg("Wake Lock não disponível: "+e.message,"info");
+    // Silencioso — no iOS falha sem gesto do usuário, isso é normal
   }
 }
 
@@ -243,11 +250,11 @@ async function iniciar(){
   );
 }
 
-// Se tem token na URL, já inicia automaticamente
+// Se tem token na URL, mostra mensagem mas NÃO auto-inicia
+// O usuário precisa tocar no botão (gesto necessário pro Wake Lock no iOS)
 window.onload=function(){
   if(getToken()){
-    document.querySelector(".sub").textContent="Clique no botão para ativar sua proteção.";
-    iniciar();
+    document.querySelector(".sub").textContent="Toque no botão para ativar sua proteção.";
   }
 };
 </script></body></html>
