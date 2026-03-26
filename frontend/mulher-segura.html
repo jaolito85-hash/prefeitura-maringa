@@ -5,6 +5,8 @@ var watchId=null,sessaoId=null,n=0,ativo=false;
 var filaOffline=[];
 var enviando=false;
 var ultimaAcc=0;
+var wakeLock=null;
+var backupInterval=null;
 
 function msg(t,tipo){
   document.getElementById("status").innerHTML+='<div class="'+tipo+'">'+t+'</div>';
@@ -96,10 +98,84 @@ setInterval(function(){
   if(ativo) atualizarStatusConexao();
 },10000);
 
+// === WAKE LOCK — impede a tela de apagar enquanto o rastreamento está ativo ===
+async function ativarWakeLock(){
+  try{
+    if('wakeLock' in navigator){
+      wakeLock=await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release',function(){
+        msg("Tela desbloqueada — Wake Lock liberado","info");
+      });
+      msg("Tela travada ativa ✓","ok");
+    }
+  }catch(e){
+    msg("Wake Lock não disponível: "+e.message,"info");
+  }
+}
+
+function liberarWakeLock(){
+  if(wakeLock){
+    wakeLock.release();
+    wakeLock=null;
+  }
+}
+
+// === VISIBILITYCHANGE — reativa GPS quando volta pra página ===
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible'&&ativo){
+    // Reativa Wake Lock (ele é liberado automaticamente quando tela apaga)
+    ativarWakeLock();
+    // Pega posição imediatamente ao voltar
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        var lat=pos.coords.latitude;
+        var lng=pos.coords.longitude;
+        var acc=Math.round(pos.coords.accuracy);
+        ultimaAcc=acc;
+        filaOffline.push({sessao_id:sessaoId,latitude:lat,longitude:lng,precisao_metros:acc});
+        enviarFila();
+        atualizarStatusConexao();
+        atualizarStats();
+        msg("GPS reativado ao voltar ✓","ok");
+      },
+      function(err){},
+      {enableHighAccuracy:true,maximumAge:0,timeout:10000}
+    );
+  }
+});
+
+// === BACKUP GPS — garante pontos mesmo se watchPosition parar ===
+function iniciarBackupGPS(){
+  if(backupInterval) clearInterval(backupInterval);
+  backupInterval=setInterval(function(){
+    if(!ativo||!sessaoId) return;
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        var lat=pos.coords.latitude;
+        var lng=pos.coords.longitude;
+        var acc=Math.round(pos.coords.accuracy);
+        ultimaAcc=acc;
+        filaOffline.push({sessao_id:sessaoId,latitude:lat,longitude:lng,precisao_metros:acc});
+        enviarFila();
+        atualizarStatusConexao();
+        atualizarStats();
+      },
+      function(err){},
+      {enableHighAccuracy:true,maximumAge:0,timeout:15000}
+    );
+  },5000); // A cada 5 segundos pega uma posição de backup
+}
+
+function pararBackupGPS(){
+  if(backupInterval){clearInterval(backupInterval);backupInterval=null;}
+}
+
 async function iniciar(){
   var btn=document.getElementById("btn");
   if(ativo){
     navigator.geolocation.clearWatch(watchId);
+    pararBackupGPS();
+    liberarWakeLock();
     ativo=false;
     btn.textContent="Ativar Proteção";
     btn.className="";
@@ -145,6 +221,8 @@ async function iniciar(){
   btn.className="on";
   btn.textContent="⏹ Parar";
   msg("Ativando GPS...","info");
+  ativarWakeLock();
+  iniciarBackupGPS();
 
   watchId=navigator.geolocation.watchPosition(
     function(pos){
