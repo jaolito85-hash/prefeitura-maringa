@@ -21,6 +21,7 @@ from app.config import settings
 logger = logging.getLogger("classificador")
 
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+OPENAI_MODERATION_URL = "https://api.openai.com/v1/moderations"
 OPENAI_MODEL = "gpt-4o-mini"
 
 
@@ -257,6 +258,202 @@ Contexto da nova mensagem:
 Gere a resposta adequada em JSON."""
 
     return await _chamar_ia(SYSTEM_PROMPT_SESSAO, mensagem_usuario, telefone)
+
+
+# ── PROMPT DE CLASSIFICAÇÃO POR IMAGEM ────────────────────────────────────
+
+SYSTEM_PROMPT_IMAGEM = """Você é o classificador de imagens do sistema de atendimento ao cidadão da Prefeitura de Maringá-PR.
+
+Analise a foto enviada pelo cidadão e classifique em UMA das categorias abaixo.
+
+MÓDULO FEEDBACK (manutenção rotineira — canal: "feedback"):
+- buraco_via: Buraco na via / pavimentação danificada
+- calcada: Calçada danificada / acessibilidade
+- iluminacao: Iluminação pública defeituosa / poste queimado
+- mato_alto: Mato alto / terreno baldio
+- esgoto: Esgoto / vazamento de água
+- sinalizacao: Sinalização danificada / ausente
+- veiculo_abandonado: Veículo abandonado
+
+MÓDULO OCORRÊNCIA (emergência — canal: "ocorrencia"):
+- queda_arvore: Queda de árvore / risco de queda
+- alagamento: Enchente / alagamento
+- deslizamento: Deslizamento / desmoronamento
+- incendio: Incêndio
+- vendaval: Vendaval / danos por vento
+- acidente: Acidente de trânsito
+
+MÓDULO DENÚNCIA / CIDADANIA ATIVA (canal: "denuncia"):
+- pichacao: Pichação / vandalismo
+- trafico: Tráfico de drogas / atividade suspeita
+- descarte_irregular: Descarte irregular de resíduos / entulho
+- furto_fios: Vandalismo / furto de fios e cabos
+- depredacao: Depredação de bens públicos
+
+SECRETARIAS DE MARINGÁ:
+- SEMUSP (Serviços Públicos): buracos, calçadas, iluminação, esgoto
+- SEMA (Meio Ambiente): árvores, mato alto, animais
+- SEMOB (Mobilidade Urbana): sinalização, trânsito
+- Defesa Civil: alagamento, deslizamento, incêndio, vendaval
+- Guarda Municipal: denúncias, tráfico, vandalismo, pichação, furto de fios
+- SELURB (Limpeza Urbana): descarte irregular, lixo
+
+Responda APENAS em JSON válido:
+{
+  "canal": "feedback|ocorrencia|denuncia",
+  "categoria": "slug_da_categoria",
+  "categoria_display": "Nome legível da categoria",
+  "sentimento": "negativo|neutro|urgente",
+  "urgencia": "baixa|media|alta|critica",
+  "confianca": 85,
+  "gravidade": "BAIXA|MÉDIA|ALTA|CRÍTICA",
+  "secretaria": "SIGLA da secretaria",
+  "resumo": "Descrição objetiva do que a IA viu na foto, em 1-2 frases.",
+  "resposta_whatsapp": "Resposta da Clara confirmando a classificação",
+  "pedir_midia": false,
+  "pedir_localizacao": true
+}
+
+Se NÃO conseguir identificar uma ocorrência urbana na foto, retorne canal="feedback", categoria="outro", confianca=0."""
+
+
+async def _moderar_imagem(image_url: str) -> dict[str, Any]:
+    """Chama OpenAI Moderation API (omni-moderation-latest) — GRÁTIS.
+    Retorna {flagged, categories, scores}."""
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {settings.openai_api_key}",
+    }
+    payload = {
+        "model": "omni-moderation-latest",
+        "input": [{"type": "image_url", "image_url": {"url": image_url}}],
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(OPENAI_MODERATION_URL, headers=headers, json=payload)
+            resp.raise_for_status()
+        data = resp.json()
+        result = data["results"][0]
+        return {
+            "flagged": result["flagged"],
+            "categories": result.get("categories", {}),
+            "scores": result.get("category_scores", {}),
+        }
+    except Exception as exc:
+        logger.error(f"Erro na moderação de imagem: {exc}")
+        # Se a moderação falhar, deixa passar (não bloqueia o cidadão)
+        return {"flagged": False, "categories": {}, "scores": {}}
+
+
+async def classificar_imagem(
+    image_url: str,
+    texto_acompanhante: str = "",
+    telefone: str = "",
+) -> dict[str, Any]:
+    """
+    Classifica imagem recebida via WhatsApp.
+    1. Modera (grátis via /v1/moderations)
+    2. Classifica (GPT-4o-mini com vision)
+
+    Retorna mesmo formato que classificar_mensagem() + campos extras:
+    - confianca: int (0-100)
+    - classificacao_por_imagem: True
+    - bloqueado: True se moderação barrou
+    """
+    # ── Etapa 1: Moderação (GRÁTIS) ──
+    moderacao = await _moderar_imagem(image_url)
+    if moderacao["flagged"]:
+        logger.warning(f"🚫 Imagem bloqueada pela moderação: {telefone}")
+        return {
+            "canal": "saudacao",
+            "categoria": "imagem_bloqueada",
+            "sentimento": "neutro",
+            "urgencia": "baixa",
+            "resumo": "Imagem bloqueada pela moderação automática",
+            "resposta_whatsapp": "",
+            "pedir_midia": False,
+            "pedir_localizacao": False,
+            "bloqueado": True,
+            "classificacao_por_imagem": True,
+            "confianca": 0,
+        }
+
+    # ── Etapa 2: Classificação visual (GPT-4o-mini com vision) ──
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {settings.openai_api_key}",
+    }
+    payload = {
+        "model": OPENAI_MODEL,
+        "max_tokens": 500,
+        "temperature": 0.1,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT_IMAGEM},
+            {"role": "user", "content": [
+                {"type": "image_url", "image_url": {"url": image_url, "detail": "low"}},
+                {"type": "text", "text": texto_acompanhante or "Classifique esta imagem."},
+            ]},
+        ],
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(OPENAI_API_URL, headers=headers, json=payload)
+            response.raise_for_status()
+
+        data = response.json()
+        texto_resposta = data["choices"][0]["message"]["content"]
+
+        # Limpa possíveis ```json ```
+        texto_limpo = texto_resposta.strip()
+        if texto_limpo.startswith("```"):
+            texto_limpo = texto_limpo.split("\n", 1)[1]
+        if texto_limpo.endswith("```"):
+            texto_limpo = texto_limpo.rsplit("```", 1)[0]
+        texto_limpo = texto_limpo.strip()
+
+        resultado = json.loads(texto_limpo)
+        resultado["classificacao_por_imagem"] = True
+        resultado["bloqueado"] = False
+
+        # Garantir que confianca é int
+        resultado["confianca"] = int(resultado.get("confianca", 0))
+
+        logger.info(
+            f"Classificação por IMAGEM de {telefone}: canal={resultado.get('canal')} "
+            f"categoria={resultado.get('categoria')} confianca={resultado.get('confianca')}"
+        )
+        return resultado
+
+    except httpx.TimeoutException:
+        logger.error(f"Timeout ao classificar imagem de {telefone}")
+        return _fallback_imagem("timeout")
+    except json.JSONDecodeError as exc:
+        logger.error(f"JSON inválido na classificação de imagem: {exc}")
+        return _fallback_imagem("json_invalido")
+    except httpx.HTTPStatusError as exc:
+        logger.error(f"Erro HTTP classificação imagem: {exc.response.status_code}")
+        return _fallback_imagem("erro_api")
+    except Exception as exc:
+        logger.exception(f"Erro inesperado na classificação de imagem: {exc}")
+        return _fallback_imagem("erro_generico")
+
+
+def _fallback_imagem(motivo: str) -> dict[str, Any]:
+    """Fallback quando a classificação por imagem falha."""
+    return {
+        "canal": "feedback",
+        "categoria": "outros",
+        "sentimento": "neutro",
+        "urgencia": "normal",
+        "resumo": f"Imagem pendente de classificação ({motivo})",
+        "resposta_whatsapp": "Recebi sua foto! Não consegui identificar automaticamente. Pode me descrever o problema em texto?",
+        "pedir_midia": False,
+        "pedir_localizacao": False,
+        "classificacao_por_imagem": True,
+        "bloqueado": False,
+        "confianca": 0,
+    }
 
 
 async def _chamar_ia(

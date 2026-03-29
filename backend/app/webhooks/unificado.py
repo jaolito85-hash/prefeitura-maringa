@@ -25,7 +25,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import settings
-from app.services.classificador import classificar_mensagem, detectar_sos_rapido
+from app.services.classificador import classificar_mensagem, classificar_imagem, detectar_sos_rapido
 from app.services.transcricao_audio import transcrever_audio, MAX_AUDIO_SECONDS
 from app.services.rate_limiter import (
     checar_limite_consulta_protocolo,
@@ -457,13 +457,48 @@ async def receber_webhook_unificado(
         return _enfileirar(event, fila)
 
     # ── 6. MENSAGEM NOVA — classificar com IA ──
-    classificacao = await classificar_mensagem(
-        texto=texto or "[Mídia sem legenda]",
-        telefone=telefone,
-        tem_midia=dados["tem_midia"],
-        tem_localizacao=dados["tem_localizacao"],
-        push_name=dados["push_name"],
-    )
+
+    # ── 6a. Se tem IMAGEM → classificar por visão (NOVO) ──
+    if dados["tem_midia"] and dados["tipo_midia"] == "imagem" and dados.get("media_base64"):
+        # Montar data URI a partir do base64 do webhook
+        _mime = dados.get("mimetype", "image/jpeg") or "image/jpeg"
+        _b64 = dados["media_base64"]
+        if not _b64.startswith("data:"):
+            image_url = f"data:{_mime};base64,{_b64}"
+        else:
+            image_url = _b64
+
+        classificacao = await classificar_imagem(
+            image_url=image_url,
+            texto_acompanhante=texto or "",
+            telefone=telefone,
+        )
+
+        # Se moderação bloqueou a imagem
+        if classificacao.get("bloqueado"):
+            event = _montar_evento(dados, request, classificacao={
+                "canal": "saudacao",
+                "categoria": "imagem_bloqueada",
+                "resposta_whatsapp": (
+                    "Não consegui processar essa imagem. "
+                    "Por favor, envie uma foto da ocorrência que deseja reportar."
+                ),
+            }, is_continuacao=False)
+            return _enfileirar(event, "queue:saudacoes")
+
+        # Marca confiança baixa pra worker mostrar menu
+        if classificacao.get("confianca", 0) < 70:
+            classificacao["mostrar_menu"] = True
+
+    # ── 6b. Se NÃO tem imagem → classificar por texto (FLUXO ATUAL) ──
+    else:
+        classificacao = await classificar_mensagem(
+            texto=texto or "[Mídia sem legenda]",
+            telefone=telefone,
+            tem_midia=dados["tem_midia"],
+            tem_localizacao=dados["tem_localizacao"],
+            push_name=dados["push_name"],
+        )
 
     canal = classificacao.get("canal", "feedback")
 

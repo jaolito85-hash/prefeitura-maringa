@@ -103,6 +103,53 @@ def _identificar_categoria_menu(texto: str) -> str | None:
     return None
 
 
+# ── CLASSIFICAÇÃO POR IMAGEM — helpers ──────────────────────────────────
+
+# Menu genérico de categorias pra quando a IA não tem confiança na imagem
+MENU_CATEGORIAS_IMAGEM = [
+    ("1", "feedback", "buraco_via", "🕳️ Buraco / asfalto"),
+    ("2", "feedback", "iluminacao", "💡 Iluminação / poste"),
+    ("3", "feedback", "mato_alto", "🌿 Mato alto / terreno"),
+    ("4", "ocorrencia", "queda_arvore", "🌳 Árvore caída"),
+    ("5", "denuncia", "pichacao", "🎨 Pichação / vandalismo"),
+    ("6", "denuncia", "trafico_drogas", "🚨 Tráfico / atividade suspeita"),
+    ("7", "denuncia", "furto_fios", "⚡ Furto de fios / cabos"),
+    ("8", "feedback", "outros", "📝 Outro"),
+]
+
+_MENU_IMAGEM_LOOKUP = {}
+for _num, _canal, _cat, _label in MENU_CATEGORIAS_IMAGEM:
+    _MENU_IMAGEM_LOOKUP[_num] = (_canal, _cat)
+
+
+def _montar_menu_imagem() -> str:
+    """Monta menu de categorias para classificação por imagem (fallback)."""
+    linhas = ["Recebi a foto! Me ajuda a classificar — qual o tipo?\n"]
+    for num, _, _, label in MENU_CATEGORIAS_IMAGEM:
+        linhas.append(f"{num}️⃣ {label}")
+    linhas.append("\nResponda com o *número* da opção.")
+    return "\n".join(linhas)
+
+
+def _identificar_categoria_menu_imagem(texto: str) -> tuple[str, str] | None:
+    """Retorna (canal, categoria) a partir da resposta ao menu de imagem."""
+    texto_limpo = texto.strip().lower().rstrip(".")
+    if texto_limpo in _MENU_IMAGEM_LOOKUP:
+        return _MENU_IMAGEM_LOOKUP[texto_limpo]
+    return None
+
+
+# Mapa de ícones por categoria (pra mensagem de confirmação)
+_ICONE_CATEGORIA = {
+    "buraco_via": "🕳️", "calcada": "🚧", "iluminacao": "💡", "mato_alto": "🌿",
+    "esgoto": "🚰", "sinalizacao": "🚦", "veiculo_abandonado": "🚗",
+    "queda_arvore": "🌳", "alagamento": "🌊", "deslizamento": "⛰️",
+    "incendio": "🔥", "vendaval": "💨", "acidente": "🚨",
+    "pichacao": "🎨", "trafico": "🚨", "trafico_drogas": "🚨",
+    "descarte_irregular": "🗑️", "furto_fios": "⚡", "depredacao": "💥",
+}
+
+
 def classificar_foto_origem(event: dict) -> dict:
     """Classifica a origem da foto baseado nos metadados da Evolution API.
     Retorna dict com foto_origem, foto_flag e foto_flag_motivo.
@@ -690,6 +737,60 @@ def processar_denuncia(event: dict, sb: Client) -> None:
             processar_denuncia(event_novo, sb)
         return
 
+    # ── CLASSIFICAÇÃO POR IMAGEM — confirmar ou mostrar menu ──
+    if classificacao.get("classificacao_por_imagem"):
+        confianca = classificacao.get("confianca", 0)
+        categoria_img = classificacao.get("categoria", "")
+        categoria_display = classificacao.get("categoria_display", categoria_img.replace("_", " "))
+        icone = _ICONE_CATEGORIA.get(categoria_img, "📸")
+
+        # Upload da imagem pra storage antecipadamente (pra não perder)
+        midia_url_temp = None
+        if event.get("tem_midia") and (event.get("media_base64") or event.get("message_id")):
+            temp_id = str(uuid.uuid4())
+            file_bytes = download_media(event.get("message_id", ""), event.get("media_base64", ""))
+            if file_bytes:
+                midia_url_temp = upload_to_storage(sb, file_bytes, temp_id,
+                                                   event.get("tipo_midia", "imagem"),
+                                                   event.get("mimetype"))
+                logger.info(f"📸 Imagem pré-uploadada: {midia_url_temp}")
+
+        if confianca >= 70:
+            # Confiança alta — pedir confirmação
+            placeholder_id = str(uuid.uuid4())
+            criar_sessao(sb, telefone, "denuncia", "aguardando_confirmacao_imagem", placeholder_id, {
+                "push_name": push_name,
+                "categoria": categoria_img,
+                "categoria_display": categoria_display,
+                "mensagem_original": texto,
+                "midia_url_temp": midia_url_temp,
+                "resumo": classificacao.get("resumo", ""),
+                "confianca": confianca,
+                "classificacao": classificacao,
+                "_placeholder": True,
+            })
+            resposta = (f"📸 Analisei a imagem!\n\n"
+                        f"Identifiquei como: {icone} *{categoria_display}*\n\n"
+                        f"Tá certo?\n"
+                        f"1️⃣ Sim, é isso\n"
+                        f"2️⃣ Não, é outra coisa")
+            enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+            logger.info(f"📸 Confirmação imagem enviada: {categoria_img} (confiança {confianca}%)")
+            return
+        else:
+            # Confiança baixa — mostra menu de categorias
+            placeholder_id = str(uuid.uuid4())
+            criar_sessao(sb, telefone, "denuncia", "aguardando_categoria", placeholder_id, {
+                "push_name": push_name,
+                "mensagem_original": texto,
+                "midia_url_temp": midia_url_temp,
+                "_placeholder": True,
+            })
+            menu = _montar_menu_categorias()
+            enviar_whatsapp(telefone, _com_aviso_truncagem(event, menu))
+            logger.info(f"📸 Imagem com confiança baixa ({confianca}%) — menu enviado")
+            return
+
     # ── DENÚNCIA GENÉRICA — envia menu de categorias ──
     categoria = classificacao.get("categoria", "generica")
     if categoria == "generica":
@@ -860,6 +961,72 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
     """Lógica real da continuação — separada pra ter try/except no caller."""
 
     # ══════════════════════════════════════════════════════════
+    # ETAPA CONFIRMAÇÃO IMAGEM — cidadão confirma classificação da foto
+    # ══════════════════════════════════════════════════════════
+    if etapa_atual == "aguardando_confirmacao_imagem":
+        if _resposta_sim(texto):
+            # Cidadão confirmou — criar registro com a imagem pré-uploadada
+            cat = contexto.get("categoria", "pichacao")
+            midia_url_temp = contexto.get("midia_url_temp")
+            mensagem_original = contexto.get("mensagem_original", "")
+
+            protocolo = gerar_protocolo(sb)
+
+            insert_data = {
+                "protocolo": protocolo,
+                "telefone": telefone,
+                "nome": push_name or None,
+                "categoria": cat,
+                "mensagem": contexto.get("resumo") or mensagem_original or "Denúncia por imagem",
+                "status": "novo",
+                "midia_urls": [midia_url_temp] if midia_url_temp else [],
+            }
+
+            res = sb.table("denuncias").insert(insert_data).execute()
+            if not res.data:
+                logger.error("Falha ao criar denúncia confirmada por imagem")
+                enviar_whatsapp(telefone, "Desculpe, ocorreu um erro. Tente novamente.")
+                return
+            registro_id = res.data[0]["id"]
+            contexto["protocolo"] = protocolo
+            contexto["categoria"] = cat
+            contexto.pop("_placeholder", None)
+
+            nova_etapa = "aguardando_endereco"
+            resposta = (f"✅ Denúncia registrada!\n\n"
+                        f"📍 Agora me diz o endereço ou envia sua localização: 📎 > Localização\n\n"
+                        f"📋 Protocolo: {protocolo}")
+            criar_sessao(sb, telefone, "denuncia", nova_etapa, registro_id, contexto)
+            enviar_whatsapp(telefone, resposta)
+            logger.info(f"📸 Denúncia confirmada por imagem: {protocolo} ({cat})")
+            return
+
+        elif _resposta_nao(texto):
+            # Cidadão negou — mostrar menu de categorias
+            midia_url_temp = contexto.get("midia_url_temp")
+            placeholder_id = str(uuid.uuid4())
+            criar_sessao(sb, telefone, "denuncia", "aguardando_categoria", placeholder_id, {
+                "push_name": push_name,
+                "mensagem_original": contexto.get("mensagem_original", ""),
+                "midia_url_temp": midia_url_temp,
+                "_placeholder": True,
+            })
+            menu = _montar_menu_categorias()
+            enviar_whatsapp(telefone, menu)
+            logger.info(f"📸 Cidadão negou classificação de imagem — menu enviado")
+            return
+
+        else:
+            # Não entendeu — reenvia pergunta
+            cat_display = contexto.get("categoria_display", "")
+            icone = _ICONE_CATEGORIA.get(contexto.get("categoria", ""), "📸")
+            criar_sessao(sb, telefone, "denuncia", etapa_atual, registro_id, contexto)
+            resposta = (f"Não entendi. A foto parece ser: {icone} *{cat_display}*\n\n"
+                        f"Responda:\n1️⃣ *Sim*, é isso\n2️⃣ *Não*, é outra coisa")
+            enviar_whatsapp(telefone, resposta)
+            return
+
+    # ══════════════════════════════════════════════════════════
     # ETAPA MENU — cidadão está escolhendo a categoria
     # (registro_id ainda não existe, será criado aqui)
     # ══════════════════════════════════════════════════════════
@@ -873,7 +1040,7 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
             enviar_whatsapp(telefone, resposta)
             return
 
-        # Categoria escolhida! NÃO cria registro ainda — aguarda mídia primeiro
+        # Categoria escolhida!
         mensagem_original = contexto.get("mensagem_original", texto)
         cat_label = cat_escolhida.replace("_", " ")
         for _, cat_id, label, _ in MENU_CATEGORIAS:
@@ -881,6 +1048,36 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
                 cat_label = label
                 break
 
+        # Se já tem imagem pré-uploadada (veio da classificação por imagem),
+        # pula a etapa de mídia e cria registro direto
+        midia_url_temp = contexto.get("midia_url_temp")
+        if midia_url_temp:
+            protocolo = gerar_protocolo(sb)
+            insert_data = {
+                "protocolo": protocolo,
+                "telefone": telefone,
+                "nome": push_name or None,
+                "categoria": cat_escolhida,
+                "mensagem": mensagem_original or f"Denúncia de {cat_label}",
+                "status": "novo",
+                "midia_urls": [midia_url_temp],
+            }
+            res = sb.table("denuncias").insert(insert_data).execute()
+            if not res.data:
+                enviar_whatsapp(telefone, "Desculpe, ocorreu um erro. Tente novamente.")
+                return
+            novo_registro_id = res.data[0]["id"]
+            criar_sessao(sb, telefone, "denuncia", "aguardando_endereco", novo_registro_id, {
+                "push_name": push_name, "protocolo": protocolo, "categoria": cat_escolhida,
+            })
+            resposta = (f"✅ Registrado como *{cat_label}*!\n\n"
+                        f"📍 Agora me diz o endereço ou envia sua localização: 📎 > Localização\n\n"
+                        f"📋 Protocolo: {protocolo}")
+            enviar_whatsapp(telefone, resposta)
+            logger.info(f"📸 Denúncia criada com imagem pré-uploadada: {protocolo} ({cat_escolhida})")
+            return
+
+        # Sem imagem pré-uploadada — aguardar mídia normalmente
         placeholder_id = str(uuid.uuid4())
         etapa = "aguardando_midia"
         resposta = (f"✅ Registrado como *{cat_label}*!\n\n"
@@ -1686,6 +1883,61 @@ def processar_ocorrencia(event: dict, sb: Client) -> None:
         _continuar_ocorrencia(event, sb)
         return
 
+    # ── CLASSIFICAÇÃO POR IMAGEM — confirmar ou pedir detalhes ──
+    if classificacao.get("classificacao_por_imagem"):
+        confianca = classificacao.get("confianca", 0)
+        categoria_img = classificacao.get("categoria", "outros_urbanos")
+        categoria_display = classificacao.get("categoria_display", categoria_img.replace("_", " "))
+        icone_img = _ICONE_CATEGORIA.get(categoria_img, "⚠️")
+
+        # Upload da imagem pra storage antecipadamente
+        midia_url_temp = None
+        if event.get("tem_midia") and (event.get("media_base64") or event.get("message_id")):
+            temp_id = str(uuid.uuid4())
+            file_bytes = download_media(event.get("message_id", ""), event.get("media_base64", ""))
+            if file_bytes:
+                midia_url_temp = upload_to_storage(sb, file_bytes, temp_id,
+                                                   event.get("tipo_midia", "imagem"),
+                                                   event.get("mimetype"))
+
+        if confianca >= 70:
+            placeholder_id = str(uuid.uuid4())
+            criar_sessao(sb, telefone, "ocorrencia", "aguardando_confirmacao_imagem", placeholder_id, {
+                "push_name": push_name,
+                "categoria": categoria_img,
+                "categoria_display": categoria_display,
+                "mensagem_original": texto,
+                "midia_url_temp": midia_url_temp,
+                "resumo": classificacao.get("resumo", ""),
+                "confianca": confianca,
+                "_placeholder": True,
+            })
+            resposta = (f"📸 Analisei a imagem!\n\n"
+                        f"Identifiquei como: {icone_img} *{categoria_display}*\n\n"
+                        f"Tá certo?\n"
+                        f"1️⃣ Sim, é isso\n"
+                        f"2️⃣ Não, é outra coisa")
+            enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+            logger.info(f"📸 Confirmação imagem (ocorrência): {categoria_img} ({confianca}%)")
+            return
+        else:
+            # Confiança baixa — prosseguir como ocorrência genérica, pedir localização
+            placeholder_id = str(uuid.uuid4())
+            criar_sessao(sb, telefone, "ocorrencia", "aguardando_endereco", placeholder_id, {
+                "push_name": push_name,
+                "categoria": categoria_img,
+                "mensagem_original": texto,
+                "midia_url_temp": midia_url_temp,
+                "resumo": classificacao.get("resumo", ""),
+                "_placeholder": True,
+            })
+            resposta = ("Recebi sua foto! Não consegui identificar com certeza.\n\n"
+                        "📍 Pode me dizer o endereço ou enviar a localização?\n"
+                        "Clique em: 📎 > Localização")
+            enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+            logger.info(f"📸 Imagem ocorrência confiança baixa ({confianca}%) — pedindo localização")
+            return
+
     categoria = classificacao.get("categoria", "outros_urbanos")
     resumo = classificacao.get("resumo", texto[:200] if texto else "Ocorrência")
     severidade = _severidade_por_categoria(categoria)
@@ -1810,6 +2062,53 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
                 f"tem_loc={tem_loc}, etapa={etapa_atual}, texto='{texto[:50]}'")
 
     # ══════════════════════════════════════════════════════════
+    # CONFIRMAÇÃO IMAGEM — cidadão confirma classificação da foto
+    # ══════════════════════════════════════════════════════════
+    if etapa_atual == "aguardando_confirmacao_imagem":
+        if _resposta_sim(texto):
+            # Cidadão confirmou — prosseguir pedindo localização
+            midia_url_temp = contexto.get("midia_url_temp")
+            contexto.pop("_placeholder", None)
+            placeholder_id = str(uuid.uuid4())
+            criar_sessao(sb, telefone, "ocorrencia", "aguardando_endereco", placeholder_id, {
+                **contexto,
+                "midia_url_temp": midia_url_temp,
+                "_placeholder": True,
+            })
+            resposta = ("✅ Entendido!\n\n"
+                        "📍 Agora preciso da localização.\n"
+                        "Envie pelo 📎 > Localização\n"
+                        "Ou digite a rua e bairro.")
+            enviar_whatsapp(telefone, resposta)
+            return
+
+        elif _resposta_nao(texto):
+            # Cidadão negou — pedir descrição por texto
+            midia_url_temp = contexto.get("midia_url_temp")
+            placeholder_id = str(uuid.uuid4())
+            criar_sessao(sb, telefone, "ocorrencia", "aguardando_endereco", placeholder_id, {
+                "push_name": push_name,
+                "categoria": "outros_urbanos",
+                "mensagem_original": "",
+                "midia_url_temp": midia_url_temp,
+                "resumo": "",
+                "_placeholder": True,
+            })
+            resposta = ("Tudo bem! Me descreve o que aconteceu e envie a localização.\n\n"
+                        "📍 Envie pelo 📎 > Localização ou digite o endereço.")
+            enviar_whatsapp(telefone, resposta)
+            return
+
+        else:
+            cat_display = contexto.get("categoria_display", "")
+            icone = _ICONE_CATEGORIA.get(contexto.get("categoria", ""), "⚠️")
+            criar_sessao(sb, telefone, "ocorrencia", etapa_atual, registro_id, contexto)
+            resposta = (f"Não entendi. A foto parece ser: {icone} *{cat_display}*\n\n"
+                        f"Responda:\n1️⃣ *Sim*, é isso\n2️⃣ *Não*, é outra coisa")
+            enviar_whatsapp(telefone, resposta)
+            return
+
+    # ══════════════════════════════════════════════════════════
     # PLACEHOLDER: ainda NÃO existe registro no banco.
     # O cidadão mandou a mensagem inicial sem GPS, agora manda o endereço.
     # Só agora podemos buscar similar e decidir: agrupar ou criar nova.
@@ -1898,9 +2197,21 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
             "longitude": longitude,
         }).execute()
 
-        # Processar mídia se tem
+        # Processar mídia se tem (da mensagem atual)
         if tem_midia:
             processar_midia(event, sb, novo_registro_id, "ocorrencias_relatos")
+
+        # Vincular mídia pré-uploadada de classificação por imagem (se existe)
+        midia_url_temp = contexto.get("midia_url_temp")
+        if midia_url_temp:
+            try:
+                sb.table("ocorrencias").update({
+                    "midia_urls": [midia_url_temp],
+                    "tem_foto": True,
+                }).eq("id", novo_registro_id).execute()
+                logger.info(f"📸 Mídia pré-uploadada vinculada à ocorrência {novo_protocolo}")
+            except Exception as exc:
+                logger.error(f"Erro ao vincular mídia pré-uploadada: {exc}")
 
         local_texto = endereco or bairro or "Localização registrada"
         icone = "🚨" if severidade in ("alta", "critica") else "⚠️"
@@ -2046,6 +2357,50 @@ def processar_feedback(event: dict, sb: Client) -> None:
         _continuar_feedback(event, sb)
         return
 
+    # ── CLASSIFICAÇÃO POR IMAGEM — confirmar ou pedir detalhes ──
+    if classificacao.get("classificacao_por_imagem"):
+        confianca = classificacao.get("confianca", 0)
+        categoria_img = classificacao.get("categoria", "outros")
+        categoria_display = classificacao.get("categoria_display", categoria_img.replace("_", " "))
+        icone_img = _ICONE_CATEGORIA.get(categoria_img, "📝")
+
+        if confianca >= 70:
+            placeholder_id = str(uuid.uuid4())
+            criar_sessao(sb, telefone, "feedback", "aguardando_confirmacao_imagem", placeholder_id, {
+                "push_name": push_name,
+                "categoria": categoria_img,
+                "categoria_display": categoria_display,
+                "sentimento": classificacao.get("sentimento", "negativo"),
+                "urgencia": classificacao.get("urgencia", "normal"),
+                "resumo": classificacao.get("resumo", ""),
+                "mensagem_original": texto,
+                "_placeholder": True,
+            })
+            resposta = (f"📸 Analisei a imagem!\n\n"
+                        f"Identifiquei como: {icone_img} *{categoria_display}*\n\n"
+                        f"Tá certo?\n"
+                        f"1️⃣ Sim, é isso\n"
+                        f"2️⃣ Não, é outra coisa")
+            enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+            logger.info(f"📸 Confirmação imagem (feedback): {categoria_img} ({confianca}%)")
+            return
+        else:
+            # Confiança baixa — pedir descrição por texto
+            resposta = ("Recebi sua foto! Não consegui identificar com certeza o problema.\n\n"
+                        "💬 Pode me descrever o que está acontecendo?")
+            placeholder_id = str(uuid.uuid4())
+            criar_sessao(sb, telefone, "feedback", "aguardando_detalhes", placeholder_id, {
+                "categoria": categoria_img,
+                "sentimento": classificacao.get("sentimento", "neutro"),
+                "urgencia": classificacao.get("urgencia", "normal"),
+                "resumo": classificacao.get("resumo"),
+                "texto_original": texto,
+                "push_name": push_name or "",
+            })
+            enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+            logger.info(f"📸 Imagem feedback confiança baixa ({confianca}%) — pedindo detalhes")
+            return
+
     sentimento = classificacao.get("sentimento", "neutro")
     categoria = classificacao.get("categoria", "outros")
     resposta_ia = classificacao.get("resposta_whatsapp", "")
@@ -2114,6 +2469,71 @@ def _continuar_feedback(event: dict, sb: Client) -> None:
     texto = event.get("texto", "")
     contexto = sessao.get("contexto", {}) if sessao else {}
     push_name = event.get("push_name", "") or contexto.get("push_name", "")
+    etapa_atual = sessao.get("etapa", "") if sessao else ""
+    registro_id = sessao.get("registro_id") if sessao else None
+
+    # ══════════════════════════════════════════════════════════
+    # CONFIRMAÇÃO IMAGEM — cidadão confirma classificação da foto
+    # ══════════════════════════════════════════════════════════
+    if etapa_atual == "aguardando_confirmacao_imagem":
+        if _resposta_sim(texto):
+            # Cidadão confirmou — criar feedback
+            cat = contexto.get("categoria", "outros")
+            sentimento = contexto.get("sentimento", "negativo")
+            resumo = contexto.get("resumo", "")
+            msg_original = contexto.get("mensagem_original", "")
+
+            protocolo = gerar_protocolo(sb)
+            res = sb.table("feedbacks").insert({
+                "protocolo": protocolo,
+                "telefone": telefone,
+                "nome": push_name or None,
+                "categoria": cat,
+                "sentimento": sentimento,
+                "urgencia": contexto.get("urgencia", "normal"),
+                "mensagem": resumo or msg_original or "Feedback por imagem",
+                "resumo": resumo,
+                "status": "novo",
+            }).execute()
+
+            if res.data:
+                feedback_id = res.data[0]["id"]
+                _salvar_msg_feedback(sb, feedback_id, telefone, push_name,
+                                     resumo or msg_original or "Feedback por imagem")
+                cat_label = cat.replace("_", " ")
+                resposta = (f"✅ Feedback registrado como *{cat_label}*!\n\n"
+                            f"📋 Protocolo: *{protocolo}*\n\n"
+                            f"Seu feedback é muito importante para Maringá! 💙")
+                _salvar_msg_feedback(sb, feedback_id, "bot", "Clara IA", resposta, "bot")
+                enviar_whatsapp(telefone, resposta)
+            finalizar_sessao(sb, telefone)
+            logger.info(f"📸 Feedback confirmado por imagem: {protocolo} ({cat})")
+            return
+
+        elif _resposta_nao(texto):
+            # Cidadão negou — pedir descrição por texto
+            placeholder_id = str(uuid.uuid4())
+            criar_sessao(sb, telefone, "feedback", "aguardando_detalhes", placeholder_id, {
+                "categoria": "outros",
+                "sentimento": "neutro",
+                "urgencia": "normal",
+                "resumo": "",
+                "texto_original": "",
+                "push_name": push_name,
+            })
+            resposta = ("Tudo bem! Me conta o que está acontecendo.\n\n"
+                        "💬 Descreva o problema que você quer reportar.")
+            enviar_whatsapp(telefone, resposta)
+            return
+
+        else:
+            cat_display = contexto.get("categoria_display", "")
+            icone = _ICONE_CATEGORIA.get(contexto.get("categoria", ""), "📝")
+            criar_sessao(sb, telefone, "feedback", etapa_atual, registro_id, contexto)
+            resposta = (f"Não entendi. A foto parece ser: {icone} *{cat_display}*\n\n"
+                        f"Responda:\n1️⃣ *Sim*, é isso\n2️⃣ *Não*, é outra coisa")
+            enviar_whatsapp(telefone, resposta)
+            return
 
     categoria = contexto.get("categoria", "outros")
     sentimento = contexto.get("sentimento", "neutro")
