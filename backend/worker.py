@@ -2216,8 +2216,8 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
         local_texto = endereco or bairro or "Localização registrada"
         icone = "🚨" if severidade in ("alta", "critica") else "⚠️"
 
-        if tem_midia:
-            # Já tem mídia — finalizar
+        if tem_midia or midia_url_temp:
+            # Já tem mídia (atual ou pré-uploadada de classificação por imagem) — finalizar
             criar_sessao(sb, telefone, "ocorrencia", "finalizado", novo_registro_id,
                          {"protocolo": novo_protocolo, "categoria": categoria})
             finalizar_sessao(sb, telefone)
