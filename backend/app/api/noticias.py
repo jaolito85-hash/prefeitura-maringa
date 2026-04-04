@@ -71,6 +71,22 @@ def _extrair_fonte(titulo: str) -> tuple[str, str]:
     return titulo.strip(), "Fonte desconhecida"
 
 
+# Fontes institucionais/governamentais que queremos EXCLUIR
+# O gestor quer ver o que a IMPRENSA fala, não releases da própria prefeitura
+_FONTES_EXCLUIDAS = {
+    "prefeitura de maringá", "prefeitura municipal de maringá",
+    "câmara de maringá", "câmara municipal de maringá",
+    "governo do paraná", "governo do estado do paraná",
+    "agência estadual de notícias", "portal da cidade maringá",
+    "maringa.pr.gov.br", "cmm.pr.gov.br",
+}
+
+
+def _fonte_permitida(fonte: str) -> bool:
+    """Retorna False se a fonte for institucional/governamental."""
+    return fonte.lower().strip() not in _FONTES_EXCLUIDAS
+
+
 def _parse_data_rss(data_str: str) -> tuple[str, str]:
     """
     Converte data do RSS (ex: 'Sat, 05 Apr 2026 14:30:00 GMT')
@@ -127,6 +143,12 @@ async def _buscar_rss(query: str = "Maringá") -> list[Noticia]:
         descricao_raw = item.findtext("description", "")
 
         titulo_limpo, fonte = _extrair_fonte(titulo_raw)
+
+        # Filtra fontes institucionais (prefeitura, câmara, governo)
+        # O gestor quer ver o que a imprensa diz, não releases oficiais
+        if not _fonte_permitida(fonte):
+            continue
+
         descricao = _limpar_html(descricao_raw)
         data_legivel, data_iso = _parse_data_rss(pub_date)
 
