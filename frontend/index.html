@@ -999,6 +999,7 @@ const Ico={
   eye:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
   coin:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9.5c0-.83 1.34-1.5 3-1.5s3 .67 3 1.5S14.66 11 12 11 9 11.67 9 12.5s1.34 1.5 3 1.5 3 .67 3 1.5"/></svg>,
   pin:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+  news:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/><line x1="10" y1="6" x2="18" y2="6"/><line x1="10" y1="10" x2="18" y2="10"/><line x1="10" y1="14" x2="14" y2="14"/></svg>,
 };
 
 /* ─── LOGO ─────────────────────────────────────────────────────── */
@@ -4241,6 +4242,242 @@ function SearchProtocolo({setAba}){
   );
 }
 
+/* ─── RADAR DE NOTÍCIAS ────────────────────────────────────────── */
+function RadarNoticias(){
+  const [noticias,setNoticias]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [busca,setBusca]=useState('Maringá');
+  const [inputBusca,setInputBusca]=useState('Maringá');
+  const [resumo,setResumo]=useState('');
+  const [resumoLoading,setResumoLoading]=useState(false);
+  const [filtroFonte,setFiltroFonte]=useState('todas');
+  const [selecionadas,setSelecionadas]=useState(new Set());
+  const [mostrarResumo,setMostrarResumo]=useState(false);
+
+  /* ── Buscar notícias ── */
+  const fetchNoticias=async(q)=>{
+    setLoading(true);
+    try{
+      const r=await fetch(API_URL+'/api/noticias/?q='+encodeURIComponent(q)+'&limite=40');
+      if(r.ok){const d=await r.json();setNoticias(d);setSelecionadas(new Set());}
+    }catch(e){console.error('Erro ao buscar notícias:',e);}
+    setLoading(false);
+  };
+
+  useEffect(()=>{fetchNoticias(busca);},[busca]);
+
+  /* ── Buscar com Enter ou botão ── */
+  const handleBusca=(e)=>{
+    if(e) e.preventDefault();
+    if(inputBusca.trim()) setBusca(inputBusca.trim());
+  };
+
+  /* ── Toggle seleção de notícia ── */
+  const toggleSelecao=(idx)=>{
+    setSelecionadas(prev=>{
+      const novo=new Set(prev);
+      if(novo.has(idx)) novo.delete(idx); else novo.add(idx);
+      return novo;
+    });
+  };
+
+  /* ── Selecionar/deselecionar todas ── */
+  const toggleTodas=()=>{
+    if(selecionadas.size===noticiasFiltradas.length){
+      setSelecionadas(new Set());
+    }else{
+      setSelecionadas(new Set(noticiasFiltradas.map((_,i)=>i)));
+    }
+  };
+
+  /* ── Gerar resumo IA ── */
+  const gerarResumo=async()=>{
+    const titulos=noticiasFiltradas
+      .filter((_,i)=>selecionadas.has(i))
+      .map(n=>`${n.titulo} (${n.fonte} - ${n.data_publicacao})`);
+    if(!titulos.length){alert('Selecione pelo menos uma notícia para resumir.');return;}
+    setResumoLoading(true);setMostrarResumo(true);setResumo('');
+    try{
+      const r=await fetch(API_URL+'/api/noticias/resumo',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({noticias:titulos}),
+      });
+      if(r.ok){const d=await r.json();setResumo(d.resumo);}
+      else setResumo('Erro ao gerar resumo. Tente novamente.');
+    }catch(e){setResumo('Erro de conexão ao gerar resumo.');}
+    setResumoLoading(false);
+  };
+
+  /* ── Fontes únicas para filtro ── */
+  const fontes=[...new Set(noticias.map(n=>n.fonte))].sort();
+
+  /* ── Filtrar por fonte ── */
+  const noticiasFiltradas=filtroFonte==='todas'
+    ?noticias
+    :noticias.filter(n=>n.fonte===filtroFonte);
+
+  /* ── Sentimento visual (baseado em palavras-chave simples) ── */
+  const getSentimento=(titulo)=>{
+    const t=titulo.toLowerCase();
+    if(/morte|acidente|crime|assalto|roubo|furto|preso|crise|denúncia|denunci|violência|violenci/.test(t)) return {cor:'#ef4444',label:'Negativo',bg:'rgba(239,68,68,.1)'};
+    if(/inaugur|entreg|investimento|conquista|prêmio|premio|avanço|avanco|melhor|cresci|record|sucesso/.test(t)) return {cor:'#10b981',label:'Positivo',bg:'rgba(16,185,129,.1)'};
+    return {cor:'#64748b',label:'Neutro',bg:'rgba(100,116,139,.08)'};
+  };
+
+  /* ── Chips rápidos de busca ── */
+  const chips=['Maringá','Prefeitura Maringá','Maringá segurança','Maringá saúde','Maringá educação','Maringá trânsito'];
+
+  const cardS={background:'var(--card)',border:'1px solid var(--border)',borderRadius:'var(--radius-lg)',padding:20,marginBottom:12,cursor:'pointer',transition:'all .2s'};
+  const cardHoverS={...cardS,borderColor:'var(--accent)',background:'var(--card-hover)'};
+
+  return(
+    <div style={{padding:'0 8px',maxWidth:1400,margin:'0 auto'}}>
+      {/* ── Header ── */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24,flexWrap:'wrap',gap:16}}>
+        <div>
+          <h2 style={{fontSize:22,fontWeight:700,color:'var(--text)',margin:0,fontFamily:'Outfit'}}>
+            📰 Radar de Notícias
+          </h2>
+          <p style={{color:'var(--text-muted)',fontSize:13,margin:'4px 0 0'}}>
+            Cobertura da imprensa sobre Maringá — atualizado em tempo real via Google News
+          </p>
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <span style={{fontSize:12,color:'var(--text-muted)'}}>{noticiasFiltradas.length} notícias</span>
+          <button onClick={()=>fetchNoticias(busca)}
+            style={{background:'var(--accent)',color:'#fff',border:'none',borderRadius:8,padding:'8px 16px',fontSize:13,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+            🔄 Atualizar
+          </button>
+        </div>
+      </div>
+
+      {/* ── Barra de busca ── */}
+      <form onSubmit={handleBusca} style={{display:'flex',gap:8,marginBottom:16}}>
+        <input value={inputBusca} onChange={e=>setInputBusca(e.target.value)}
+          placeholder="Buscar notícias... (ex: Maringá segurança)"
+          style={{flex:1,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,padding:'10px 16px',color:'var(--text)',fontSize:14,outline:'none'}}/>
+        <button type="submit"
+          style={{background:'var(--accent)',color:'#fff',border:'none',borderRadius:10,padding:'10px 20px',fontSize:14,fontWeight:600,cursor:'pointer'}}>
+          🔍 Buscar
+        </button>
+      </form>
+
+      {/* ── Chips rápidos ── */}
+      <div style={{display:'flex',gap:6,marginBottom:16,flexWrap:'wrap'}}>
+        {chips.map(c=>(
+          <button key={c} onClick={()=>{setInputBusca(c);setBusca(c);}}
+            style={{background:busca===c?'var(--accent-bg)':'var(--surface)',border:'1px solid '+(busca===c?'var(--accent)':'var(--border)'),
+              borderRadius:20,padding:'5px 14px',fontSize:12,color:busca===c?'var(--accent-light)':'var(--text-secondary)',cursor:'pointer',fontWeight:busca===c?600:400}}>
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Filtro por fonte + Ações ── */}
+      <div style={{display:'flex',gap:12,marginBottom:20,alignItems:'center',flexWrap:'wrap'}}>
+        <select value={filtroFonte} onChange={e=>setFiltroFonte(e.target.value)}
+          style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 12px',color:'var(--text)',fontSize:13,minWidth:180}}>
+          <option value="todas">Todas as fontes</option>
+          {fontes.map(f=><option key={f} value={f}>{f}</option>)}
+        </select>
+
+        <button onClick={toggleTodas}
+          style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 14px',color:'var(--text-secondary)',fontSize:12,cursor:'pointer'}}>
+          {selecionadas.size===noticiasFiltradas.length?'Desmarcar todas':'Selecionar todas'}
+        </button>
+
+        <button onClick={gerarResumo} disabled={resumoLoading||selecionadas.size===0}
+          style={{background:selecionadas.size>0?'linear-gradient(135deg,#8b5cf6,#6366f1)':'var(--surface)',
+            border:selecionadas.size>0?'none':'1px solid var(--border)',borderRadius:8,padding:'8px 18px',
+            color:selecionadas.size>0?'#fff':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:selecionadas.size>0?'pointer':'not-allowed',
+            opacity:resumoLoading?.6:1,display:'flex',alignItems:'center',gap:6}}>
+          {resumoLoading?'⏳ Gerando...':'🤖 Resumo IA'} {selecionadas.size>0&&`(${selecionadas.size})`}
+        </button>
+      </div>
+
+      {/* ── Painel do Resumo IA ── */}
+      {mostrarResumo&&(
+        <div style={{background:'linear-gradient(135deg,rgba(139,92,246,.08),rgba(99,102,241,.05))',border:'1px solid rgba(139,92,246,.25)',
+          borderRadius:'var(--radius-lg)',padding:24,marginBottom:24,position:'relative'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <h3 style={{fontSize:16,fontWeight:700,color:'var(--purple-light)',margin:0}}>🤖 Resumo Executivo — IA</h3>
+            <button onClick={()=>setMostrarResumo(false)}
+              style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:18}}>✕</button>
+          </div>
+          {resumoLoading?(
+            <div style={{textAlign:'center',padding:40}}>
+              <div style={{fontSize:32,marginBottom:12}}>🧠</div>
+              <p style={{color:'var(--text-secondary)',fontSize:14}}>Analisando {selecionadas.size} notícias com IA...</p>
+              <div style={{width:120,height:3,background:'var(--border)',borderRadius:2,margin:'12px auto',overflow:'hidden'}}>
+                <div style={{width:'60%',height:'100%',background:'var(--purple)',borderRadius:2,animation:'pulse 1.5s infinite'}}/>
+              </div>
+            </div>
+          ):(
+            <div style={{color:'var(--text)',fontSize:14,lineHeight:1.8,whiteSpace:'pre-wrap'}}>{resumo}</div>
+          )}
+        </div>
+      )}
+
+      {/* ── Lista de notícias ── */}
+      {loading?(
+        <div style={{textAlign:'center',padding:60}}>
+          <div style={{fontSize:36,marginBottom:12}}>📡</div>
+          <p style={{color:'var(--text-secondary)'}}>Buscando notícias...</p>
+        </div>
+      ):noticiasFiltradas.length===0?(
+        <div style={{textAlign:'center',padding:60}}>
+          <div style={{fontSize:36,marginBottom:12}}>📭</div>
+          <p style={{color:'var(--text-secondary)'}}>Nenhuma notícia encontrada para "{busca}"</p>
+        </div>
+      ):(
+        <div>
+          {noticiasFiltradas.map((n,i)=>{
+            const sent=getSentimento(n.titulo);
+            const sel=selecionadas.has(i);
+            return(
+              <div key={i} style={{...cardS,borderColor:sel?'var(--accent)':'var(--border)',background:sel?'rgba(16,185,129,.03)':'var(--card)',
+                display:'flex',gap:16,alignItems:'flex-start'}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=sel?'var(--accent)':'var(--border-light)';e.currentTarget.style.background=sel?'rgba(16,185,129,.05)':'var(--card-hover)';}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=sel?'var(--accent)':'var(--border)';e.currentTarget.style.background=sel?'rgba(16,185,129,.03)':'var(--card)';}}>
+
+                {/* Checkbox de seleção */}
+                <div onClick={()=>toggleSelecao(i)}
+                  style={{minWidth:22,height:22,borderRadius:6,border:'2px solid '+(sel?'var(--accent)':'var(--border-light)'),
+                    background:sel?'var(--accent)':'transparent',display:'flex',alignItems:'center',justifyContent:'center',
+                    cursor:'pointer',marginTop:2,flexShrink:0,transition:'all .15s'}}>
+                  {sel&&<span style={{color:'#fff',fontSize:12,fontWeight:700}}>✓</span>}
+                </div>
+
+                {/* Conteúdo da notícia */}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,flexWrap:'wrap'}}>
+                    <span style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,color:'var(--text-secondary)'}}>
+                      {n.fonte}
+                    </span>
+                    <span style={{fontSize:12,color:'var(--text-muted)'}}>📅 {n.data_publicacao}</span>
+                    <span style={{background:sent.bg,color:sent.cor,borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:600}}>
+                      {sent.label}
+                    </span>
+                  </div>
+                  <h3 style={{fontSize:15,fontWeight:600,color:'var(--text)',margin:'0 0 6px',lineHeight:1.4}}>
+                    {n.titulo}
+                  </h3>
+                  {n.descricao&&<p style={{fontSize:13,color:'var(--text-secondary)',margin:'0 0 8px',lineHeight:1.5,
+                    display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{n.descricao}</p>}
+                  <a href={n.link} target="_blank" rel="noopener noreferrer"
+                    style={{fontSize:12,color:'var(--accent)',textDecoration:'none',fontWeight:500,display:'inline-flex',alignItems:'center',gap:4}}>
+                    🔗 Ver notícia completa
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── APP ──────────────────────────────────────────────────────── */
 /* ─── AUDIO: Sirene SOS via Web Audio API ───────────────────── */
 const _audioCtxRef={current:null};
@@ -4308,6 +4545,7 @@ function App(){
     {id:'recompensas',icon:<Ico.coin/>,label:'Recompensas',badge:RECOMP.filter(r=>r.status==='pendente_validacao').length||null},
     {id:'sos',icon:<Ico.shield/>,label:'SOS Mulher',badge:sos>0?sos:null},
     {id:'relatorios',icon:<Ico.report/>,label:'Relatórios'},
+    {id:'noticias',icon:<Ico.news/>,label:'Notícias'},
   ];
 
   return(
@@ -4371,6 +4609,7 @@ function App(){
             {aba==='recompensas'&&<Recompensas/>}
             {aba==='sos'&&<SOSMulher/>}
             {aba==='relatorios'&&<Relatorios/>}
+            {aba==='noticias'&&<RadarNoticias/>}
           </PageTransition>
         </main>
       </div>
