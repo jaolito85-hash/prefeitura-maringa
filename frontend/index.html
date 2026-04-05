@@ -104,7 +104,7 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .ws-dot{width:5px;height:5px;border-radius:50%;background:var(--accent-light);flex-shrink:0;box-shadow:0 0 4px var(--accent-light)}
 
 /* CONTENT */
-.content{flex:1;overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
+.content{flex:1;overflow-y:auto;display:flex;flex-direction:column;background:var(--bg)}
 
 /* CARDS */
 .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
@@ -4331,7 +4331,7 @@ function RadarNoticias(){
   const cardHoverS={...cardS,borderColor:'var(--accent)',background:'var(--card-hover)'};
 
   return(
-    <div style={{padding:'0 8px',maxWidth:1400,margin:'0 auto'}}>
+    <div style={{padding:'0 8px 40px',maxWidth:1400,margin:'0 auto'}}>
       {/* ── Header ── */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24,flexWrap:'wrap',gap:16}}>
         <div>
