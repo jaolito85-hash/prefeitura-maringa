@@ -83,31 +83,35 @@ IMPORTANTE — Existem DUAS situações:
 - APENAS 5 categorias válidas: pichacao, trafico_drogas, descarte_irregular, furto_fios, depredacao
 - Se o relato NÃO se encaixa em nenhuma dessas 5 → classifique como **generica** (o worker vai mostrar o menu)
 
-### CANAL: arborizacao (ANTES de ocorrencia — qualquer menção a árvore vai pra cá)
-Mensagens sobre ÁRVORES, PODAS, GALHOS, TRONCOS, RAÍZES, TOCOS:
-- Árvore caída, galho na rua, tronco rachado
+### CANAL: arborizacao (SERVIÇO de arborização — empresa contratada executa)
+Mensagens sobre MANUTENÇÃO e SERVIÇO de árvores urbanas:
 - Poda necessária, galhos sobre fiação, copa bloqueando iluminação
 - Raízes quebrando calçada ou tubulação
 - Toco de árvore para retirar
-- Árvore com cupim, árvore morta, risco de queda
+- Árvore com cupim, árvore morta, risco de queda por deterioração
 - Galhos atrapalhando pedestres ou veículos
-- REGRA: QUALQUER menção a árvore, poda, galho, tronco, raiz, toco, copa = arborizacao
-- REGRA: "árvore caiu na rua" = arborizacao/arvore_caida (NÃO ocorrencia)
-- REGRA: "galho sobre a fiação" = arborizacao/poda_geral (NÃO ocorrencia)
+- Árvore caída SEM menção a temporal/chuva/vendaval (remoção rotineira)
+- REGRA: poda, galho seco, raiz, toco, cupim, árvore morta → arborizacao
+- REGRA: "árvore caiu" SEM contexto de temporal → arborizacao/arvore_caida
+- REGRA: "precisa podar", "galho sobre a fiação" → arborizacao/poda_geral
+- EXCEÇÃO: se mencionar temporal, chuva, vendaval, tempestade → use ocorrencia/queda_arvore
 - Categorias: poda_geral, poda_complexa, poda_desbarra, remocao, arvore_caida, retirada_toco, risco_queda
 - Urgência: emergencia (risco iminente), urgencia (dano possível), prioridade (precisa atenção), rotina (preventivo)
-- Resposta: confirme recebimento, peça foto se não enviou, peça localização
 
 ### CANAL: ocorrencia
-Mensagens que relatam PROBLEMAS URBANOS ou EMERGÊNCIAS NATURAIS (EXCETO árvores — use arborizacao):
+Mensagens que relatam EMERGÊNCIAS URBANAS e DESASTRES NATURAIS:
 - Enchente, alagamento, bueiro entupido
 - Buraco no asfalto, cratera
 - Poste caído, falta de iluminação
 - Incêndio, queimada
 - Vendaval, telhado voou
 - Acidente de trânsito
-- REGRA: NÃO classifique problemas de árvore aqui — use o canal arborizacao
-- Categorias: enchente_alagamento, buraco_via, iluminacao_publica, incendio, vendaval, acidente, drenagem, outros_urbanos
+- ÁRVORE CAÍDA POR TEMPORAL/CHUVA/VENDAVAL → ocorrencia/queda_arvore (Defesa Civil responde)
+- REGRA: "árvore caiu com a chuva/temporal/vendaval" = ocorrencia/queda_arvore
+- REGRA: "vendaval derrubou árvore" = ocorrencia/queda_arvore
+- REGRA: árvore caiu AGORA durante tempestade, bloqueando via = ocorrencia/queda_arvore
+- REGRA: poda, raiz, toco, cupim, manutenção = NÃO é ocorrência → use arborizacao
+- Categorias: queda_arvore, enchente_alagamento, buraco_via, iluminacao_publica, incendio, vendaval, acidente, drenagem, outros_urbanos
 
 ### CANAL: feedback
 Mensagens que são OPINIÕES, ELOGIOS, RECLAMAÇÕES, PEDIDOS DE AJUDA sobre serviços públicos:
@@ -290,13 +294,24 @@ MÓDULO FEEDBACK (manutenção rotineira — canal: "feedback"):
 - sinalizacao: Sinalização danificada / ausente
 - veiculo_abandonado: Veículo abandonado
 
-MÓDULO OCORRÊNCIA (emergência — canal: "ocorrencia"):
-- queda_arvore: Queda de árvore / risco de queda
+MÓDULO ARBORIZAÇÃO (serviço de árvores — canal: "arborizacao"):
+- poda_geral: Galhos sobre fiação, copa bloqueando luz, galhos invadindo propriedade
+- poda_complexa: Árvore grande sobre telhado, galhos em alta tensão
+- poda_desbarra: Galhos finos, brotações, ramos baixos
+- remocao: Árvore morta, cupim, raízes destruindo calçada
+- arvore_caida: Árvore tombada (sem contexto de temporal)
+- retirada_toco: Toco remanescente, raiz exposta
+- risco_queda: Árvore inclinada, tronco rachado, cavidade
+
+MÓDULO OCORRÊNCIA (emergência/desastre — canal: "ocorrencia"):
+- queda_arvore: Árvore caída por TEMPORAL/CHUVA/VENDAVAL (emergência, Defesa Civil)
 - alagamento: Enchente / alagamento
 - deslizamento: Deslizamento / desmoronamento
 - incendio: Incêndio
 - vendaval: Vendaval / danos por vento
 - acidente: Acidente de trânsito
+REGRA ÁRVORES: se a foto mostra destruição por temporal/enchente → ocorrencia/queda_arvore.
+Se mostra árvore com cupim, poda necessária, toco, raiz → arborizacao.
 
 MÓDULO DENÚNCIA / CIDADANIA ATIVA (canal: "denuncia"):
 - pichacao: Pichação / vandalismo
@@ -305,17 +320,9 @@ MÓDULO DENÚNCIA / CIDADANIA ATIVA (canal: "denuncia"):
 - furto_fios: Vandalismo / furto de fios e cabos
 - depredacao: Depredação de bens públicos
 
-SECRETARIAS DE MARINGÁ:
-- SEMUSP (Serviços Públicos): buracos, calçadas, iluminação, esgoto
-- SEMA (Meio Ambiente): árvores, mato alto, animais
-- SEMOB (Mobilidade Urbana): sinalização, trânsito
-- Defesa Civil: alagamento, deslizamento, incêndio, vendaval
-- Guarda Municipal: denúncias, tráfico, vandalismo, pichação, furto de fios
-- SELURB (Limpeza Urbana): descarte irregular, lixo
-
 Responda APENAS em JSON válido:
 {
-  "canal": "feedback|ocorrencia|denuncia",
+  "canal": "arborizacao|feedback|ocorrencia|denuncia",
   "categoria": "slug_da_categoria",
   "categoria_display": "Nome legível da categoria",
   "sentimento": "negativo|neutro|urgente",

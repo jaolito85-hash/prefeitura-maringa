@@ -3006,6 +3006,43 @@ def _processar_midia_arb(event: dict, sb: Client, registro_id: str, momento: str
         return None
 
 
+def _buscar_arborizacao_similar(sb: Client, categoria: str,
+                                latitude: float | None = None,
+                                longitude: float | None = None,
+                                endereco: str | None = None) -> dict | None:
+    """Busca solicitação de arborização ATIVA com mesma categoria nas últimas 48h
+    que esteja próxima (< 300m por GPS ou mesmo endereço normalizado)."""
+    limite = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
+    try:
+        result = sb.table("arborizacao").select(
+            "id, protocolo, latitude, longitude, endereco_normalizado, categoria, bairro, status"
+        ).eq("categoria", categoria).not_.in_(
+            "status", ["fiscalizado"]
+        ).gte("created_at", limite).execute()
+
+        if not result.data:
+            return None
+
+        for arb in result.data:
+            # GPS próximo (< 300m)
+            if latitude and longitude and arb.get("latitude") and arb.get("longitude"):
+                dist = _haversine(latitude, longitude, arb["latitude"], arb["longitude"])
+                if dist < 300:
+                    logger.info(f"Arborização agrupamento GPS: {dist:.0f}m de {arb['protocolo']}")
+                    return arb
+            # Endereço normalizado similar
+            if endereco and arb.get("endereco_normalizado"):
+                end_norm = _normalizar_endereco(endereco)
+                if end_norm and len(end_norm) > 5:
+                    oc_norm = arb["endereco_normalizado"]
+                    if end_norm in oc_norm or oc_norm in end_norm:
+                        logger.info(f"Arborização agrupamento endereço: '{end_norm}' → {arb['protocolo']}")
+                        return arb
+    except Exception as exc:
+        logger.error(f"Erro busca arborização similar: {exc}")
+    return None
+
+
 def _despachar_para_empresa(sb: Client, arb_id: str) -> None:
     """Envia OS via WhatsApp para empresa contratada."""
     try:
@@ -3293,6 +3330,20 @@ def processar_arborizacao(event: dict, sb: Client) -> None:
         protocolo = gerar_protocolo_arb(sb)
         sla_horas, sla_vencimento = _calcular_sla_arb(severidade)
 
+        # Detectar foto encaminhada (red flag)
+        foto_info = classificar_foto_origem(event) if event.get("tem_midia") else {"foto_origem": None, "foto_flag": None, "foto_flag_motivo": None}
+
+        # Dedup: buscar solicitação similar na mesma região
+        similar = _buscar_arborizacao_similar(sb, categoria, lat, lng, endereco_geo)
+        if similar:
+            logger.info(f"Arborização agrupada com {similar['protocolo']}")
+            enviar_whatsapp(telefone,
+                f"🌳 Obrigado pelo relato! Já temos uma solicitação registrada nessa região.\n\n"
+                f"📋 Protocolo: *{similar['protocolo']}*\n"
+                f"Seu relato foi adicionado. Acompanhe pelo protocolo!")
+            finalizar_sessao(sb, telefone)
+            return
+
         res = sb.table("arborizacao").insert({
             "protocolo": protocolo,
             "telefone": telefone,
@@ -3309,6 +3360,9 @@ def processar_arborizacao(event: dict, sb: Client) -> None:
             "status": "recebido",
             "sla_horas": sla_horas,
             "sla_vencimento": sla_vencimento,
+            "foto_origem": foto_info.get("foto_origem"),
+            "foto_flag": foto_info.get("foto_flag"),
+            "foto_flag_motivo": foto_info.get("foto_flag_motivo"),
         }).execute()
 
         registro_id = res.data[0]["id"]
