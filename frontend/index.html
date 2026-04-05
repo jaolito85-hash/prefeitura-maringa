@@ -1318,7 +1318,9 @@ function RoutePanel({route,base,incident,onClose}){
   const distKm=(route.distance/1000).toFixed(1);
   const gmapLink=googleMapsLink(base.lat,base.lng,incident.lat,incident.lng);
   const wazeLink=`https://www.waze.com/live-map/directions?from=ll.${base.lat}%2C${base.lng}&to=ll.${incident.lat}%2C${incident.lng}`;
-  const msgText=encodeURIComponent(`🚨 DESPACHO URGENTE\n📍 ${incident.titulo||incident.mensagem||'Alerta SOS'}\n🏘️ ${incident.bairro||'—'}\n⏱️ ETA: ${durMin}min (${distKm}km)\n🗺️ Rota: ${gmapLink}`);
+  const sev=incident.severidade||'media';
+  const despachoHeader=sev==='critica'||sev==='alta'?'🚨 DESPACHO URGENTE':sev==='media'?'⚠️ DESPACHO — Severidade Média':'📋 DESPACHO — Severidade Baixa';
+  const msgText=encodeURIComponent(`${despachoHeader}\n📍 ${incident.titulo||incident.mensagem||'Alerta SOS'}\n🏘️ ${incident.bairro||'—'}\n⏱️ ETA: ${durMin}min (${distKm}km)\n🗺️ Rota: ${gmapLink}`);
   return(
     <div className="route-panel">
       <button className="route-panel-close" onClick={onClose}>✕</button>
