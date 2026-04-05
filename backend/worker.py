@@ -3055,6 +3055,135 @@ def _despachar_para_empresa(sb: Client, arb_id: str) -> None:
         logger.error(f"Erro despacho empresa arborização: {exc}")
 
 
+def _auto_despachar(sb: Client, arb_id: str, protocolo: str) -> None:
+    """AUTOMAÇÃO: auto-triagem + auto-atribuição + despacho para empresa.
+    Chamado automaticamente quando cidadão registra solicitação."""
+    try:
+        # Buscar empresa padrão (Corpus = zona "todas")
+        cfg = sb.table("arborizacao_config").select("valor").eq("tipo", "empresa").execute()
+        empresa = None
+        for e in (cfg.data or []):
+            if e["valor"].get("zona") == "todas":
+                empresa = e["valor"]
+                break
+        if not empresa and cfg.data:
+            empresa = cfg.data[0]["valor"]
+        if not empresa:
+            logger.warning(f"Nenhuma empresa cadastrada para auto-despacho: {protocolo}")
+            return
+
+        # Auto-triagem + auto-atribuição
+        tel_empresa = empresa["telefone"]
+        if not tel_empresa.startswith("+"):
+            tel_empresa = "+" + tel_empresa
+
+        # Buscar SLA
+        arb = sb.table("arborizacao").select("severidade").eq("id", arb_id).single().execute().data
+        severidade = (arb or {}).get("severidade", "rotina")
+        sla_horas, sla_vencimento = _calcular_sla_arb(severidade)
+
+        sb.table("arborizacao").update({
+            "status": "atribuido",
+            "triado_em": datetime.now(timezone.utc).isoformat(),
+            "empresa_atribuida": empresa["nome"],
+            "empresa_telefone": tel_empresa.lstrip("+"),
+            "atribuida_em": datetime.now(timezone.utc).isoformat(),
+            "sla_horas": sla_horas,
+            "sla_vencimento": sla_vencimento,
+        }).eq("id", arb_id).execute()
+
+        # Despachar OS
+        _despachar_para_empresa(sb, arb_id)
+        logger.info(f"🤖 AUTO-DESPACHO: {protocolo} → {empresa['nome']}")
+
+    except Exception as exc:
+        logger.error(f"Erro auto-despacho {protocolo}: {exc}")
+
+
+def _auto_fiscalizar_e_notificar(sb: Client, arb_id: str) -> None:
+    """AUTOMAÇÃO: fiscal IA compara antes/depois + notifica cidadão.
+    Chamado quando empresa envia foto de conclusão."""
+    try:
+        arb = sb.table("arborizacao").select(
+            "id, protocolo, telefone, nome, categoria, endereco, bairro, "
+            "foto_antes_urls, foto_depois_urls, severidade"
+        ).eq("id", arb_id).single().execute().data
+        if not arb:
+            return
+
+        foto_antes = (arb.get("foto_antes_urls") or [])
+        foto_depois = (arb.get("foto_depois_urls") or [])
+
+        # Se tem fotos antes E depois → fiscal IA
+        if foto_antes and foto_depois:
+            import asyncio
+            from app.services.classificador import comparar_antes_depois
+            try:
+                loop = asyncio.new_event_loop()
+                resultado = loop.run_until_complete(
+                    comparar_antes_depois(foto_antes[0], foto_depois[0], arb["categoria"])
+                )
+                loop.close()
+            except Exception as e:
+                logger.error(f"Erro fiscal IA: {e}")
+                resultado = {"aprovado": False, "confianca": 0, "observacao": f"Erro: {e}"}
+
+            confianca = resultado.get("confianca", 0)
+            aprovado = resultado.get("aprovado", False) and confianca >= 80
+
+            if aprovado:
+                sb.table("arborizacao").update({
+                    "status": "fiscalizado",
+                    "fiscal_aprovado": True,
+                    "fiscal_confianca": confianca,
+                    "fiscal_obs": resultado.get("observacao", "Auto-aprovado por IA"),
+                    "fiscal_operador": "IA",
+                    "fiscal_data": datetime.now(timezone.utc).isoformat(),
+                    "fiscalizado_em": datetime.now(timezone.utc).isoformat(),
+                }).eq("id", arb_id).execute()
+                logger.info(f"🤖 AUTO-FISCAL APROVADO: {arb['protocolo']} (conf={confianca}%)")
+            else:
+                sb.table("arborizacao").update({
+                    "fiscal_confianca": confianca,
+                    "fiscal_obs": f"IA inconclusiva ({confianca}%): {resultado.get('observacao', '')}",
+                }).eq("id", arb_id).execute()
+                logger.info(f"🤖 AUTO-FISCAL PENDENTE: {arb['protocolo']} (conf={confianca}%) → requer humano")
+                # Não notifica cidadão — aguarda fiscal humano
+                return
+        else:
+            # Sem fotos antes → auto-aprovar (confiança N/A)
+            sb.table("arborizacao").update({
+                "status": "fiscalizado",
+                "fiscal_aprovado": True,
+                "fiscal_confianca": 100,
+                "fiscal_obs": "Aprovado automaticamente (sem foto antes para comparação)",
+                "fiscal_operador": "IA",
+                "fiscal_data": datetime.now(timezone.utc).isoformat(),
+                "fiscalizado_em": datetime.now(timezone.utc).isoformat(),
+            }).eq("id", arb_id).execute()
+            logger.info(f"🤖 AUTO-FISCAL (sem antes): {arb['protocolo']}")
+
+        # ── Notificar cidadão ──
+        cat_display = arb["categoria"].replace("_", " ").title()
+        resposta_cidadao = (
+            f"✅ Ótima notícia! O serviço de arborização foi concluído!\n\n"
+            f"📋 Protocolo: *{arb['protocolo']}*\n"
+            f"🌳 Tipo: *{cat_display}*\n"
+            f"📍 {arb.get('endereco', '')}\n\n"
+            f"A equipe já realizou o serviço e foi aprovado pela fiscalização.\n\n"
+            f"⭐ Quer avaliar o atendimento? (1 a 5)"
+        )
+        enviar_whatsapp(arb["telefone"], resposta_cidadao)
+
+        # Criar sessão para avaliação do cidadão
+        criar_sessao(sb, arb["telefone"], "arborizacao", "aguardando_avaliacao", arb_id,
+                     {"protocolo": arb["protocolo"]})
+        logger.info(f"📲 Cidadão notificado: {arb['protocolo']} → {arb['telefone']}")
+
+    except Exception as exc:
+        logger.error(f"Erro auto-fiscalizar {arb_id}: {exc}")
+
+
 def _processar_resposta_empresa(event: dict, sb: Client) -> None:
     """Processa resposta da empresa via WhatsApp.
 
@@ -3107,6 +3236,9 @@ def _processar_resposta_empresa(event: dict, sb: Client) -> None:
         finalizar_sessao(sb, telefone)
         enviar_whatsapp(telefone, "✅ Serviço registrado como concluído! Foto recebida para fiscalização.")
         logger.info(f"Arborização concluída pela empresa: {contexto.get('protocolo')}")
+
+        # 🤖 AUTOMAÇÃO: fiscal IA + notificar cidadão
+        _auto_fiscalizar_e_notificar(sb, arb_id)
 
     # ── "0" = Recusar ──
     elif texto == "0":
@@ -3202,6 +3334,9 @@ def processar_arborizacao(event: dict, sb: Client) -> None:
         finalizar_sessao(sb, telefone)
         enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
         logger.info(f"Arborização registrada: {protocolo} cat={categoria} sev={severidade}")
+
+        # 🤖 AUTOMAÇÃO: auto-triagem + auto-atribuição + despacho
+        _auto_despachar(sb, registro_id, protocolo)
         return
 
     # Sem GPS → pedir endereço
@@ -3331,6 +3466,9 @@ def _continuar_arborizacao(event: dict, sb: Client) -> None:
         finalizar_sessao(sb, telefone)
         enviar_whatsapp(telefone, resposta)
         logger.info(f"Arborização registrada (continuação): {protocolo}")
+
+        # 🤖 AUTOMAÇÃO: auto-triagem + auto-atribuição + despacho
+        _auto_despachar(sb, novo_id, protocolo)
 
     elif etapa == "aguardando_avaliacao":
         # Cidadão enviou avaliação (1-5)
