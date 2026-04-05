@@ -83,20 +83,19 @@ IMPORTANTE — Existem DUAS situações:
 - APENAS 5 categorias válidas: pichacao, trafico_drogas, descarte_irregular, furto_fios, depredacao
 - Se o relato NÃO se encaixa em nenhuma dessas 5 → classifique como **generica** (o worker vai mostrar o menu)
 
-### CANAL: arborizacao (SERVIÇO de arborização — empresa contratada executa)
-Mensagens sobre MANUTENÇÃO e SERVIÇO de árvores urbanas:
-- Poda necessária, galhos sobre fiação, copa bloqueando iluminação
-- Raízes quebrando calçada ou tubulação
-- Toco de árvore para retirar
-- Árvore com cupim, árvore morta, risco de queda por deterioração
-- Galhos atrapalhando pedestres ou veículos
-- Árvore caída SEM menção a temporal/chuva/vendaval (remoção rotineira)
-- REGRA: poda, galho seco, raiz, toco, cupim, árvore morta → arborizacao
-- REGRA: "árvore caiu" SEM contexto de temporal → arborizacao/arvore_caida
-- REGRA: "precisa podar", "galho sobre a fiação" → arborizacao/poda_geral
-- EXCEÇÃO: se mencionar temporal, chuva, vendaval, tempestade → use ocorrencia/queda_arvore
+### CANAL: arborizacao (PADRÃO para QUALQUER problema com árvore)
+REGRA PRINCIPAL: TODA mensagem que menciona árvore, galho, poda, tronco, raiz, toco, copa, cortar árvore → arborizacao
+ESTA É A REGRA MAIS IMPORTANTE DO SISTEMA. NÃO MANDE ÁRVORE PARA OCORRÊNCIA.
+- "Árvore caiu" → arborizacao/arvore_caida (mesmo sem dizer o motivo)
+- "Árvore caiu na casa" → arborizacao/arvore_caida
+- "Preciso cortar árvore" → arborizacao/remocao
+- "Galho sobre fiação" → arborizacao/poda_geral
+- "Raiz quebrando calçada" → arborizacao/retirada_toco
+- "Árvore com cupim" → arborizacao/remocao
+- "Risco de queda" → arborizacao/risco_queda
+- A ÚNICA exceção para usar ocorrencia/queda_arvore é se o cidadão EXPLICITAMENTE disser as palavras "temporal", "chuva", "vendaval", "tempestade", "enchente" junto com árvore. Se não disser essas palavras → arborizacao.
 - Categorias: poda_geral, poda_complexa, poda_desbarra, remocao, arvore_caida, retirada_toco, risco_queda
-- Urgência: emergencia (risco iminente), urgencia (dano possível), prioridade (precisa atenção), rotina (preventivo)
+- Urgência: emergencia (caiu/risco iminente), urgencia (dano possível), prioridade (precisa atenção), rotina (preventivo)
 
 ### CANAL: ocorrencia
 Mensagens que relatam EMERGÊNCIAS URBANAS e DESASTRES NATURAIS:
@@ -106,11 +105,10 @@ Mensagens que relatam EMERGÊNCIAS URBANAS e DESASTRES NATURAIS:
 - Incêndio, queimada
 - Vendaval, telhado voou
 - Acidente de trânsito
-- ÁRVORE CAÍDA POR TEMPORAL/CHUVA/VENDAVAL → ocorrencia/queda_arvore (Defesa Civil responde)
-- REGRA: "árvore caiu com a chuva/temporal/vendaval" = ocorrencia/queda_arvore
-- REGRA: "vendaval derrubou árvore" = ocorrencia/queda_arvore
-- REGRA: árvore caiu AGORA durante tempestade, bloqueando via = ocorrencia/queda_arvore
-- REGRA: poda, raiz, toco, cupim, manutenção = NÃO é ocorrência → use arborizacao
+- queda_arvore: SOMENTE se mencionar "temporal", "chuva", "vendaval", "tempestade" ou "enchente" junto com árvore
+- REGRA: se NÃO menciona temporal/chuva/vendaval → NÃO é ocorrência → é arborizacao
+- REGRA: "árvore caiu" sozinho → arborizacao (NÃO ocorrência!)
+- REGRA: "árvore caiu na casa" → arborizacao (NÃO ocorrência!)
 - Categorias: queda_arvore, enchente_alagamento, buraco_via, iluminacao_publica, incendio, vendaval, acidente, drenagem, outros_urbanos
 
 ### CANAL: feedback

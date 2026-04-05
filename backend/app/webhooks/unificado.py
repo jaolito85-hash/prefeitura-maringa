@@ -550,6 +550,19 @@ async def receber_webhook_unificado(
 
     canal = classificacao.get("canal", "feedback")
 
+    # ── SAFETY NET: árvore SEMPRE vai pra arborizacao ──
+    # Se IA classificou como ocorrencia/queda_arvore mas NÃO mencionou temporal → corrigir
+    _WEATHER_WORDS = {"temporal", "chuva", "vendaval", "tempestade", "enchente", "alagamento", "inundação", "inundacao"}
+    _texto_lower = (texto or "").lower()
+    _categoria = classificacao.get("categoria", "")
+    if canal == "ocorrencia" and _categoria == "queda_arvore":
+        _tem_weather = any(w in _texto_lower for w in _WEATHER_WORDS)
+        if not _tem_weather:
+            logger.info(f"🔄 SAFETY NET: queda_arvore sem weather → redirecionando para arborizacao")
+            canal = "arborizacao"
+            classificacao["canal"] = "arborizacao"
+            classificacao["categoria"] = "arvore_caida"
+
     # ── 6b. SAUDAÇÃO — responde sem criar protocolo ──
     if canal == "saudacao":
         resposta = classificacao.get("resposta_whatsapp", "")
