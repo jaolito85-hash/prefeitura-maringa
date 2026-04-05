@@ -3928,8 +3928,8 @@ function Recompensas(){
   // ── Filter by period ──
   const range=getPeriodRange();
   const prevRange=getPeriodRange(periodOffset+1);
-  const periodItems=enriched.filter(r=>inRange(r.created_at,range));
-  const prevItems=enriched.filter(r=>inRange(r.created_at,prevRange));
+  const periodItems=periodType==='all'?enriched:enriched.filter(r=>inRange(r.created_at,range));
+  const prevItems=periodType==='all'?[]:enriched.filter(r=>inRange(r.created_at,prevRange));
 
   // ── Summary calculations ──
   const calcSum=(items,filterFn)=>items.filter(filterFn||((x)=>true)).reduce((s,r)=>s+(r.valor||0),0);
@@ -4013,15 +4013,15 @@ function Recompensas(){
       {/* PERIOD SELECTOR */}
       <div className="rec-period-bar">
         <div className="rec-period-group">
-          {[['day','Dia'],['week','Semana'],['month','Mês']].map(([k,l])=>(
+          {[['day','Dia'],['week','Semana'],['month','Mês'],['all','Total']].map(([k,l])=>(
             <button key={k} className={`rec-period-btn${periodType===k?' active':''}`} onClick={()=>{setPeriodType(k);setPeriodOffset(0);setPage(1);}}>{l}</button>
           ))}
         </div>
-        <span className="rec-period-label"><strong>{fmtShort(range.start)}</strong> — <strong>{fmtFull(range.end)}</strong></span>
-        <div className="rec-period-nav">
+        <span className="rec-period-label">{periodType==='all'?<strong>Todos os registros</strong>:<><strong>{fmtShort(range.start)}</strong> — <strong>{fmtFull(range.end)}</strong></>}</span>
+        {periodType!=='all'&&<div className="rec-period-nav">
           <button onClick={()=>{setPeriodOffset(o=>o+1);setPage(1);}}>‹</button>
           <button onClick={()=>{setPeriodOffset(o=>Math.max(0,o-1));setPage(1);}}>›</button>
-        </div>
+        </div>}
       </div>
 
       {/* SUMMARY CARDS */}
@@ -5046,7 +5046,6 @@ function App(){
     {id:'feedbacks',icon:<Ico.chat/>,label:'Feedbacks',badge:FBK.filter(f=>f.prioridade==='critico').length||null},
     {id:'recompensas',icon:<Ico.coin/>,label:'Recompensas',badge:RECOMP.filter(r=>r.status==='pendente_validacao').length||null},
     {id:'sos',icon:<Ico.shield/>,label:'SOS Mulher',badge:sos>0?sos:null},
-    {id:'relatorios',icon:<Ico.report/>,label:'Relatórios'},
     {id:'noticias',icon:<Ico.news/>,label:'Notícias'},
     {id:'arborizacao',icon:<Ico.tree/>,label:'Arborização'},
   ];
@@ -5111,7 +5110,6 @@ function App(){
             {aba==='feedbacks'&&<Feedbacks/>}
             {aba==='recompensas'&&<Recompensas/>}
             {aba==='sos'&&<SOSMulher/>}
-            {aba==='relatorios'&&<Relatorios/>}
             {aba==='noticias'&&<RadarNoticias/>}
             {aba==='arborizacao'&&<Arborizacao/>}
           </PageTransition>
