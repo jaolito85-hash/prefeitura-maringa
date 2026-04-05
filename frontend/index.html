@@ -4619,6 +4619,15 @@ function Arborizacao(){
   /* ── Dados: API real ou mock fallback ── */
   const data=ARB_API||ARBO_MOCK;
 
+  /* ── Sincronizar item selecionado com dados atualizados da API ── */
+  useEffect(()=>{
+    if(!sel||!data) return;
+    const updated=data.find(d=>d.id===sel.id);
+    if(updated&&(updated.status!==sel.status||updated.empresa!==sel.empresa||updated.fiscal_aprovado!==sel.fiscal_aprovado||(updated.foto_depois_urls||[]).length!==(sel.foto_depois_urls||[]).length)){
+      setSel({...sel,...updated});
+    }
+  },[data]);
+
   /* ── Filtros ── */
   const filtrados=useMemo(()=>{
     let d=[...data];
