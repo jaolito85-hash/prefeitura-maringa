@@ -822,7 +822,7 @@ const REL_DEMO={
   recompensas:{total:34,por_status:{pendente_validacao:5,aguardando_pagamento:7,paga:18,rejeitada:4},valor_pago:4750.00,valor_aguardando:1890.00,valor_pendente:1250.00,valor_rejeitado:680.00},
   top_bairros:[{bairro:'Zona 7',total:50},{bairro:'Centro',total:43},{bairro:'Jardim Alvorada',total:33},{bairro:'Vila Esperança',total:31},{bairro:'Zona 2',total:26},{bairro:'Parque das Grevíleas',total:22},{bairro:'Jardim Imperial',total:13},{bairro:'Vila Morangueira',total:13}]
 };
-let OC=[],DEN=[],SOS=[],FBK=[],KPIS={},RECOMP=[],RECOMP_KPIS={},RECOMP_CFG=[],SOS_HIST=[],REL_DATA=null;
+let OC=[],DEN=[],SOS=[],FBK=[],KPIS={},RECOMP=[],RECOMP_KPIS={},RECOMP_CFG=[],SOS_HIST=[],REL_DATA=null,ARB_API=null,ARB_KPIS=null;
 
 /* ── DADOS MOCK (visualização sem backend) ── */
 DEN=[
@@ -857,7 +857,7 @@ function useApiPolling(){
   useEffect(()=>{
     async function poll(){
       try{
-        const [oc,den,sos,fb,kpis,recomp,rkpis,rcfg,soshist,reldata]=await Promise.all([
+        const [oc,den,sos,fb,kpis,recomp,rkpis,rcfg,soshist,reldata,arb,arbkpis]=await Promise.all([
           fetch(API_URL+'/api/ocorrencias/').then(r=>r.ok?r.json():null).catch(()=>null),
           fetch(API_URL+'/api/denuncias/').then(r=>r.ok?r.json():null).catch(()=>null),
           fetch(API_URL+'/api/sos/alertas/ativos').then(r=>r.ok?r.json():null).catch(()=>null),
@@ -868,6 +868,8 @@ function useApiPolling(){
           fetch(API_URL+'/api/recompensas/config').then(r=>r.ok?r.json():null).catch(()=>null),
           fetch(API_URL+'/api/sos/alertas/historico').then(r=>r.ok?r.json():null).catch(()=>null),
           fetch(API_URL+'/api/relatorio').then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch(API_URL+'/api/arborizacao/').then(r=>r.ok?r.json():null).catch(()=>null),
+          fetch(API_URL+'/api/arborizacao/kpis').then(r=>r.ok?r.json():null).catch(()=>null),
         ]);
         // Só atualiza se a API retornou dados reais (não sobrescreve os dados mock)
         if(oc)    OC=oc.map(o=>({...o,lat:o.latitude,lng:o.longitude}));
@@ -885,6 +887,8 @@ function useApiPolling(){
         if(recomp) RECOMP=recomp;
         if(rkpis)  RECOMP_KPIS=rkpis;
         if(rcfg)   RECOMP_CFG=rcfg;
+        if(arb) ARB_API=arb.map(a=>({...a,lat:a.latitude,lng:a.longitude,tipo:a.categoria,descricao:a.resumo||a.mensagem||'Solicitação de arborização',fotos:(a.foto_antes_urls||[]).length+(a.foto_depois_urls||[]).length,empresa:a.empresa_atribuida,cidadao:a.nome||'Cidadão'}));
+        if(arbkpis) ARB_KPIS=arbkpis;
         setTick(t=>t+1);
       }catch(e){console.error('API poll error:',e);setTick(t=>t+1);}
     }
@@ -4612,23 +4616,27 @@ function Arborizacao(){
   const mapRef=useRef(null);
   const mapInst=useRef(null);
 
+  /* ── Dados: API real ou mock fallback ── */
+  const data=ARB_API||ARBO_MOCK;
+
   /* ── Filtros ── */
   const filtrados=useMemo(()=>{
-    let d=[...ARBO_MOCK];
+    let d=[...data];
     if(filtro!=='todos'){
       if(ARBO_SEV[filtro]) d=d.filter(x=>x.severidade===filtro);
-      else if(ARBO_CATS[filtro]) d=d.filter(x=>x.tipo===filtro);
+      else if(ARBO_CATS[filtro]) d=d.filter(x=>x.tipo===filtro||x.categoria===filtro);
       else if(ARBO_STATUS[filtro]) d=d.filter(x=>x.status===filtro);
     }
-    if(busca.trim()){const q=busca.toLowerCase();d=d.filter(x=>x.descricao.toLowerCase().includes(q)||x.bairro.toLowerCase().includes(q)||x.protocolo.toLowerCase().includes(q));}
+    if(busca.trim()){const q=busca.toLowerCase();d=d.filter(x=>(x.descricao||x.resumo||'').toLowerCase().includes(q)||(x.bairro||'').toLowerCase().includes(q)||(x.protocolo||'').toLowerCase().includes(q));}
     return d;
-  },[filtro,busca]);
+  },[filtro,busca,data]);
 
   /* ── KPIs ── */
   const kpis=useMemo(()=>{
-    const t=ARBO_MOCK.length;
-    const emerg=ARBO_MOCK.filter(x=>x.severidade==='emergencia'&&!['concluido','fiscalizado'].includes(x.status)).length;
-    const done=ARBO_MOCK.filter(x=>x.status==='concluido'||x.status==='fiscalizado').length;
+    if(ARB_KPIS) return ARB_KPIS;
+    const t=data.length;
+    const emerg=data.filter(x=>x.severidade==='emergencia'&&!['concluido','fiscalizado'].includes(x.status)).length;
+    const done=data.filter(x=>x.status==='concluido'||x.status==='fiscalizado').length;
     const taxa=t?Math.round(done/t*100):0;
     return {total:t,emerg,done,taxa};
   },[]);
@@ -4656,7 +4664,7 @@ function Arborizacao(){
         'circle-radius':['match',['get','severidade'],'emergencia',9,'urgencia',7.5,'prioridade',6,'rotina',5,5],
         'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],'circle-opacity':0.95,
         'circle-stroke-width':2,'circle-stroke-color':'rgba(255,255,255,0.8)'}});
-      map.on('click','arb-main',(e)=>{const id=e.features[0].properties.id;const item=ARBO_MOCK.find(x=>x.id===id);if(item)setSel(item);});
+      map.on('click','arb-main',(e)=>{const id=e.features[0].properties.id;const item=(ARB_API||ARBO_MOCK).find(x=>x.id===id);if(item)setSel(item);});
       map.on('mouseenter','arb-main',(e)=>{
         map.getCanvas().style.cursor='pointer';
         const p=e.features[0].properties;const coords=e.features[0].geometry.coordinates.slice();
@@ -4819,19 +4827,34 @@ function Arborizacao(){
                 )}
               </div>
 
-              {/* Fotos */}
+              {/* Fotos Antes */}
               <div className="arb-section">
-                <div className="arb-section-label">📷 Fotos ({sel.fotos})</div>
-                {sel.fotos>0?(
-                  <div style={{display:'flex',gap:8}}>
-                    {Array.from({length:Math.min(sel.fotos,3)}).map((_,i)=>(
-                      <div key={i} style={{width:90,height:68,borderRadius:10,background:'linear-gradient(135deg,rgba(5,150,105,.08),rgba(5,150,105,.02))',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'var(--text-muted)'}}>🌳</div>
+                <div className="arb-section-label">📷 Antes ({(sel.foto_antes_urls||[]).length})</div>
+                {(sel.foto_antes_urls||[]).length>0?(
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                    {sel.foto_antes_urls.map((url,i)=>(
+                      <img key={i} src={url} style={{width:100,height:75,objectFit:'cover',borderRadius:10,border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(url,'_blank')}/>
                     ))}
                   </div>
                 ):(
-                  <div style={{fontSize:13,color:'var(--text-muted)',fontStyle:'italic'}}>Nenhuma foto anexada</div>
+                  <div style={{display:'flex',gap:8}}>
+                    {Array.from({length:Math.min(sel.fotos||0,3)||1}).map((_,i)=>(
+                      <div key={i} style={{width:90,height:68,borderRadius:10,background:'linear-gradient(135deg,rgba(5,150,105,.08),rgba(5,150,105,.02))',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'var(--text-muted)'}}>🌳</div>
+                    ))}
+                  </div>
                 )}
               </div>
+              {/* Fotos Depois */}
+              {(sel.foto_depois_urls||[]).length>0&&(
+                <div className="arb-section">
+                  <div className="arb-section-label">📷 Depois ({sel.foto_depois_urls.length})</div>
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                    {sel.foto_depois_urls.map((url,i)=>(
+                      <img key={i} src={url} style={{width:100,height:75,objectFit:'cover',borderRadius:10,border:'1px solid rgba(5,150,105,.3)',cursor:'pointer'}} onClick={()=>window.open(url,'_blank')}/>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Fluxo de status */}
               <div className="arb-section">
@@ -4851,25 +4874,44 @@ function Arborizacao(){
                 </div>
               </div>
 
-              {/* Botões de ação */}
+              {/* Botões de ação — chamam API real */}
               <div style={{marginTop:8}}>
                 {sel.status==='concluido'&&(
                   <>
-                    <button className="arb-btn-approve" onClick={()=>{sel.status='fiscalizado';setSel({...sel});}}>✅ Fiscalizar e Aprovar</button>
-                    <button className="arb-btn-reject">✕ Rejeitar e Solicitar Revisão</button>
+                    <button className="arb-btn-approve" onClick={async()=>{
+                      await fetch(API_URL+`/api/arborizacao/${sel.id}/fiscalizar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({aprovado:true,operador:'admin'})});
+                      setSel({...sel,status:'fiscalizado'});
+                    }}>✅ Fiscalizar e Aprovar</button>
+                    <button className="arb-btn-reject" onClick={async()=>{
+                      await fetch(API_URL+`/api/arborizacao/${sel.id}/fiscalizar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({aprovado:false,obs:'Serviço incompleto, solicitar revisão'})});
+                      setSel({...sel,status:'em_execucao'});
+                    }}>✕ Rejeitar e Solicitar Revisão</button>
                   </>
                 )}
                 {sel.status==='recebido'&&(
-                  <button className="arb-btn-approve" onClick={()=>{sel.status='triado';setSel({...sel});}}>📋 Triar Solicitação</button>
+                  <button className="arb-btn-approve" onClick={async()=>{
+                    await fetch(API_URL+`/api/arborizacao/${sel.id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'triado',operador:'admin'})});
+                    setSel({...sel,status:'triado'});
+                  }}>📋 Triar Solicitação</button>
                 )}
                 {sel.status==='triado'&&(
-                  <button className="arb-btn-approve" onClick={()=>{sel.status='atribuido';sel.empresa=ARBO_EMPRESAS[0];setSel({...sel});}}>🏢 Encaminhar para Empresa</button>
+                  <button className="arb-btn-approve" onClick={async()=>{
+                    const r=await fetch(API_URL+`/api/arborizacao/${sel.id}/atribuir`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({empresa_chave:'corpus'})});
+                    const d=await r.json();
+                    setSel({...sel,status:'atribuido',empresa:d.empresa||'Corpus Soluções Ambientais'});
+                  }}>🏢 Encaminhar para Empresa</button>
                 )}
                 {sel.status==='atribuido'&&(
-                  <button className="arb-btn-approve" style={{background:'#8b5cf6'}} onClick={()=>{sel.status='em_execucao';sel.obs_empresa='Equipe a caminho do local.';setSel({...sel});}}>⚙️ Iniciar Execução</button>
+                  <button className="arb-btn-approve" style={{background:'#8b5cf6'}} onClick={async()=>{
+                    await fetch(API_URL+`/api/arborizacao/${sel.id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'em_execucao'})});
+                    setSel({...sel,status:'em_execucao'});
+                  }}>⚙️ Iniciar Execução</button>
                 )}
                 {sel.status==='em_execucao'&&(
-                  <button className="arb-btn-approve" onClick={()=>{sel.status='concluido';sel.obs_empresa='Serviço concluído conforme laudo técnico.';setSel({...sel});}}>✅ Marcar como Concluído</button>
+                  <button className="arb-btn-approve" onClick={async()=>{
+                    await fetch(API_URL+`/api/arborizacao/${sel.id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'concluido'})});
+                    setSel({...sel,status:'concluido'});
+                  }}>✅ Marcar como Concluído</button>
                 )}
                 {sel.status==='fiscalizado'&&(
                   <div style={{textAlign:'center',padding:14,background:'rgba(5,150,105,.06)',border:'1px solid rgba(5,150,105,.2)',borderRadius:12}}>
