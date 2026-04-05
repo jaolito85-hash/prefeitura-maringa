@@ -4611,7 +4611,7 @@ const ARBO_MOCK=(()=>{
 
 function Arborizacao(){
   const [busca,setBusca]=useState('');
-  const [filtro,setFiltro]=useState('todos');
+  const [filtro,setFiltro]=useState('abertos');
   const [sel,setSel]=useState(null);
   const mapRef=useRef(null);
   const mapInst=useRef(null);
@@ -4631,11 +4631,15 @@ function Arborizacao(){
   /* ── Filtros ── */
   const filtrados=useMemo(()=>{
     let d=[...data];
-    if(filtro!=='todos'){
-      if(ARBO_SEV[filtro]) d=d.filter(x=>x.severidade===filtro);
-      else if(ARBO_CATS[filtro]) d=d.filter(x=>x.tipo===filtro||x.categoria===filtro);
-      else if(ARBO_STATUS[filtro]) d=d.filter(x=>x.status===filtro);
-    }
+    // Filtros de status agrupados
+    if(filtro==='abertos') d=d.filter(x=>['recebido','triado'].includes(x.status));
+    else if(filtro==='atribuido') d=d.filter(x=>x.status==='atribuido');
+    else if(filtro==='em_execucao') d=d.filter(x=>x.status==='em_execucao');
+    else if(filtro==='concluido') d=d.filter(x=>x.status==='concluido');
+    else if(filtro==='resolvidos') d=d.filter(x=>x.status==='fiscalizado');
+    // Filtros de severidade
+    else if(ARBO_SEV[filtro]) d=d.filter(x=>x.severidade===filtro&&x.status!=='fiscalizado');
+    // Busca textual
     if(busca.trim()){const q=busca.toLowerCase();d=d.filter(x=>(x.descricao||x.resumo||'').toLowerCase().includes(q)||(x.bairro||'').toLowerCase().includes(q)||(x.protocolo||'').toLowerCase().includes(q));}
     return d;
   },[filtro,busca,data]);
@@ -4717,17 +4721,22 @@ function Arborizacao(){
         </div>
       </div>
 
-      {/* ── KPIs (4 cards grandes) ── */}
-      <div className="arb-kpi-row">
+      {/* ── KPIs (6 cards) ── */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:14,padding:'16px 28px',flexShrink:0}}>
         {[
-          {val:kpis.total,lbl:'Total de Solicitações',c:'#10b981'},
-          {val:kpis.emerg,lbl:'Emergências Ativas',c:'#ef4444'},
-          {val:'1d 14h',lbl:'Tempo Médio de Resposta',c:'#f59e0b'},
-          {val:kpis.taxa+'%',lbl:'Taxa de Resolução',c:'#10b981'},
+          {val:kpis.total,lbl:'Total Solicitações',c:'#10b981',icon:'🌳'},
+          {val:kpis.emerg,lbl:'Emergências Ativas',c:'#ef4444',icon:'🚨'},
+          {val:data.filter(x=>['recebido','triado'].includes(x.status)).length,lbl:'Sem Atendimento',c:'#f59e0b',icon:'⏳'},
+          {val:data.filter(x=>x.status==='em_execucao').length,lbl:'Em Execução',c:'#8b5cf6',icon:'⚙️'},
+          {val:data.filter(x=>x.sla_estourado).length,lbl:'SLA Estourados',c:'#dc2626',icon:'⏱️'},
+          {val:kpis.taxa+'%',lbl:'Taxa de Resolução',c:'#10b981',icon:'📊'},
         ].map((k,i)=>(
           <div key={i} className="arb-kpi">
             <div className="arb-kpi-bar" style={{background:k.c}}/>
-            <div className="arb-kpi-label">{k.lbl}</div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+              <div className="arb-kpi-label" style={{margin:0}}>{k.lbl}</div>
+              <span style={{fontSize:18}}>{k.icon}</span>
+            </div>
             <div className="arb-kpi-val" style={{color:k.c}}>{typeof k.val==='number'?<AnimatedNumber value={k.val} duration={1000}/>:k.val}</div>
           </div>
         ))}
@@ -4736,15 +4745,33 @@ function Arborizacao(){
       {/* ── MAIN: 3 COLUNAS ── */}
       <div className="arb-main">
 
-        {/* ── LEFT: busca + filtros + cards ── */}
+        {/* ── LEFT: busca + filtros de status + severidade + cards ── */}
         <div className="arb-left">
           <div className="arb-left-head">
             <input className="arb-search" placeholder="Buscar protocolo, bairro, descrição..." value={busca} onChange={e=>setBusca(e.target.value)}/>
-            <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:8}}>Filtrar por Tipo, Severidade, Status</div>
+
+            {/* ── Filtros de STATUS (tabs com contadores) ── */}
+            <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:6}}>Status</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>
+              {[
+                {k:'abertos',l:'Sem Atendimento',c:'#f59e0b',count:data.filter(x=>['recebido','triado'].includes(x.status)).length},
+                {k:'atribuido',l:'Atribuídos',c:'#3b82f6',count:data.filter(x=>x.status==='atribuido').length},
+                {k:'em_execucao',l:'Em Execução',c:'#8b5cf6',count:data.filter(x=>x.status==='em_execucao').length},
+                {k:'concluido',l:'Concluídos',c:'#f59e0b',count:data.filter(x=>x.status==='concluido').length},
+                {k:'resolvidos',l:'Resolvidos',c:'#059669',count:data.filter(x=>x.status==='fiscalizado').length},
+              ].map(t=>(
+                <button key={t.k} className={`arb-chip${filtro===t.k?' on':''}`} onClick={()=>setFiltro(filtro===t.k?'abertos':t.k)}
+                  style={filtro===t.k?{background:t.c+'18',borderColor:t.c+'50',color:t.c}:{}}>
+                  {t.l} <span style={{background:filtro===t.k?t.c+'30':'rgba(255,255,255,.06)',borderRadius:10,padding:'1px 7px',fontSize:10,fontWeight:700,marginLeft:4}}>{t.count}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* ── Filtros de SEVERIDADE ── */}
+            <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:6}}>Severidade</div>
             <div className="arb-chips">
-              <button className={`arb-chip${filtro==='todos'?' on':''}`} onClick={()=>setFiltro('todos')}>Todos</button>
               {Object.entries(ARBO_SEV).map(([k,v])=>(
-                <button key={k} className={`arb-chip${filtro===k?' on':''}`} onClick={()=>setFiltro(filtro===k?'todos':k)} style={filtro===k?{background:v.bg,borderColor:v.border,color:v.c}:{}}>{v.label}</button>
+                <button key={k} className={`arb-chip${filtro===k?' on':''}`} onClick={()=>setFiltro(filtro===k?(filtro==='resolvidos'?'resolvidos':'abertos'):k)} style={filtro===k?{background:v.bg,borderColor:v.border,color:v.c}:{}}>{v.label}</button>
               ))}
             </div>
           </div>
