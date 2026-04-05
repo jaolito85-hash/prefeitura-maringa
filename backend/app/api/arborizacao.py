@@ -73,20 +73,26 @@ async def arborizacao_para_mapa():
 async def arborizacao_kpis():
     """KPIs agregados para o dashboard."""
     sb = get_supabase()
-    todos = sb.table("arborizacao").select("id, status, severidade, sla_estourado, empresa_atribuida", count="exact").execute()
+    todos = sb.table("arborizacao").select("id, status, severidade, sla_estourado, empresa_atribuida, cidadao_avaliacao", count="exact").execute()
     data = todos.data or []
     total = len(data)
     emerg = sum(1 for d in data if d["severidade"] == "emergencia" and d["status"] not in ("concluido", "fiscalizado"))
     done = sum(1 for d in data if d["status"] in ("concluido", "fiscalizado"))
     sla_estourados = sum(1 for d in data if d.get("sla_estourado"))
     taxa = round(done / total * 100) if total else 0
+    # Satisfação média (só registros com avaliação)
+    avaliacoes = [d["cidadao_avaliacao"] for d in data if d.get("cidadao_avaliacao")]
+    media_satisfacao = round(sum(avaliacoes) / len(avaliacoes), 1) if avaliacoes else 0
+    total_avaliacoes = len(avaliacoes)
     return {
         "total": total,
         "emerg": emerg,
         "done": done,
         "sla_estourados": sla_estourados,
         "taxa": taxa,
-        "tempo_medio": "1d 14h",  # TODO: calcular de verdade
+        "tempo_medio": "1d 14h",
+        "media_satisfacao": media_satisfacao,
+        "total_avaliacoes": total_avaliacoes,
     }
 
 
