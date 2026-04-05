@@ -4713,12 +4713,33 @@ function Arborizacao(){
 
   return(
     <div className="arb-wrap">
-      {/* ── HEADER ── */}
-      <div className="arb-top">
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <h2 style={{fontSize:24,fontWeight:700,color:'var(--text)',margin:0}}>Arborização Urbana — Node Data</h2>
-          <button onClick={downloadCSV} style={{padding:'10px 20px',background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.3)',borderRadius:10,color:'#10b981',fontSize:13,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:8,fontFamily:'inherit'}}>📥 Exportar Relatório</button>
+      {/* ── HEADER + STATUS TABS ── */}
+      <div style={{padding:'18px 28px 14px',flexShrink:0,display:'flex',alignItems:'center',gap:20,flexWrap:'wrap'}}>
+        <h2 style={{fontSize:22,fontWeight:700,color:'var(--text)',margin:0,whiteSpace:'nowrap'}}>🌳 Arborização Urbana</h2>
+        {/* Status tabs inline */}
+        <div style={{display:'flex',background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,overflow:'hidden',flex:'0 1 auto'}}>
+          {[
+            {k:'abertos',l:'Sem Atendimento',c:'#f59e0b',count:data.filter(x=>['recebido','triado'].includes(x.status)).length},
+            {k:'atribuido',l:'Atribuídos',c:'#3b82f6',count:data.filter(x=>x.status==='atribuido').length},
+            {k:'em_execucao',l:'Em Execução',c:'#8b5cf6',count:data.filter(x=>x.status==='em_execucao').length},
+            {k:'concluido',l:'Aguardando Fiscal',c:'#f59e0b',count:data.filter(x=>x.status==='concluido').length},
+            {k:'resolvidos',l:'Resolvidos',c:'#059669',count:data.filter(x=>x.status==='fiscalizado').length},
+          ].map((t,i)=>(
+            <button key={t.k} onClick={()=>setFiltro(filtro===t.k?'abertos':t.k)}
+              style={{padding:'9px 18px',background:filtro===t.k?t.c:'transparent',border:'none',
+                color:filtro===t.k?'#fff':t.count>0?'var(--text-secondary)':'var(--text-muted)',
+                fontSize:13,fontWeight:600,cursor:'pointer',transition:'all .2s',fontFamily:'inherit',
+                display:'flex',alignItems:'center',gap:8,whiteSpace:'nowrap',
+                borderRight:i<4?'1px solid var(--border)':'none'}}>
+              {t.l}
+              <span style={{background:filtro===t.k?'rgba(255,255,255,.25)':'rgba(255,255,255,.06)',
+                borderRadius:10,padding:'2px 8px',fontSize:11,fontWeight:700,minWidth:20,textAlign:'center'}}>
+                {t.count}
+              </span>
+            </button>
+          ))}
         </div>
+        <button onClick={downloadCSV} style={{marginLeft:'auto',padding:'9px 18px',background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.3)',borderRadius:10,color:'#10b981',fontSize:13,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:8,fontFamily:'inherit',whiteSpace:'nowrap'}}>📥 Exportar Relatório</button>
       </div>
 
       {/* ── KPIs (6 cards) ── */}
@@ -4760,33 +4781,14 @@ function Arborizacao(){
       {/* ── MAIN: 3 COLUNAS ── */}
       <div className="arb-main">
 
-        {/* ── LEFT: busca + filtros de status + severidade + cards ── */}
+        {/* ── LEFT: busca + severidade + cards ── */}
         <div className="arb-left">
           <div className="arb-left-head">
             <input className="arb-search" placeholder="Buscar protocolo, bairro, descrição..." value={busca} onChange={e=>setBusca(e.target.value)}/>
-
-            {/* ── Filtros de STATUS (tabs com contadores) ── */}
-            <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:6}}>Status</div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:10}}>
-              {[
-                {k:'abertos',l:'Sem Atendimento',c:'#f59e0b',count:data.filter(x=>['recebido','triado'].includes(x.status)).length},
-                {k:'atribuido',l:'Atribuídos',c:'#3b82f6',count:data.filter(x=>x.status==='atribuido').length},
-                {k:'em_execucao',l:'Em Execução',c:'#8b5cf6',count:data.filter(x=>x.status==='em_execucao').length},
-                {k:'concluido',l:'Concluídos',c:'#f59e0b',count:data.filter(x=>x.status==='concluido').length},
-                {k:'resolvidos',l:'Resolvidos',c:'#059669',count:data.filter(x=>x.status==='fiscalizado').length},
-              ].map(t=>(
-                <button key={t.k} className={`arb-chip${filtro===t.k?' on':''}`} onClick={()=>setFiltro(filtro===t.k?'abertos':t.k)}
-                  style={filtro===t.k?{background:t.c+'18',borderColor:t.c+'50',color:t.c}:{}}>
-                  {t.l} <span style={{background:filtro===t.k?t.c+'30':'rgba(255,255,255,.06)',borderRadius:10,padding:'1px 7px',fontSize:10,fontWeight:700,marginLeft:4}}>{t.count}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* ── Filtros de SEVERIDADE ── */}
-            <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:6}}>Severidade</div>
-            <div className="arb-chips">
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <span style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8}}>Severidade:</span>
               {Object.entries(ARBO_SEV).map(([k,v])=>(
-                <button key={k} className={`arb-chip${filtro===k?' on':''}`} onClick={()=>setFiltro(filtro===k?(filtro==='resolvidos'?'resolvidos':'abertos'):k)} style={filtro===k?{background:v.bg,borderColor:v.border,color:v.c}:{}}>{v.label}</button>
+                <button key={k} className={`arb-chip${filtro===k?' on':''}`} onClick={()=>setFiltro(filtro===k?'abertos':k)} style={filtro===k?{background:v.bg,borderColor:v.border,color:v.c}:{}}>{v.label}</button>
               ))}
             </div>
           </div>
