@@ -709,42 +709,51 @@ tr{transition:.12s}
 .login-btn:active{transform:translateY(0)}
 .login-error{color:#ef4444;font-size:13px;font-weight:600;margin-top:12px;min-height:20px}
 
-/* ==================== ARBORIZAÇÃO ==================== */
+/* ==================== ARBORIZAÇÃO v2 ==================== */
 .arb-wrap{display:flex;flex-direction:column;height:100%;overflow:hidden;font-family:'Outfit','Public Sans',sans-serif}
 .arb-wrap *{font-family:'Outfit','Public Sans',sans-serif}
-.arb-header{padding:20px 24px 0;flex-shrink:0}
-.arb-kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;padding:16px 24px;flex-shrink:0}
-.arb-body{display:flex;flex:1;overflow:hidden}
-.arb-sidebar{width:380px;min-width:380px;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:#0e1017}
-.arb-sidebar-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
-.arb-cards{flex:1;overflow-y:auto;padding:6px 8px}
-.arb-cards::-webkit-scrollbar{width:4px}
+.arb-top{padding:20px 28px 0;flex-shrink:0}
+.arb-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:18px 28px;flex-shrink:0}
+.arb-kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px 24px;position:relative;overflow:hidden;transition:all .2s}
+.arb-kpi:hover{border-color:var(--border-light);transform:translateY(-1px)}
+.arb-kpi-bar{position:absolute;top:0;left:0;right:0;height:3px;opacity:.9}
+.arb-kpi-label{font-size:12px;font-weight:600;color:var(--text-muted);letter-spacing:.4px;margin-bottom:10px}
+.arb-kpi-val{font-family:'Public Sans',sans-serif;font-size:36px;font-weight:800;line-height:1;letter-spacing:-.8px}
+.arb-main{display:flex;flex:1;overflow:hidden}
+.arb-left{width:400px;min-width:400px;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:#0a0c14}
+.arb-left-head{padding:18px 20px 14px;flex-shrink:0;border-bottom:1px solid var(--border)}
+.arb-search{width:100%;padding:11px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;font-weight:500;outline:none;transition:border-color .2s;margin-bottom:14px}
+.arb-search:focus{border-color:rgba(5,150,105,.4)}
+.arb-search::placeholder{color:var(--text-muted);font-weight:400}
+.arb-chips{display:flex;flex-wrap:wrap;gap:6px}
+.arb-chip{padding:5px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+.arb-chip:hover{border-color:var(--border-light);color:var(--text-secondary)}
+.arb-chip.on{background:rgba(5,150,105,.12);border-color:rgba(5,150,105,.4);color:#10b981}
+.arb-cards{flex:1;overflow-y:auto;padding:10px 12px}
+.arb-cards::-webkit-scrollbar{width:5px}
 .arb-cards::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:4px}
-.arb-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .2s}
+.arb-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:10px;cursor:pointer;transition:all .2s}
 .arb-card:hover{border-color:var(--border-light);background:var(--card-hover)}
 .arb-card.selected{border-color:#059669;background:rgba(5,150,105,.06)}
-.arb-map-area{flex:1;position:relative}
-.arb-detail{width:440px;background:#0e1017;border-left:1px solid rgba(255,255,255,.06);height:100%;display:flex;flex-direction:column;overflow-y:auto;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);flex-shrink:0;position:absolute;right:0;top:0;bottom:0;z-index:10}
-.arb-detail.open{transform:translateX(0)}
-.arb-detail::-webkit-scrollbar{width:4px}
-.arb-detail::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:4px}
-.arb-flow{display:flex;align-items:center;gap:0;margin:16px 0}
+.arb-center{flex:1;position:relative}
+.arb-right{width:380px;min-width:380px;border-left:1px solid var(--border);background:#0a0c14;overflow-y:auto;display:flex;flex-direction:column}
+.arb-right::-webkit-scrollbar{width:5px}
+.arb-right::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:4px}
+.arb-section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:12px}
+.arb-section-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.arb-sev-pill{display:inline-block;padding:4px 14px;border-radius:8px;font-size:13px;font-weight:700;letter-spacing:.2px}
+.arb-btn-approve{width:100%;padding:14px;background:#059669;border:none;border-radius:12px;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;margin-bottom:8px}
+.arb-btn-approve:hover{background:#047857;transform:translateY(-1px)}
+.arb-btn-reject{width:100%;padding:14px;background:transparent;border:1px solid rgba(239,68,68,.4);border-radius:12px;color:#f87171;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.arb-btn-reject:hover{background:rgba(239,68,68,.06);border-color:#ef4444}
+.arb-flow{display:flex;align-items:center;gap:0;margin:14px 0 4px}
 .arb-flow-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
-.arb-flow-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;border:2px solid var(--border);background:var(--surface);transition:all .3s;z-index:1}
+.arb-flow-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:2px solid var(--border);background:var(--surface);transition:all .3s;z-index:1}
 .arb-flow-dot.done{background:#059669;border-color:#059669}
-.arb-flow-dot.current{background:#3b82f6;border-color:#3b82f6;box-shadow:0 0 12px rgba(59,130,246,.4)}
-.arb-flow-line{position:absolute;top:13px;left:calc(50% + 14px);right:calc(-50% + 14px);height:2px;background:var(--border)}
+.arb-flow-dot.current{background:#3b82f6;border-color:#3b82f6;box-shadow:0 0 14px rgba(59,130,246,.4)}
+.arb-flow-line{position:absolute;top:14px;left:calc(50% + 15px);right:calc(-50% + 15px);height:2px;background:var(--border)}
 .arb-flow-line.done{background:#059669}
-.arb-flow-label{font-size:9px;color:var(--text-muted);margin-top:6px;text-align:center;font-weight:600;letter-spacing:.3px}
-.arb-report-section{flex:1;overflow-y:auto;padding:24px}
-.arb-report-section::-webkit-scrollbar{width:4px}
-.arb-report-section::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:4px}
-.arb-bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-.arb-bar-label{width:140px;font-size:12px;color:var(--text-secondary);font-weight:500;text-align:right;flex-shrink:0}
-.arb-bar-track{flex:1;height:22px;background:rgba(255,255,255,.04);border-radius:6px;overflow:hidden;position:relative}
-.arb-bar-fill{height:100%;border-radius:6px;transition:width .8s cubic-bezier(.22,1,.36,1);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:11px;font-weight:700;color:#fff;min-width:30px}
-.arb-bar-count{width:50px;font-size:13px;font-weight:700;color:var(--text);text-align:right;flex-shrink:0}
-@media(max-width:1400px){.arb-kpi-grid{grid-template-columns:repeat(3,1fr)}}
+.arb-flow-label{font-size:10px;color:var(--text-muted);margin-top:8px;text-align:center;font-weight:600;letter-spacing:.3px}
 </style>
 </head>
 <body>
@@ -4597,132 +4606,75 @@ const ARBO_MOCK=(()=>{
 })();
 
 function Arborizacao(){
-  const [filtroTipo,setFiltroTipo]=useState('todos');
-  const [filtroSev,setFiltroSev]=useState('todas');
-  const [filtroStatus,setFiltroStatus]=useState('todos');
-  const [filtroPeriodo,setFiltroPeriodo]=useState('30dias');
+  const [busca,setBusca]=useState('');
+  const [filtro,setFiltro]=useState('todos');
   const [sel,setSel]=useState(null);
-  const [subTab,setSubTab]=useState('solicitacoes');
   const mapRef=useRef(null);
   const mapInst=useRef(null);
 
   /* ── Filtros ── */
   const filtrados=useMemo(()=>{
     let d=[...ARBO_MOCK];
-    if(filtroTipo!=='todos') d=d.filter(x=>x.tipo===filtroTipo);
-    if(filtroSev!=='todas') d=d.filter(x=>x.severidade===filtroSev);
-    if(filtroStatus!=='todos') d=d.filter(x=>x.status===filtroStatus);
-    const now=new Date();
-    if(filtroPeriodo==='hoje') d=d.filter(x=>new Date(x.created_at).toDateString()===now.toDateString());
-    else if(filtroPeriodo==='7dias') d=d.filter(x=>(now-new Date(x.created_at))<7*86400000);
-    else if(filtroPeriodo==='30dias') d=d.filter(x=>(now-new Date(x.created_at))<30*86400000);
-    else if(filtroPeriodo==='ano') d=d.filter(x=>new Date(x.created_at).getFullYear()===now.getFullYear());
+    if(filtro!=='todos'){
+      if(ARBO_SEV[filtro]) d=d.filter(x=>x.severidade===filtro);
+      else if(ARBO_CATS[filtro]) d=d.filter(x=>x.tipo===filtro);
+      else if(ARBO_STATUS[filtro]) d=d.filter(x=>x.status===filtro);
+    }
+    if(busca.trim()){const q=busca.toLowerCase();d=d.filter(x=>x.descricao.toLowerCase().includes(q)||x.bairro.toLowerCase().includes(q)||x.protocolo.toLowerCase().includes(q));}
     return d;
-  },[filtroTipo,filtroSev,filtroStatus,filtroPeriodo]);
+  },[filtro,busca]);
 
   /* ── KPIs ── */
   const kpis=useMemo(()=>{
     const t=ARBO_MOCK.length;
     const emerg=ARBO_MOCK.filter(x=>x.severidade==='emergencia'&&!['concluido','fiscalizado'].includes(x.status)).length;
-    const exec=ARBO_MOCK.filter(x=>x.status==='em_execucao').length;
     const done=ARBO_MOCK.filter(x=>x.status==='concluido'||x.status==='fiscalizado').length;
-    const pend=ARBO_MOCK.filter(x=>x.status==='recebido'||x.status==='triado').length;
     const taxa=t?Math.round(done/t*100):0;
-    return {total:t,emerg,exec,done,pend,taxa};
+    return {total:t,emerg,done,taxa};
   },[]);
 
   /* ── Mapa (layers nativos — fixos no zoom/pitch) ── */
   const arbPopup=useRef(null);
   useEffect(()=>{
-    if(subTab!=='solicitacoes'||!mapRef.current) return;
+    if(!mapRef.current) return;
     mapboxgl.accessToken=MAPBOX_TOKEN;
     const map=new mapboxgl.Map({container:mapRef.current,style:'mapbox://styles/mapbox/dark-v11',center:[-51.9383,-23.4205],zoom:12.5,attributionControl:false});
     map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
-    arbPopup.current=new mapboxgl.Popup({closeButton:false,closeOnClick:true,maxWidth:'260px',offset:10});
+    arbPopup.current=new mapboxgl.Popup({closeButton:false,closeOnClick:true,maxWidth:'280px',offset:12});
     mapInst.current=map;
 
     map.on('load',()=>{
       const sevStops=['emergencia','#ef4444','urgencia','#f59e0b','prioridade','#3b82f6','rotina','#10b981'];
-
       map.addSource('arb-points',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-
-      // Glow (só emergência/urgência)
       map.addLayer({id:'arb-glow',type:'circle',source:'arb-points',
         filter:['in',['get','severidade'],['literal',['emergencia','urgencia']]],
-        paint:{
-          'circle-radius':['match',['get','severidade'],'emergencia',24,'urgencia',18,14],
-          'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
-          'circle-opacity':0.12,'circle-blur':1.2,
-      }});
-
-      // Pulse halo
+        paint:{'circle-radius':['match',['get','severidade'],'emergencia',26,'urgencia',20,16],'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],'circle-opacity':0.12,'circle-blur':1.2}});
       map.addLayer({id:'arb-pulse',type:'circle',source:'arb-points',paint:{
-        'circle-radius':['match',['get','severidade'],'emergencia',16,'urgencia',13,'prioridade',10,'rotina',8,9],
-        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
-        'circle-opacity':0.4,'circle-blur':0.6,
-      }});
-
-      // Ponto principal
+        'circle-radius':['match',['get','severidade'],'emergencia',18,'urgencia',14,'prioridade',11,'rotina',9,10],
+        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],'circle-opacity':0.4,'circle-blur':0.6}});
       map.addLayer({id:'arb-main',type:'circle',source:'arb-points',paint:{
-        'circle-radius':['match',['get','severidade'],'emergencia',8,'urgencia',7,'prioridade',5.5,'rotina',4.5,5],
-        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
-        'circle-opacity':0.95,
-        'circle-stroke-width':1.5,'circle-stroke-color':'rgba(255,255,255,0.7)',
-      }});
-
-      // Click → selecionar
-      map.on('click','arb-main',(e)=>{
-        const f=e.features[0];
-        const id=f.properties.id;
-        const item=ARBO_MOCK.find(x=>x.id===id);
-        if(item) setSel(item);
-      });
-
-      // Hover → popup + cursor
+        'circle-radius':['match',['get','severidade'],'emergencia',9,'urgencia',7.5,'prioridade',6,'rotina',5,5],
+        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],'circle-opacity':0.95,
+        'circle-stroke-width':2,'circle-stroke-color':'rgba(255,255,255,0.8)'}});
+      map.on('click','arb-main',(e)=>{const id=e.features[0].properties.id;const item=ARBO_MOCK.find(x=>x.id===id);if(item)setSel(item);});
       map.on('mouseenter','arb-main',(e)=>{
         map.getCanvas().style.cursor='pointer';
-        const f=e.features[0];const p=f.properties;const coords=f.geometry.coordinates.slice();
-        arbPopup.current.setLngLat(coords).setHTML(
-          `<div style="font-family:Outfit,sans-serif;padding:4px 0"><strong style="font-size:12px;color:#e2e8f0">${p.descricao}</strong><div style="font-size:11px;color:#94a3b8;margin-top:4px">📍 ${p.bairro} · ${p.protocolo}</div></div>`
-        ).addTo(map);
+        const p=e.features[0].properties;const coords=e.features[0].geometry.coordinates.slice();
+        arbPopup.current.setLngLat(coords).setHTML(`<div style="font-family:Outfit,sans-serif;padding:6px 2px"><strong style="font-size:13px;color:#e2e8f0">${p.descricao}</strong><div style="font-size:12px;color:#94a3b8;margin-top:6px">📍 ${p.bairro} · ${p.protocolo}</div></div>`).addTo(map);
       });
       map.on('mouseleave','arb-main',()=>{map.getCanvas().style.cursor='';arbPopup.current.remove();});
-
-      // Pulse animation
-      let pulseDir=1,pulseVal=0;
-      const pulseAnim=()=>{
-        if(!mapInst.current) return;
-        pulseVal+=pulseDir*0.015;
-        if(pulseVal>1){pulseDir=-1;pulseVal=1;}
-        if(pulseVal<0){pulseDir=1;pulseVal=0;}
-        try{map.setPaintProperty('arb-pulse','circle-opacity',0.2+pulseVal*0.3);}catch(e){}
-        requestAnimationFrame(pulseAnim);
-      };
-      requestAnimationFrame(pulseAnim);
+      let pd=1,pv=0;const pa=()=>{if(!mapInst.current)return;pv+=pd*.015;if(pv>1){pd=-1;pv=1;}if(pv<0){pd=1;pv=0;}try{map.setPaintProperty('arb-pulse','circle-opacity',.2+pv*.3);}catch(e){}requestAnimationFrame(pa);};requestAnimationFrame(pa);
     });
-
     return ()=>{map.remove();mapInst.current=null;};
-  },[subTab]);
+  },[]);
 
-  /* ── Atualizar dados do mapa quando filtros mudam ── */
+  /* ── Atualizar dados do mapa ── */
   useEffect(()=>{
     if(!mapInst.current) return;
     const map=mapInst.current;
-    const updateSource=()=>{
-      const src=map.getSource('arb-points');
-      if(!src) return;
-      src.setData({
-        type:'FeatureCollection',
-        features:filtrados.map(d=>({
-          type:'Feature',
-          geometry:{type:'Point',coordinates:[d.lng,d.lat]},
-          properties:{id:d.id,protocolo:d.protocolo,descricao:d.descricao,bairro:d.bairro,severidade:d.severidade,tipo:d.tipo,status:d.status},
-        })),
-      });
-    };
-    if(map.isStyleLoaded()) updateSource();
-    else map.on('load',updateSource);
-  },[filtrados,subTab]);
+    const update=()=>{const src=map.getSource('arb-points');if(!src)return;src.setData({type:'FeatureCollection',features:filtrados.map(d=>({type:'Feature',geometry:{type:'Point',coordinates:[d.lng,d.lat]},properties:{id:d.id,protocolo:d.protocolo,descricao:d.descricao,bairro:d.bairro,severidade:d.severidade}}))});};
+    if(map.isStyleLoaded())update();else map.on('load',update);
+  },[filtrados]);
 
   /* ── Download CSV ── */
   const downloadCSV=()=>{
@@ -4731,393 +4683,204 @@ function Arborizacao(){
     const csv=[h,...rows].map(r=>r.join(';')).join('\n');
     const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download=`arborizacao_${filtroPeriodo}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+    const a=document.createElement('a');a.href=url;a.download=`arborizacao_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
   };
 
-  /* ── Estatísticas para relatórios ── */
-  const stats=useMemo(()=>{
-    const byTipo={};Object.keys(ARBO_CATS).forEach(k=>{byTipo[k]=filtrados.filter(x=>x.tipo===k).length;});
-    const byBairro={};filtrados.forEach(x=>{byBairro[x.bairro]=(byBairro[x.bairro]||0)+1;});
-    const bySev={};Object.keys(ARBO_SEV).forEach(k=>{bySev[k]=filtrados.filter(x=>x.severidade===k).length;});
-    const byStatus={};Object.keys(ARBO_STATUS).forEach(k=>{byStatus[k]=filtrados.filter(x=>x.status===k).length;});
-    const byEmpresa={};filtrados.forEach(x=>{if(x.empresa){byEmpresa[x.empresa]=(byEmpresa[x.empresa]||0)+1;}});
-    return {byTipo,byBairro,bySev,byStatus,byEmpresa};
-  },[filtrados]);
-
-  const maxByTipo=Math.max(...Object.values(stats.byTipo),1);
-  const maxByBairro=Math.max(...Object.values(stats.byBairro),1);
-
-  /* ── Ago helper ── */
+  /* ── Helpers ── */
   const ago=(iso)=>{const d=Math.floor((Date.now()-new Date(iso))/60000);if(d<60)return `${d}min`;if(d<1440)return `${Math.floor(d/60)}h`;return `${Math.floor(d/1440)}d`;};
-
-  /* ── Pill ── */
-  const sP=(sev)=>({background:ARBO_SEV[sev]?.bg,color:ARBO_SEV[sev]?.c,border:`1px solid ${ARBO_SEV[sev]?.border}`,borderRadius:6,padding:'2px 10px',fontSize:11,fontWeight:600,display:'inline-block'});
+  const sevPill=(sev)=>({background:ARBO_SEV[sev]?.bg,color:ARBO_SEV[sev]?.c,border:`1px solid ${ARBO_SEV[sev]?.border}`});
 
   return(
     <div className="arb-wrap">
       {/* ── HEADER ── */}
-      <div className="arb-header">
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
-          <div>
-            <h2 style={{fontSize:22,fontWeight:700,color:'var(--text)',margin:0}}>🌳 Arborização Urbana</h2>
-            <p style={{fontSize:13,color:'var(--text-muted)',margin:'4px 0 0'}}>Gestão e Monitoramento · Licitação R$ 80,5 mi · 150 mil árvores mapeadas</p>
+      <div className="arb-top">
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <h2 style={{fontSize:24,fontWeight:700,color:'var(--text)',margin:0}}>Arborização Urbana — Node Data</h2>
+          <button onClick={downloadCSV} style={{padding:'10px 20px',background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.3)',borderRadius:10,color:'#10b981',fontSize:13,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:8,fontFamily:'inherit'}}>📥 Exportar Relatório</button>
+        </div>
+      </div>
+
+      {/* ── KPIs (4 cards grandes) ── */}
+      <div className="arb-kpi-row">
+        {[
+          {val:kpis.total,lbl:'Total de Solicitações',c:'#10b981'},
+          {val:kpis.emerg,lbl:'Emergências Ativas',c:'#ef4444'},
+          {val:'1d 14h',lbl:'Tempo Médio de Resposta',c:'#f59e0b'},
+          {val:kpis.taxa+'%',lbl:'Taxa de Resolução',c:'#10b981'},
+        ].map((k,i)=>(
+          <div key={i} className="arb-kpi">
+            <div className="arb-kpi-bar" style={{background:k.c}}/>
+            <div className="arb-kpi-label">{k.lbl}</div>
+            <div className="arb-kpi-val" style={{color:k.c}}>{typeof k.val==='number'?<AnimatedNumber value={k.val} duration={1000}/>:k.val}</div>
           </div>
-          <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <div style={{display:'flex',background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,overflow:'hidden'}}>
-              {[{k:'hoje',l:'Hoje'},{k:'7dias',l:'7 dias'},{k:'30dias',l:'30 dias'},{k:'ano',l:'Ano'},{k:'tudo',l:'Tudo'}].map(p=>(
-                <button key={p.k} onClick={()=>setFiltroPeriodo(p.k)}
-                  style={{padding:'7px 14px',background:filtroPeriodo===p.k?'#059669':'transparent',border:'none',color:filtroPeriodo===p.k?'#fff':'var(--text-muted)',fontSize:12,fontWeight:600,cursor:'pointer',transition:'all .2s',fontFamily:'inherit'}}>{p.l}</button>
+        ))}
+      </div>
+
+      {/* ── MAIN: 3 COLUNAS ── */}
+      <div className="arb-main">
+
+        {/* ── LEFT: busca + filtros + cards ── */}
+        <div className="arb-left">
+          <div className="arb-left-head">
+            <input className="arb-search" placeholder="Buscar protocolo, bairro, descrição..." value={busca} onChange={e=>setBusca(e.target.value)}/>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:8}}>Filtrar por Tipo, Severidade, Status</div>
+            <div className="arb-chips">
+              <button className={`arb-chip${filtro==='todos'?' on':''}`} onClick={()=>setFiltro('todos')}>Todos</button>
+              {Object.entries(ARBO_SEV).map(([k,v])=>(
+                <button key={k} className={`arb-chip${filtro===k?' on':''}`} onClick={()=>setFiltro(filtro===k?'todos':k)} style={filtro===k?{background:v.bg,borderColor:v.border,color:v.c}:{}}>{v.label}</button>
               ))}
             </div>
-            <button onClick={downloadCSV} style={{padding:'8px 16px',background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.3)',borderRadius:10,color:'#10b981',fontSize:12,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontFamily:'inherit'}}>
-              📥 Baixar CSV
-            </button>
           </div>
-        </div>
-      </div>
 
-      {/* ── KPIs ── */}
-      <div className="arb-kpi-grid">
-        {[
-          {icon:'🌳',val:kpis.total,lbl:'Total Solicitações',c:'#10b981',sub:'últimos 30 dias'},
-          {icon:'🚨',val:kpis.emerg,lbl:'Emergências Ativas',c:'#ef4444',sub:'risco iminente'},
-          {icon:'📋',val:kpis.pend,lbl:'Aguardando Triagem',c:'#f59e0b',sub:'recebido + triado'},
-          {icon:'⚙️',val:kpis.exec,lbl:'Em Execução',c:'#8b5cf6',sub:'empresa atuando'},
-          {icon:'✅',val:kpis.done,lbl:'Concluídas',c:'#059669',sub:'concluído + fiscalizado'},
-          {icon:'📊',val:kpis.taxa+'%',lbl:'Taxa de Resolução',c:'#3b82f6',sub:'meta: 85%'},
-        ].map((k,i)=>(
-          <div key={i} className="kpi anim-card" style={{borderLeft:`3px solid ${k.c}`}}>
-            <div className="kpi-top">
-              <span className="kpi-label">{k.lbl}</span>
-              <div className="kpi-icon" style={{background:`${k.c}15`}}><span style={{fontSize:16}}>{k.icon}</span></div>
-            </div>
-            <div className="kpi-value" style={{color:k.c}}>{typeof k.val==='number'?<AnimatedNumber value={k.val} duration={1000}/>:k.val}</div>
-            <div className="kpi-sub">{k.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── SUB-TABS ── */}
-      <div style={{display:'flex',gap:0,padding:'0 24px 12px',borderBottom:'1px solid var(--border)'}}>
-        {[{k:'solicitacoes',l:'📍 Mapa & Solicitações',count:filtrados.length},{k:'relatorios',l:'📊 Relatórios & Análises',count:null}].map(t=>(
-          <button key={t.k} onClick={()=>setSubTab(t.k)}
-            style={{padding:'10px 20px',background:subTab===t.k?'rgba(5,150,105,.08)':'transparent',border:'none',borderBottom:subTab===t.k?'2px solid #059669':'2px solid transparent',color:subTab===t.k?'#10b981':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all .2s',fontFamily:'inherit',display:'flex',alignItems:'center',gap:8}}>
-            {t.l}{t.count!=null&&<span style={{background:'rgba(5,150,105,.15)',color:'#10b981',borderRadius:12,padding:'1px 8px',fontSize:11,fontWeight:700}}>{t.count}</span>}
-          </button>
-        ))}
-        {/* ── Legenda dos 3 atores ── */}
-        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:16,fontSize:11,color:'var(--text-muted)'}}>
-          <span>👤 Cidadão reporta</span><span>🏛️ Prefeitura fiscaliza</span><span>🏢 Empresa executa</span>
-        </div>
-      </div>
-
-      {/* ─── TAB: SOLICITAÇÕES ─── */}
-      {subTab==='solicitacoes'&&(
-        <div className="arb-body">
-          {/* SIDEBAR */}
-          <div className="arb-sidebar">
-            <div className="arb-sidebar-header">
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-                <span style={{fontSize:14,fontWeight:700,color:'var(--text)'}}>Solicitações</span>
-                <span style={{fontSize:12,color:'var(--text-muted)'}}>{filtrados.length} registros</span>
-              </div>
-              {/* Filtro tipo */}
-              <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:8}}>
-                <button onClick={()=>setFiltroTipo('todos')} style={{padding:'3px 10px',borderRadius:6,border:'1px solid '+(filtroTipo==='todos'?'#059669':'var(--border)'),background:filtroTipo==='todos'?'rgba(5,150,105,.12)':'transparent',color:filtroTipo==='todos'?'#10b981':'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Todos</button>
-                {Object.entries(ARBO_CATS).map(([k,v])=>(
-                  <button key={k} onClick={()=>setFiltroTipo(k)} style={{padding:'3px 10px',borderRadius:6,border:'1px solid '+(filtroTipo===k?v.c+'50':'var(--border)'),background:filtroTipo===k?v.c+'18':'transparent',color:filtroTipo===k?v.c:'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{v.icon} {v.label}</button>
-                ))}
-              </div>
-              {/* Filtro severidade */}
-              <div style={{display:'flex',gap:4,marginBottom:8}}>
-                <button onClick={()=>setFiltroSev('todas')} style={{padding:'3px 10px',borderRadius:6,border:'1px solid '+(filtroSev==='todas'?'#059669':'var(--border)'),background:filtroSev==='todas'?'rgba(5,150,105,.12)':'transparent',color:filtroSev==='todas'?'#10b981':'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Todas</button>
-                {Object.entries(ARBO_SEV).map(([k,v])=>(
-                  <button key={k} onClick={()=>setFiltroSev(k)} style={{padding:'3px 10px',borderRadius:6,border:`1px solid ${filtroSev===k?v.c+'50':'var(--border)'}`,background:filtroSev===k?v.bg:'transparent',color:filtroSev===k?v.c:'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{v.label}</button>
-                ))}
-              </div>
-              {/* Filtro status */}
-              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                <button onClick={()=>setFiltroStatus('todos')} style={{padding:'3px 10px',borderRadius:6,border:'1px solid '+(filtroStatus==='todos'?'#059669':'var(--border)'),background:filtroStatus==='todos'?'rgba(5,150,105,.12)':'transparent',color:filtroStatus==='todos'?'#10b981':'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Todos</button>
-                {Object.entries(ARBO_STATUS).map(([k,v])=>(
-                  <button key={k} onClick={()=>setFiltroStatus(k)} style={{padding:'3px 10px',borderRadius:6,border:`1px solid ${filtroStatus===k?v.c+'50':'var(--border)'}`,background:filtroStatus===k?v.c+'18':'transparent',color:filtroStatus===k?v.c:'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{v.icon} {v.label}</button>
-                ))}
-              </div>
-            </div>
-            {/* Cards */}
-            <div className="arb-cards">
-              {filtrados.length===0?(
-                <div style={{textAlign:'center',padding:40}}><div style={{fontSize:32,marginBottom:8}}>🌿</div><p style={{color:'var(--text-muted)',fontSize:13}}>Nenhuma solicitação encontrada</p></div>
-              ):filtrados.map(d=>(
+          <div className="arb-cards">
+            {filtrados.length===0?(
+              <div style={{textAlign:'center',padding:48}}><div style={{fontSize:36,marginBottom:10}}>🌿</div><p style={{color:'var(--text-muted)',fontSize:14}}>Nenhuma solicitação encontrada</p></div>
+            ):filtrados.map(d=>{
+              const cat=ARBO_CATS[d.tipo]||{};
+              const sev=ARBO_SEV[d.severidade]||{};
+              return(
                 <div key={d.id} className={`arb-card${sel?.id===d.id?' selected':''}`} onClick={()=>setSel(d)}>
-                  <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
-                    <div style={{width:36,height:36,borderRadius:8,background:ARBO_CATS[d.tipo]?.c+'18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{ARBO_CATS[d.tipo]?.icon}</div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
-                        <span style={{fontSize:10,color:'var(--text-muted)',fontWeight:600}}>{d.protocolo}</span>
-                        <span style={sP(d.severidade)}>{ARBO_SEV[d.severidade]?.label}</span>
-                      </div>
-                      <div style={{fontSize:13,fontWeight:600,color:'var(--text)',lineHeight:1.3,marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.descricao}</div>
-                      <div style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color:'var(--text-muted)'}}>
-                        <span>📍 {d.bairro}</span>
-                        <span>·</span>
-                        <span>{ago(d.created_at)}</span>
-                        {d.fotos>0&&<><span>·</span><span>📷 {d.fotos}</span></>}
-                      </div>
-                    </div>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--text-muted)'}}>{d.protocolo}</span>
+                    <span className="arb-sev-pill" style={{...sevPill(d.severidade),borderRadius:8,padding:'3px 12px',fontSize:12}}>{sev.label}</span>
                   </div>
-                  {/* Status bar mini */}
-                  <div style={{display:'flex',gap:3,marginTop:10}}>
-                    {Object.values(ARBO_STATUS).map((s,i)=>(
-                      <div key={i} style={{height:3,flex:1,borderRadius:99,background:i<=ARBO_STATUS[d.status]?.step?ARBO_STATUS[d.status]?.c:'rgba(255,255,255,.06)',transition:'background .3s'}}/>
+                  <h4 style={{fontSize:15,fontWeight:700,color:'var(--text)',margin:'0 0 6px',lineHeight:1.35}}>{d.descricao}</h4>
+                  <p style={{fontSize:13,color:'var(--text-secondary)',margin:'0 0 8px',lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{d.endereco}, {d.bairro}</p>
+                  <div style={{display:'flex',alignItems:'center',gap:12,fontSize:12,color:'var(--text-muted)'}}>
+                    <span>📍 {d.bairro}</span>
+                    {d.fotos>0&&<span>📷 {d.fotos}</span>}
+                    <span style={{marginLeft:'auto'}}>{ago(d.created_at)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── CENTER: mapa ── */}
+        <div className="arb-center">
+          <div ref={mapRef} style={{width:'100%',height:'100%'}}/>
+          {/* Legenda */}
+          <div style={{position:'absolute',bottom:24,left:24,background:'rgba(10,12,20,.92)',border:'1px solid var(--border)',borderRadius:12,padding:'14px 18px',backdropFilter:'blur(10px)'}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:1,marginBottom:10}}>Severidade</div>
+            {Object.entries(ARBO_SEV).map(([k,v])=>(
+              <div key={k} style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                <div style={{width:12,height:12,borderRadius:'50%',background:v.c,boxShadow:`0 0 8px ${v.c}60`}}/>
+                <span style={{fontSize:13,color:'var(--text-secondary)',fontWeight:500}}>{v.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── RIGHT: painel de detalhe (fixo, não slide) ── */}
+        {sel&&(
+          <div className="arb-right">
+            <div style={{padding:22}}>
+              {/* Header */}
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
+                <span style={{fontSize:14,fontWeight:700,color:'var(--text-muted)'}}>{sel.protocolo}</span>
+                <button onClick={()=>setSel(null)} style={{background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-muted)',fontSize:16,cursor:'pointer',width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit'}}>✕</button>
+              </div>
+
+              {/* Título */}
+              <h3 style={{fontSize:20,fontWeight:700,color:'var(--text)',margin:'0 0 20px',lineHeight:1.3}}>{sel.descricao}</h3>
+
+              {/* Cidadão */}
+              <div className="arb-section">
+                <div className="arb-section-label">👤 Cidadão</div>
+                <div style={{fontSize:15,color:'var(--text)',fontWeight:600}}>{sel.cidadao}</div>
+                <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>Reportou em {new Date(sel.created_at).toLocaleDateString('pt-BR')} às {new Date(sel.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+              </div>
+
+              {/* Classificação IA */}
+              <div className="arb-section">
+                <div className="arb-section-label">🤖 Classificação IA</div>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                  <span style={{fontSize:14,color:'var(--text-secondary)',fontWeight:500}}>Severidade:</span>
+                  <span className="arb-sev-pill" style={{...sevPill(sel.severidade),padding:'5px 16px',fontSize:14,borderRadius:8}}>{ARBO_SEV[sel.severidade]?.label}</span>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{fontSize:14,color:'var(--text-secondary)',fontWeight:500}}>Tipo:</span>
+                  <span style={{fontSize:14,color:ARBO_CATS[sel.tipo]?.c,fontWeight:600}}>{ARBO_CATS[sel.tipo]?.icon} {ARBO_CATS[sel.tipo]?.label}</span>
+                </div>
+              </div>
+
+              {/* Empresa Contratada */}
+              <div className="arb-section">
+                <div className="arb-section-label">🏢 Empresa Contratada</div>
+                {sel.empresa?(
+                  <>
+                    <div style={{fontSize:15,color:'var(--text)',fontWeight:600}}>{sel.empresa}</div>
+                    <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>Detalhes do contrato · Corpus Soluções</div>
+                    {sel.obs_empresa&&<div style={{fontSize:13,color:'var(--text-secondary)',marginTop:8,padding:'10px 12px',background:'rgba(255,255,255,.02)',borderRadius:8,borderLeft:`3px solid ${ARBO_STATUS[sel.status]?.c}`}}>{sel.obs_empresa}</div>}
+                  </>
+                ):(
+                  <div style={{fontSize:14,color:'var(--text-muted)',fontStyle:'italic'}}>Ainda não atribuído a uma empresa</div>
+                )}
+              </div>
+
+              {/* Fotos */}
+              <div className="arb-section">
+                <div className="arb-section-label">📷 Fotos ({sel.fotos})</div>
+                {sel.fotos>0?(
+                  <div style={{display:'flex',gap:8}}>
+                    {Array.from({length:Math.min(sel.fotos,3)}).map((_,i)=>(
+                      <div key={i} style={{width:90,height:68,borderRadius:10,background:'linear-gradient(135deg,rgba(5,150,105,.08),rgba(5,150,105,.02))',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'var(--text-muted)'}}>🌳</div>
                     ))}
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
+                ):(
+                  <div style={{fontSize:13,color:'var(--text-muted)',fontStyle:'italic'}}>Nenhuma foto anexada</div>
+                )}
+              </div>
 
-          {/* MAPA */}
-          <div className="arb-map-area">
-            <div ref={mapRef} style={{width:'100%',height:'100%'}}/>
-            {/* Legenda do mapa */}
-            <div style={{position:'absolute',bottom:20,left:20,background:'rgba(14,16,23,.92)',border:'1px solid var(--border)',borderRadius:10,padding:'12px 16px',backdropFilter:'blur(8px)'}}>
-              <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:1,marginBottom:8}}>Severidade</div>
-              {Object.entries(ARBO_SEV).map(([k,v])=>(
-                <div key={k} style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-                  <div style={{width:10,height:10,borderRadius:'50%',background:v.c,boxShadow:`0 0 6px ${v.c}60`}}/>
-                  <span style={{fontSize:11,color:'var(--text-secondary)'}}>{v.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* PAINEL DETALHE */}
-          <div className={`arb-detail${sel?' open':''}`}>
-            {sel&&(
-              <div style={{padding:20}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                  <span style={{fontSize:12,fontWeight:700,color:'var(--text-muted)'}}>{sel.protocolo}</span>
-                  <button onClick={()=>setSel(null)} style={{background:'transparent',border:'none',color:'var(--text-muted)',fontSize:18,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
-                </div>
-                <h3 style={{fontSize:16,fontWeight:700,color:'var(--text)',margin:'0 0 8px'}}>{sel.descricao}</h3>
-                <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
-                  <span style={sP(sel.severidade)}>{ARBO_SEV[sel.severidade]?.label}</span>
-                  <span style={{background:ARBO_CATS[sel.tipo]?.c+'18',color:ARBO_CATS[sel.tipo]?.c,borderRadius:6,padding:'2px 10px',fontSize:11,fontWeight:600}}>{ARBO_CATS[sel.tipo]?.icon} {ARBO_CATS[sel.tipo]?.label}</span>
-                  <span style={{background:'rgba(255,255,255,.04)',color:'var(--text-secondary)',borderRadius:6,padding:'2px 10px',fontSize:11,fontWeight:600,border:'1px solid var(--border)'}}>📷 {sel.fotos} foto{sel.fotos!==1?'s':''}</span>
-                </div>
-
-                {/* Endereço */}
-                <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14,marginBottom:16}}>
-                  <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:6}}>Localização</div>
-                  <div style={{fontSize:13,color:'var(--text)',fontWeight:500}}>{sel.endereco}</div>
-                  <div style={{fontSize:12,color:'var(--text-secondary)',marginTop:2}}>📍 {sel.bairro} · Maringá-PR</div>
-                </div>
-
-                {/* Fluxo de status */}
-                <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14,marginBottom:16}}>
-                  <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:12}}>Fluxo de Atendimento</div>
-                  <div className="arb-flow">
-                    {Object.entries(ARBO_STATUS).map(([k,v],i,arr)=>{
-                      const curStep=ARBO_STATUS[sel.status]?.step||0;
-                      const done=i<curStep;const current=i===curStep;
-                      return(
-                        <div key={k} className="arb-flow-step">
-                          {i<arr.length-1&&<div className={`arb-flow-line${done?' done':''}`}/>}
-                          <div className={`arb-flow-dot${done?' done':''}${current?' current':''}`}>{v.icon}</div>
-                          <div className="arb-flow-label">{v.label}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Atores */}
-                <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
-                  {/* Cidadão */}
-                  <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14}}>
-                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:8}}>👤 Cidadão</div>
-                    <div style={{fontSize:13,color:'var(--text)',fontWeight:500}}>{sel.cidadao}</div>
-                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Reportou em {new Date(sel.created_at).toLocaleDateString('pt-BR')} às {new Date(sel.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
-                  </div>
-                  {/* Empresa */}
-                  <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14}}>
-                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:8}}>🏢 Empresa Contratada</div>
-                    {sel.empresa?(
-                      <>
-                        <div style={{fontSize:13,color:'var(--text)',fontWeight:500}}>{sel.empresa}</div>
-                        {sel.obs_empresa&&<div style={{fontSize:12,color:'var(--text-secondary)',marginTop:6,padding:'8px 10px',background:'rgba(255,255,255,.02)',borderRadius:6,borderLeft:'2px solid '+ARBO_STATUS[sel.status]?.c}}>{sel.obs_empresa}</div>}
-                      </>
-                    ):(
-                      <div style={{fontSize:12,color:'var(--text-muted)',fontStyle:'italic'}}>Ainda não atribuído</div>
-                    )}
-                  </div>
-                  {/* Prefeitura */}
-                  <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14}}>
-                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:8}}>🏛️ Prefeitura (Fiscalização)</div>
-                    {sel.status==='fiscalizado'?(
-                      <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{color:'#10b981',fontSize:16}}>✅</span><span style={{fontSize:13,color:'#10b981',fontWeight:600}}>Serviço fiscalizado e aprovado</span></div>
-                    ):(
-                      <div style={{fontSize:12,color:'var(--text-muted)',fontStyle:'italic'}}>Fiscalização pendente</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Ações */}
-                <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${sel.lat},${sel.lng}&travelmode=driving`} target="_blank" rel="noopener"
-                    style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'10px 16px',background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.3)',borderRadius:10,color:'#10b981',fontSize:13,fontWeight:600,textDecoration:'none',cursor:'pointer'}}>🗺️ Abrir no Google Maps</a>
-                  <a href={`https://www.waze.com/live-map/directions?to=ll.${sel.lat}%2C${sel.lng}`} target="_blank" rel="noopener"
-                    style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'10px 16px',background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:10,color:'var(--text-secondary)',fontSize:13,fontWeight:600,textDecoration:'none',cursor:'pointer'}}>🧭 Abrir no Waze</a>
+              {/* Fluxo de status */}
+              <div className="arb-section">
+                <div className="arb-section-label">Fluxo de Atendimento</div>
+                <div className="arb-flow">
+                  {Object.entries(ARBO_STATUS).map(([k,v],i,arr)=>{
+                    const curStep=ARBO_STATUS[sel.status]?.step||0;
+                    const done=i<curStep;const current=i===curStep;
+                    return(
+                      <div key={k} className="arb-flow-step">
+                        {i<arr.length-1&&<div className={`arb-flow-line${done?' done':''}`}/>}
+                        <div className={`arb-flow-dot${done?' done':''}${current?' current':''}`}>{v.icon}</div>
+                        <div className="arb-flow-label">{v.label}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* ─── TAB: RELATÓRIOS ─── */}
-      {subTab==='relatorios'&&(
-        <div className="arb-report-section">
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
-            <h3 style={{fontSize:18,fontWeight:700,color:'var(--text)',margin:0}}>📊 Relatório de Arborização — {filtroPeriodo==='hoje'?'Hoje':filtroPeriodo==='7dias'?'Últimos 7 dias':filtroPeriodo==='30dias'?'Últimos 30 dias':filtroPeriodo==='ano'?'Ano 2026':'Todo o período'}</h3>
-            <div style={{display:'flex',gap:8}}>
-              <button onClick={downloadCSV} style={{padding:'8px 16px',background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.3)',borderRadius:10,color:'#10b981',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📥 Exportar CSV</button>
-              <button onClick={()=>window.print()} style={{padding:'8px 16px',background:'rgba(59,130,246,.1)',border:'1px solid rgba(59,130,246,.3)',borderRadius:10,color:'#3b82f6',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>🖨️ Imprimir</button>
-            </div>
-          </div>
-
-          {/* Resumo numérico */}
-          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:28}}>
-            {[
-              {l:'Total no período',v:filtrados.length,c:'#10b981'},
-              {l:'Emergências',v:filtrados.filter(x=>x.severidade==='emergencia').length,c:'#ef4444'},
-              {l:'Com empresa atribuída',v:filtrados.filter(x=>x.empresa).length,c:'#3b82f6'},
-              {l:'Finalizadas',v:filtrados.filter(x=>['concluido','fiscalizado'].includes(x.status)).length,c:'#059669'},
-            ].map((k,i)=>(
-              <div key={i} className="rel-kpi rel-animate" style={{animationDelay:i*.08+'s'}}>
-                <div className="rel-kpi-bar" style={{background:k.c}}/>
-                <AnimatedNumber value={k.v} duration={1000} className="rel-kpi-value" style={{color:k.c}}/>
-                <div className="rel-kpi-label">{k.l}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Por tipo de serviço */}
-          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20,marginBottom:20}}>
-            <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:'0 0 16px',textTransform:'uppercase',letterSpacing:.8}}>Por Tipo de Serviço</h4>
-            {Object.entries(stats.byTipo).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k,v])=>(
-              <div key={k} className="arb-bar-row">
-                <div className="arb-bar-label">{ARBO_CATS[k]?.icon} {ARBO_CATS[k]?.label}</div>
-                <div className="arb-bar-track"><div className="arb-bar-fill" style={{width:Math.round(v/maxByTipo*100)+'%',background:ARBO_CATS[k]?.c}}>{v}</div></div>
-                <div className="arb-bar-count" style={{color:ARBO_CATS[k]?.c}}>{v}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Dois colunas: por bairro + por status */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:20}}>
-            {/* Por bairro */}
-            <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
-              <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:'0 0 16px',textTransform:'uppercase',letterSpacing:.8}}>Top Bairros</h4>
-              {Object.entries(stats.byBairro).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,v])=>(
-                <div key={k} className="arb-bar-row">
-                  <div className="arb-bar-label">{k}</div>
-                  <div className="arb-bar-track"><div className="arb-bar-fill" style={{width:Math.round(v/maxByBairro*100)+'%',background:'#10b981'}}>{v}</div></div>
-                  <div className="arb-bar-count">{v}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Por status + por severidade */}
-            <div style={{display:'flex',flexDirection:'column',gap:20}}>
-              <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
-                <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:'0 0 16px',textTransform:'uppercase',letterSpacing:.8}}>Por Status</h4>
-                {Object.entries(stats.byStatus).filter(([,v])=>v>0).map(([k,v])=>(
-                  <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <span style={{fontSize:14}}>{ARBO_STATUS[k]?.icon}</span>
-                      <span style={{fontSize:13,color:'var(--text-secondary)',fontWeight:500}}>{ARBO_STATUS[k]?.label}</span>
-                    </div>
-                    <span style={{fontSize:14,fontWeight:700,color:ARBO_STATUS[k]?.c}}>{v}</span>
+              {/* Botões de ação */}
+              <div style={{marginTop:8}}>
+                {sel.status==='concluido'&&(
+                  <>
+                    <button className="arb-btn-approve" onClick={()=>{sel.status='fiscalizado';setSel({...sel});}}>✅ Fiscalizar e Aprovar</button>
+                    <button className="arb-btn-reject">✕ Rejeitar e Solicitar Revisão</button>
+                  </>
+                )}
+                {sel.status==='recebido'&&(
+                  <button className="arb-btn-approve" onClick={()=>{sel.status='triado';setSel({...sel});}}>📋 Triar Solicitação</button>
+                )}
+                {sel.status==='triado'&&(
+                  <button className="arb-btn-approve" onClick={()=>{sel.status='atribuido';sel.empresa=ARBO_EMPRESAS[0];setSel({...sel});}}>🏢 Encaminhar para Empresa</button>
+                )}
+                {sel.status==='atribuido'&&(
+                  <button className="arb-btn-approve" style={{background:'#8b5cf6'}} onClick={()=>{sel.status='em_execucao';sel.obs_empresa='Equipe a caminho do local.';setSel({...sel});}}>⚙️ Iniciar Execução</button>
+                )}
+                {sel.status==='em_execucao'&&(
+                  <button className="arb-btn-approve" onClick={()=>{sel.status='concluido';sel.obs_empresa='Serviço concluído conforme laudo técnico.';setSel({...sel});}}>✅ Marcar como Concluído</button>
+                )}
+                {sel.status==='fiscalizado'&&(
+                  <div style={{textAlign:'center',padding:14,background:'rgba(5,150,105,.06)',border:'1px solid rgba(5,150,105,.2)',borderRadius:12}}>
+                    <span style={{color:'#10b981',fontSize:15,fontWeight:700}}>✅ Serviço fiscalizado e aprovado</span>
                   </div>
-                ))}
-              </div>
-              <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
-                <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:'0 0 16px',textTransform:'uppercase',letterSpacing:.8}}>Por Severidade</h4>
-                {Object.entries(stats.bySev).filter(([,v])=>v>0).map(([k,v])=>(
-                  <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <div style={{width:8,height:8,borderRadius:'50%',background:ARBO_SEV[k]?.c}}/>
-                      <span style={{fontSize:13,color:'var(--text-secondary)',fontWeight:500}}>{ARBO_SEV[k]?.label}</span>
-                    </div>
-                    <span style={{fontSize:14,fontWeight:700,color:ARBO_SEV[k]?.c}}>{v}</span>
-                  </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
-
-          {/* Por empresa contratada */}
-          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20,marginBottom:20}}>
-            <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:'0 0 16px',textTransform:'uppercase',letterSpacing:.8}}>🏢 Desempenho por Empresa Contratada</h4>
-            <table className="rel-table" style={{width:'100%'}}>
-              <thead><tr>
-                <th>Empresa</th><th>Atribuídas</th><th>Em Execução</th><th>Concluídas</th><th>Taxa</th>
-              </tr></thead>
-              <tbody>
-                {Object.entries(stats.byEmpresa).map(([emp,total])=>{
-                  const empDados=filtrados.filter(x=>x.empresa===emp);
-                  const exec=empDados.filter(x=>x.status==='em_execucao').length;
-                  const done=empDados.filter(x=>['concluido','fiscalizado'].includes(x.status)).length;
-                  const taxa=total?Math.round(done/total*100):0;
-                  return(
-                    <tr key={emp}>
-                      <td style={{fontWeight:600,color:'var(--text)'}}>{emp}</td>
-                      <td>{total}</td>
-                      <td><span style={{color:'#8b5cf6',fontWeight:600}}>{exec}</span></td>
-                      <td><span style={{color:'#10b981',fontWeight:600}}>{done}</span></td>
-                      <td>
-                        <div style={{display:'flex',alignItems:'center',gap:8}}>
-                          <div className="rel-progress-track" style={{minWidth:60}}><div className="rel-progress-fill" style={{width:taxa+'%',background:taxa>=70?'#10b981':taxa>=40?'#f59e0b':'#ef4444'}}/></div>
-                          <span style={{fontSize:12,fontWeight:700,color:taxa>=70?'#10b981':taxa>=40?'#f59e0b':'#ef4444'}}>{taxa}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Tabela completa */}
-          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,overflow:'hidden'}}>
-            <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:0,textTransform:'uppercase',letterSpacing:.8}}>Dados Detalhados ({filtrados.length} registros)</h4>
-            </div>
-            <div style={{maxHeight:400,overflowY:'auto'}}>
-              <table className="rel-table">
-                <thead><tr>
-                  <th>Protocolo</th><th>Tipo</th><th>Severidade</th><th>Status</th><th>Bairro</th><th>Data</th><th>Empresa</th><th>Fotos</th>
-                </tr></thead>
-                <tbody>
-                  {filtrados.slice(0,50).map(d=>(
-                    <tr key={d.id} style={{cursor:'pointer'}} onClick={()=>{setSel(d);setSubTab('solicitacoes');}}>
-                      <td style={{fontWeight:600,color:'var(--text)',fontSize:12}}>{d.protocolo}</td>
-                      <td><Pill label={ARBO_CATS[d.tipo]?.label} color={ARBO_CATS[d.tipo]?.c}/></td>
-                      <td><span style={sP(d.severidade)}>{ARBO_SEV[d.severidade]?.label}</span></td>
-                      <td><span style={{color:ARBO_STATUS[d.status]?.c,fontWeight:600,fontSize:12}}>{ARBO_STATUS[d.status]?.icon} {ARBO_STATUS[d.status]?.label}</span></td>
-                      <td style={{fontSize:12}}>{d.bairro}</td>
-                      <td style={{fontSize:12,whiteSpace:'nowrap'}}>{new Date(d.created_at).toLocaleDateString('pt-BR')}</td>
-                      <td style={{fontSize:12}}>{d.empresa||'—'}</td>
-                      <td style={{textAlign:'center'}}>{d.fotos>0?`📷 ${d.fotos}`:'—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
