@@ -708,6 +708,43 @@ tr{transition:.12s}
 .login-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(16,185,129,.25)}
 .login-btn:active{transform:translateY(0)}
 .login-error{color:#ef4444;font-size:13px;font-weight:600;margin-top:12px;min-height:20px}
+
+/* ==================== ARBORIZAÇÃO ==================== */
+.arb-wrap{display:flex;flex-direction:column;height:100%;overflow:hidden;font-family:'Outfit','Public Sans',sans-serif}
+.arb-wrap *{font-family:'Outfit','Public Sans',sans-serif}
+.arb-header{padding:20px 24px 0;flex-shrink:0}
+.arb-kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;padding:16px 24px;flex-shrink:0}
+.arb-body{display:flex;flex:1;overflow:hidden}
+.arb-sidebar{width:380px;min-width:380px;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:#0e1017}
+.arb-sidebar-header{padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.arb-cards{flex:1;overflow-y:auto;padding:6px 8px}
+.arb-cards::-webkit-scrollbar{width:4px}
+.arb-cards::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:4px}
+.arb-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .2s}
+.arb-card:hover{border-color:var(--border-light);background:var(--card-hover)}
+.arb-card.selected{border-color:#059669;background:rgba(5,150,105,.06)}
+.arb-map-area{flex:1;position:relative}
+.arb-detail{width:440px;background:#0e1017;border-left:1px solid rgba(255,255,255,.06);height:100%;display:flex;flex-direction:column;overflow-y:auto;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);flex-shrink:0;position:absolute;right:0;top:0;bottom:0;z-index:10}
+.arb-detail.open{transform:translateX(0)}
+.arb-detail::-webkit-scrollbar{width:4px}
+.arb-detail::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:4px}
+.arb-flow{display:flex;align-items:center;gap:0;margin:16px 0}
+.arb-flow-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
+.arb-flow-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;border:2px solid var(--border);background:var(--surface);transition:all .3s;z-index:1}
+.arb-flow-dot.done{background:#059669;border-color:#059669}
+.arb-flow-dot.current{background:#3b82f6;border-color:#3b82f6;box-shadow:0 0 12px rgba(59,130,246,.4)}
+.arb-flow-line{position:absolute;top:13px;left:calc(50% + 14px);right:calc(-50% + 14px);height:2px;background:var(--border)}
+.arb-flow-line.done{background:#059669}
+.arb-flow-label{font-size:9px;color:var(--text-muted);margin-top:6px;text-align:center;font-weight:600;letter-spacing:.3px}
+.arb-report-section{flex:1;overflow-y:auto;padding:24px}
+.arb-report-section::-webkit-scrollbar{width:4px}
+.arb-report-section::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:4px}
+.arb-bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.arb-bar-label{width:140px;font-size:12px;color:var(--text-secondary);font-weight:500;text-align:right;flex-shrink:0}
+.arb-bar-track{flex:1;height:22px;background:rgba(255,255,255,.04);border-radius:6px;overflow:hidden;position:relative}
+.arb-bar-fill{height:100%;border-radius:6px;transition:width .8s cubic-bezier(.22,1,.36,1);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:11px;font-weight:700;color:#fff;min-width:30px}
+.arb-bar-count{width:50px;font-size:13px;font-weight:700;color:var(--text);text-align:right;flex-shrink:0}
+@media(max-width:1400px){.arb-kpi-grid{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
@@ -1000,6 +1037,7 @@ const Ico={
   coin:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9.5c0-.83 1.34-1.5 3-1.5s3 .67 3 1.5S14.66 11 12 11 9 11.67 9 12.5s1.34 1.5 3 1.5 3 .67 3 1.5"/></svg>,
   pin:()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
   news:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/><line x1="10" y1="6" x2="18" y2="6"/><line x1="10" y1="10" x2="18" y2="10"/><line x1="10" y1="14" x2="14" y2="14"/></svg>,
+  tree:()=><svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22V14M8 22h8M12 2L7 9h3l-2 5h8l-2-5h3L12 2z"/></svg>,
 };
 
 /* ─── LOGO ─────────────────────────────────────────────────────── */
@@ -4480,6 +4518,544 @@ function RadarNoticias(){
   );
 }
 
+/* ─── ARBORIZAÇÃO URBANA — Gestão e Monitoramento ─────────────── */
+
+const ARBO_CATS={
+  poda_geral:{label:'Poda Geral',icon:'✂️',c:'#10b981'},
+  poda_complexa:{label:'Poda Complexa',icon:'🏗️',c:'#f59e0b'},
+  poda_desbarra:{label:'Desbarra',icon:'🌿',c:'#22d3ee'},
+  remocao:{label:'Remoção',icon:'🪓',c:'#ef4444'},
+  arvore_caida:{label:'Árvore Caída',icon:'🌳',c:'#dc2626'},
+  retirada_toco:{label:'Retirada de Toco',icon:'🪵',c:'#a78bfa'},
+  risco_queda:{label:'Risco de Queda',icon:'⚠️',c:'#f87171'},
+};
+const ARBO_SEV={
+  emergencia:{label:'Emergência',c:'#ef4444',bg:'rgba(239,68,68,.1)',border:'rgba(239,68,68,.2)'},
+  urgencia:{label:'Urgência',c:'#f59e0b',bg:'rgba(245,158,11,.1)',border:'rgba(245,158,11,.2)'},
+  prioridade:{label:'Prioridade',c:'#3b82f6',bg:'rgba(59,130,246,.1)',border:'rgba(59,130,246,.2)'},
+  rotina:{label:'Rotina',c:'#10b981',bg:'rgba(16,185,129,.1)',border:'rgba(16,185,129,.2)'},
+};
+const ARBO_STATUS={
+  recebido:{label:'Recebido',c:'#64748b',step:0,icon:'📥'},
+  triado:{label:'Triado',c:'#f59e0b',step:1,icon:'📋'},
+  atribuido:{label:'Atribuído',c:'#3b82f6',step:2,icon:'🏢'},
+  em_execucao:{label:'Em Execução',c:'#8b5cf6',step:3,icon:'⚙️'},
+  concluido:{label:'Concluído',c:'#10b981',step:4,icon:'✅'},
+  fiscalizado:{label:'Fiscalizado',c:'#059669',step:5,icon:'🔍'},
+};
+const ARBO_EMPRESAS=['Podare Serviços Ambientais','ArboriVida Maringá','EcoCorte Soluções','Verde Norte Ltda'];
+
+const ARBO_MOCK=(()=>{
+  const bairros=[
+    {n:'Zona 7',lat:-23.4100,lng:-51.9450},{n:'Centro',lat:-23.4205,lng:-51.9330},{n:'Zona 5',lat:-23.4350,lng:-51.9350},
+    {n:'Zona 3',lat:-23.4250,lng:-51.9250},{n:'Zona 2',lat:-23.4150,lng:-51.9280},{n:'Jardim Alvorada',lat:-23.3950,lng:-51.9420},
+    {n:'Vila Operária',lat:-23.4280,lng:-51.9380},{n:'Jardim Mandacaru',lat:-23.4050,lng:-51.9280},{n:'Parque Tarumã',lat:-23.4380,lng:-51.9500},
+    {n:'Vila Esperança',lat:-23.4180,lng:-51.9200},{n:'Jardim Paulista',lat:-23.4320,lng:-51.9450},{n:'Vila Morangueira',lat:-23.4100,lng:-51.9180},
+    {n:'Cidade Universitária',lat:-23.4050,lng:-51.9550},{n:'Vila Santo Antônio',lat:-23.4220,lng:-51.9480},{n:'Jardim Paris',lat:-23.4450,lng:-51.9300},
+    {n:'Parque Res. Cidade Nova',lat:-23.3900,lng:-51.9380},{n:'Jardim São Silvestre',lat:-23.4350,lng:-51.9150},{n:'Parque Industrial',lat:-23.4400,lng:-51.9600},
+  ];
+  const tipos=Object.keys(ARBO_CATS);
+  const sevs=Object.keys(ARBO_SEV);
+  const stats=Object.keys(ARBO_STATUS);
+  const descs={
+    poda_geral:['Árvore com galhos sobre a fiação elétrica','Copa bloqueando iluminação pública','Galhos invadindo quintal do vizinho','Árvore necessita poda de formação','Galhos atrapalhando passagem de pedestres'],
+    poda_complexa:['Árvore de grande porte sobre telhado residencial','Galhos altos ameaçando rede de alta tensão','Árvore de 30m precisa poda técnica','Copa enorme obstruindo fachada comercial'],
+    poda_desbarra:['Galhos finos sobre calçada após chuva','Brotações excessivas obstruindo sinalização','Ramos baixos atrapalhando trânsito de pedestres'],
+    remocao:['Árvore morta em praça pública','Raízes destruindo calçada e tubulação','Árvore com cupim comprometendo estrutura','Espécie invasora causando danos à rede'],
+    arvore_caida:['Árvore caiu sobre via após temporal','Árvore tombou sobre muro residencial','Tronco caído bloqueando rua','Árvore derrubada pelo vento sobre estacionamento'],
+    retirada_toco:['Toco remanescente em calçada danificada','Toco antigo obstruindo acessibilidade','Raiz exposta causando tropeços','Toco de árvore removida há meses sem retirada'],
+    risco_queda:['Árvore inclinada sobre residência','Tronco rachado com risco iminente','Árvore com cavidade interna grave','Base comprometida após erosão','Árvore balançando excessivamente'],
+  };
+  const data=[];
+  for(let i=0;i<55;i++){
+    const b=bairros[i%bairros.length];
+    const tipo=tipos[i%tipos.length];
+    const sev=i<6?'emergencia':i<16?'urgencia':i<30?'prioridade':'rotina';
+    const st=i<4?'recebido':i<10?'triado':i<20?'atribuido':i<32?'em_execucao':i<46?'concluido':'fiscalizado';
+    const dList=descs[tipo];
+    const daysAgo=Math.floor(Math.random()*30);
+    const dt=new Date();dt.setDate(dt.getDate()-daysAgo);dt.setHours(7+Math.floor(Math.random()*12),Math.floor(Math.random()*60));
+    data.push({
+      id:i+1,
+      protocolo:`ARB-2026-${String(i+1).padStart(5,'0')}`,
+      tipo,
+      descricao:dList[i%dList.length],
+      endereco:`Rua ${['Santos Dumont','Brasil','Pioneiro Antônio Franco','Joubert de Carvalho','Neo Alves Martins','Tiradentes','Paranaguá','Colombo','Duque de Caxias','Pedro Taques'][i%10]}, ${100+i*23}`,
+      bairro:b.n,
+      lat:b.lat+(Math.random()-.5)*.012,
+      lng:b.lng+(Math.random()-.5)*.012,
+      severidade:sev,
+      status:st,
+      cidadao:`Cidadão ${String.fromCharCode(65+i%26)}.`,
+      fotos:Math.floor(Math.random()*4),
+      created_at:dt.toISOString(),
+      empresa:['atribuido','em_execucao','concluido','fiscalizado'].includes(st)?ARBO_EMPRESAS[i%ARBO_EMPRESAS.length]:null,
+      obs_empresa:st==='concluido'||st==='fiscalizado'?'Serviço realizado conforme laudo técnico.':st==='em_execucao'?'Equipe no local, previsão de conclusão em 2h.':null,
+    });
+  }
+  return data.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+})();
+
+function Arborizacao(){
+  const [filtroTipo,setFiltroTipo]=useState('todos');
+  const [filtroSev,setFiltroSev]=useState('todas');
+  const [filtroStatus,setFiltroStatus]=useState('todos');
+  const [filtroPeriodo,setFiltroPeriodo]=useState('30dias');
+  const [sel,setSel]=useState(null);
+  const [subTab,setSubTab]=useState('solicitacoes');
+  const mapRef=useRef(null);
+  const mapInst=useRef(null);
+  const markersRef=useRef([]);
+
+  /* ── Filtros ── */
+  const filtrados=useMemo(()=>{
+    let d=[...ARBO_MOCK];
+    if(filtroTipo!=='todos') d=d.filter(x=>x.tipo===filtroTipo);
+    if(filtroSev!=='todas') d=d.filter(x=>x.severidade===filtroSev);
+    if(filtroStatus!=='todos') d=d.filter(x=>x.status===filtroStatus);
+    const now=new Date();
+    if(filtroPeriodo==='hoje') d=d.filter(x=>new Date(x.created_at).toDateString()===now.toDateString());
+    else if(filtroPeriodo==='7dias') d=d.filter(x=>(now-new Date(x.created_at))<7*86400000);
+    else if(filtroPeriodo==='30dias') d=d.filter(x=>(now-new Date(x.created_at))<30*86400000);
+    else if(filtroPeriodo==='ano') d=d.filter(x=>new Date(x.created_at).getFullYear()===now.getFullYear());
+    return d;
+  },[filtroTipo,filtroSev,filtroStatus,filtroPeriodo]);
+
+  /* ── KPIs ── */
+  const kpis=useMemo(()=>{
+    const t=ARBO_MOCK.length;
+    const emerg=ARBO_MOCK.filter(x=>x.severidade==='emergencia'&&!['concluido','fiscalizado'].includes(x.status)).length;
+    const exec=ARBO_MOCK.filter(x=>x.status==='em_execucao').length;
+    const done=ARBO_MOCK.filter(x=>x.status==='concluido'||x.status==='fiscalizado').length;
+    const pend=ARBO_MOCK.filter(x=>x.status==='recebido'||x.status==='triado').length;
+    const taxa=t?Math.round(done/t*100):0;
+    return {total:t,emerg,exec,done,pend,taxa};
+  },[]);
+
+  /* ── Mapa ── */
+  useEffect(()=>{
+    if(subTab!=='solicitacoes'||!mapRef.current) return;
+    mapboxgl.accessToken=MAPBOX_TOKEN;
+    const map=new mapboxgl.Map({container:mapRef.current,style:'mapbox://styles/mapbox/dark-v11',center:[-51.9383,-23.4205],zoom:12.5,attributionControl:false});
+    map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
+    mapInst.current=map;
+    return ()=>{map.remove();mapInst.current=null;markersRef.current=[];};
+  },[subTab]);
+
+  useEffect(()=>{
+    if(!mapInst.current) return;
+    markersRef.current.forEach(m=>m.remove());
+    markersRef.current=[];
+    filtrados.forEach(d=>{
+      const el=document.createElement('div');
+      const sc=ARBO_SEV[d.severidade]?.c||'#10b981';
+      el.style.cssText=`width:${d.severidade==='emergencia'?18:14}px;height:${d.severidade==='emergencia'?18:14}px;border-radius:50%;background:${sc};border:2px solid rgba(255,255,255,.9);cursor:pointer;box-shadow:0 0 10px ${sc}80;transition:transform .2s`;
+      el.onmouseenter=()=>{el.style.transform='scale(1.4)';};
+      el.onmouseleave=()=>{el.style.transform='scale(1)';};
+      el.onclick=()=>setSel(d);
+      const m=new mapboxgl.Marker(el).setLngLat([d.lng,d.lat]).addTo(mapInst.current);
+      markersRef.current.push(m);
+    });
+  },[filtrados,subTab]);
+
+  /* ── Download CSV ── */
+  const downloadCSV=()=>{
+    const h=['Protocolo','Tipo','Severidade','Status','Descrição','Endereço','Bairro','Data','Empresa','Fotos'];
+    const rows=filtrados.map(d=>[d.protocolo,ARBO_CATS[d.tipo]?.label||d.tipo,ARBO_SEV[d.severidade]?.label||d.severidade,ARBO_STATUS[d.status]?.label||d.status,`"${d.descricao}"`,`"${d.endereco}"`,d.bairro,new Date(d.created_at).toLocaleDateString('pt-BR'),d.empresa||'—',d.fotos]);
+    const csv=[h,...rows].map(r=>r.join(';')).join('\n');
+    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`arborizacao_${filtroPeriodo}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+  };
+
+  /* ── Estatísticas para relatórios ── */
+  const stats=useMemo(()=>{
+    const byTipo={};Object.keys(ARBO_CATS).forEach(k=>{byTipo[k]=filtrados.filter(x=>x.tipo===k).length;});
+    const byBairro={};filtrados.forEach(x=>{byBairro[x.bairro]=(byBairro[x.bairro]||0)+1;});
+    const bySev={};Object.keys(ARBO_SEV).forEach(k=>{bySev[k]=filtrados.filter(x=>x.severidade===k).length;});
+    const byStatus={};Object.keys(ARBO_STATUS).forEach(k=>{byStatus[k]=filtrados.filter(x=>x.status===k).length;});
+    const byEmpresa={};filtrados.forEach(x=>{if(x.empresa){byEmpresa[x.empresa]=(byEmpresa[x.empresa]||0)+1;}});
+    return {byTipo,byBairro,bySev,byStatus,byEmpresa};
+  },[filtrados]);
+
+  const maxByTipo=Math.max(...Object.values(stats.byTipo),1);
+  const maxByBairro=Math.max(...Object.values(stats.byBairro),1);
+
+  /* ── Ago helper ── */
+  const ago=(iso)=>{const d=Math.floor((Date.now()-new Date(iso))/60000);if(d<60)return `${d}min`;if(d<1440)return `${Math.floor(d/60)}h`;return `${Math.floor(d/1440)}d`;};
+
+  /* ── Pill ── */
+  const sP=(sev)=>({background:ARBO_SEV[sev]?.bg,color:ARBO_SEV[sev]?.c,border:`1px solid ${ARBO_SEV[sev]?.border}`,borderRadius:6,padding:'2px 10px',fontSize:11,fontWeight:600,display:'inline-block'});
+
+  return(
+    <div className="arb-wrap">
+      {/* ── HEADER ── */}
+      <div className="arb-header">
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+          <div>
+            <h2 style={{fontSize:22,fontWeight:700,color:'var(--text)',margin:0}}>🌳 Arborização Urbana</h2>
+            <p style={{fontSize:13,color:'var(--text-muted)',margin:'4px 0 0'}}>Gestão e Monitoramento · Licitação R$ 80,5 mi · 150 mil árvores mapeadas</p>
+          </div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <div style={{display:'flex',background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,overflow:'hidden'}}>
+              {[{k:'hoje',l:'Hoje'},{k:'7dias',l:'7 dias'},{k:'30dias',l:'30 dias'},{k:'ano',l:'Ano'},{k:'tudo',l:'Tudo'}].map(p=>(
+                <button key={p.k} onClick={()=>setFiltroPeriodo(p.k)}
+                  style={{padding:'7px 14px',background:filtroPeriodo===p.k?'#059669':'transparent',border:'none',color:filtroPeriodo===p.k?'#fff':'var(--text-muted)',fontSize:12,fontWeight:600,cursor:'pointer',transition:'all .2s',fontFamily:'inherit'}}>{p.l}</button>
+              ))}
+            </div>
+            <button onClick={downloadCSV} style={{padding:'8px 16px',background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.3)',borderRadius:10,color:'#10b981',fontSize:12,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontFamily:'inherit'}}>
+              📥 Baixar CSV
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── KPIs ── */}
+      <div className="arb-kpi-grid">
+        {[
+          {icon:'🌳',val:kpis.total,lbl:'Total Solicitações',c:'#10b981',sub:'últimos 30 dias'},
+          {icon:'🚨',val:kpis.emerg,lbl:'Emergências Ativas',c:'#ef4444',sub:'risco iminente'},
+          {icon:'📋',val:kpis.pend,lbl:'Aguardando Triagem',c:'#f59e0b',sub:'recebido + triado'},
+          {icon:'⚙️',val:kpis.exec,lbl:'Em Execução',c:'#8b5cf6',sub:'empresa atuando'},
+          {icon:'✅',val:kpis.done,lbl:'Concluídas',c:'#059669',sub:'concluído + fiscalizado'},
+          {icon:'📊',val:kpis.taxa+'%',lbl:'Taxa de Resolução',c:'#3b82f6',sub:'meta: 85%'},
+        ].map((k,i)=>(
+          <div key={i} className="kpi anim-card" style={{borderLeft:`3px solid ${k.c}`}}>
+            <div className="kpi-top">
+              <span className="kpi-label">{k.lbl}</span>
+              <div className="kpi-icon" style={{background:`${k.c}15`}}><span style={{fontSize:16}}>{k.icon}</span></div>
+            </div>
+            <div className="kpi-value" style={{color:k.c}}>{typeof k.val==='number'?<AnimatedNumber value={k.val} duration={1000}/>:k.val}</div>
+            <div className="kpi-sub">{k.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── SUB-TABS ── */}
+      <div style={{display:'flex',gap:0,padding:'0 24px 12px',borderBottom:'1px solid var(--border)'}}>
+        {[{k:'solicitacoes',l:'📍 Mapa & Solicitações',count:filtrados.length},{k:'relatorios',l:'📊 Relatórios & Análises',count:null}].map(t=>(
+          <button key={t.k} onClick={()=>setSubTab(t.k)}
+            style={{padding:'10px 20px',background:subTab===t.k?'rgba(5,150,105,.08)':'transparent',border:'none',borderBottom:subTab===t.k?'2px solid #059669':'2px solid transparent',color:subTab===t.k?'#10b981':'var(--text-muted)',fontSize:13,fontWeight:600,cursor:'pointer',transition:'all .2s',fontFamily:'inherit',display:'flex',alignItems:'center',gap:8}}>
+            {t.l}{t.count!=null&&<span style={{background:'rgba(5,150,105,.15)',color:'#10b981',borderRadius:12,padding:'1px 8px',fontSize:11,fontWeight:700}}>{t.count}</span>}
+          </button>
+        ))}
+        {/* ── Legenda dos 3 atores ── */}
+        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:16,fontSize:11,color:'var(--text-muted)'}}>
+          <span>👤 Cidadão reporta</span><span>🏛️ Prefeitura fiscaliza</span><span>🏢 Empresa executa</span>
+        </div>
+      </div>
+
+      {/* ─── TAB: SOLICITAÇÕES ─── */}
+      {subTab==='solicitacoes'&&(
+        <div className="arb-body">
+          {/* SIDEBAR */}
+          <div className="arb-sidebar">
+            <div className="arb-sidebar-header">
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                <span style={{fontSize:14,fontWeight:700,color:'var(--text)'}}>Solicitações</span>
+                <span style={{fontSize:12,color:'var(--text-muted)'}}>{filtrados.length} registros</span>
+              </div>
+              {/* Filtro tipo */}
+              <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:8}}>
+                <button onClick={()=>setFiltroTipo('todos')} style={{padding:'3px 10px',borderRadius:6,border:'1px solid '+(filtroTipo==='todos'?'#059669':'var(--border)'),background:filtroTipo==='todos'?'rgba(5,150,105,.12)':'transparent',color:filtroTipo==='todos'?'#10b981':'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Todos</button>
+                {Object.entries(ARBO_CATS).map(([k,v])=>(
+                  <button key={k} onClick={()=>setFiltroTipo(k)} style={{padding:'3px 10px',borderRadius:6,border:'1px solid '+(filtroTipo===k?v.c+'50':'var(--border)'),background:filtroTipo===k?v.c+'18':'transparent',color:filtroTipo===k?v.c:'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{v.icon} {v.label}</button>
+                ))}
+              </div>
+              {/* Filtro severidade */}
+              <div style={{display:'flex',gap:4,marginBottom:8}}>
+                <button onClick={()=>setFiltroSev('todas')} style={{padding:'3px 10px',borderRadius:6,border:'1px solid '+(filtroSev==='todas'?'#059669':'var(--border)'),background:filtroSev==='todas'?'rgba(5,150,105,.12)':'transparent',color:filtroSev==='todas'?'#10b981':'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Todas</button>
+                {Object.entries(ARBO_SEV).map(([k,v])=>(
+                  <button key={k} onClick={()=>setFiltroSev(k)} style={{padding:'3px 10px',borderRadius:6,border:`1px solid ${filtroSev===k?v.c+'50':'var(--border)'}`,background:filtroSev===k?v.bg:'transparent',color:filtroSev===k?v.c:'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{v.label}</button>
+                ))}
+              </div>
+              {/* Filtro status */}
+              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                <button onClick={()=>setFiltroStatus('todos')} style={{padding:'3px 10px',borderRadius:6,border:'1px solid '+(filtroStatus==='todos'?'#059669':'var(--border)'),background:filtroStatus==='todos'?'rgba(5,150,105,.12)':'transparent',color:filtroStatus==='todos'?'#10b981':'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>Todos</button>
+                {Object.entries(ARBO_STATUS).map(([k,v])=>(
+                  <button key={k} onClick={()=>setFiltroStatus(k)} style={{padding:'3px 10px',borderRadius:6,border:`1px solid ${filtroStatus===k?v.c+'50':'var(--border)'}`,background:filtroStatus===k?v.c+'18':'transparent',color:filtroStatus===k?v.c:'var(--text-muted)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{v.icon} {v.label}</button>
+                ))}
+              </div>
+            </div>
+            {/* Cards */}
+            <div className="arb-cards">
+              {filtrados.length===0?(
+                <div style={{textAlign:'center',padding:40}}><div style={{fontSize:32,marginBottom:8}}>🌿</div><p style={{color:'var(--text-muted)',fontSize:13}}>Nenhuma solicitação encontrada</p></div>
+              ):filtrados.map(d=>(
+                <div key={d.id} className={`arb-card${sel?.id===d.id?' selected':''}`} onClick={()=>setSel(d)}>
+                  <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
+                    <div style={{width:36,height:36,borderRadius:8,background:ARBO_CATS[d.tipo]?.c+'18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{ARBO_CATS[d.tipo]?.icon}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+                        <span style={{fontSize:10,color:'var(--text-muted)',fontWeight:600}}>{d.protocolo}</span>
+                        <span style={sP(d.severidade)}>{ARBO_SEV[d.severidade]?.label}</span>
+                      </div>
+                      <div style={{fontSize:13,fontWeight:600,color:'var(--text)',lineHeight:1.3,marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.descricao}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color:'var(--text-muted)'}}>
+                        <span>📍 {d.bairro}</span>
+                        <span>·</span>
+                        <span>{ago(d.created_at)}</span>
+                        {d.fotos>0&&<><span>·</span><span>📷 {d.fotos}</span></>}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Status bar mini */}
+                  <div style={{display:'flex',gap:3,marginTop:10}}>
+                    {Object.values(ARBO_STATUS).map((s,i)=>(
+                      <div key={i} style={{height:3,flex:1,borderRadius:99,background:i<=ARBO_STATUS[d.status]?.step?ARBO_STATUS[d.status]?.c:'rgba(255,255,255,.06)',transition:'background .3s'}}/>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* MAPA */}
+          <div className="arb-map-area">
+            <div ref={mapRef} style={{width:'100%',height:'100%'}}/>
+            {/* Legenda do mapa */}
+            <div style={{position:'absolute',bottom:20,left:20,background:'rgba(14,16,23,.92)',border:'1px solid var(--border)',borderRadius:10,padding:'12px 16px',backdropFilter:'blur(8px)'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:1,marginBottom:8}}>Severidade</div>
+              {Object.entries(ARBO_SEV).map(([k,v])=>(
+                <div key={k} style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                  <div style={{width:10,height:10,borderRadius:'50%',background:v.c,boxShadow:`0 0 6px ${v.c}60`}}/>
+                  <span style={{fontSize:11,color:'var(--text-secondary)'}}>{v.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* PAINEL DETALHE */}
+          <div className={`arb-detail${sel?' open':''}`}>
+            {sel&&(
+              <div style={{padding:20}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                  <span style={{fontSize:12,fontWeight:700,color:'var(--text-muted)'}}>{sel.protocolo}</span>
+                  <button onClick={()=>setSel(null)} style={{background:'transparent',border:'none',color:'var(--text-muted)',fontSize:18,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+                </div>
+                <h3 style={{fontSize:16,fontWeight:700,color:'var(--text)',margin:'0 0 8px'}}>{sel.descricao}</h3>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
+                  <span style={sP(sel.severidade)}>{ARBO_SEV[sel.severidade]?.label}</span>
+                  <span style={{background:ARBO_CATS[sel.tipo]?.c+'18',color:ARBO_CATS[sel.tipo]?.c,borderRadius:6,padding:'2px 10px',fontSize:11,fontWeight:600}}>{ARBO_CATS[sel.tipo]?.icon} {ARBO_CATS[sel.tipo]?.label}</span>
+                  <span style={{background:'rgba(255,255,255,.04)',color:'var(--text-secondary)',borderRadius:6,padding:'2px 10px',fontSize:11,fontWeight:600,border:'1px solid var(--border)'}}>📷 {sel.fotos} foto{sel.fotos!==1?'s':''}</span>
+                </div>
+
+                {/* Endereço */}
+                <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14,marginBottom:16}}>
+                  <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:6}}>Localização</div>
+                  <div style={{fontSize:13,color:'var(--text)',fontWeight:500}}>{sel.endereco}</div>
+                  <div style={{fontSize:12,color:'var(--text-secondary)',marginTop:2}}>📍 {sel.bairro} · Maringá-PR</div>
+                </div>
+
+                {/* Fluxo de status */}
+                <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14,marginBottom:16}}>
+                  <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:12}}>Fluxo de Atendimento</div>
+                  <div className="arb-flow">
+                    {Object.entries(ARBO_STATUS).map(([k,v],i,arr)=>{
+                      const curStep=ARBO_STATUS[sel.status]?.step||0;
+                      const done=i<curStep;const current=i===curStep;
+                      return(
+                        <div key={k} className="arb-flow-step">
+                          {i<arr.length-1&&<div className={`arb-flow-line${done?' done':''}`}/>}
+                          <div className={`arb-flow-dot${done?' done':''}${current?' current':''}`}>{v.icon}</div>
+                          <div className="arb-flow-label">{v.label}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Atores */}
+                <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
+                  {/* Cidadão */}
+                  <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:8}}>👤 Cidadão</div>
+                    <div style={{fontSize:13,color:'var(--text)',fontWeight:500}}>{sel.cidadao}</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Reportou em {new Date(sel.created_at).toLocaleDateString('pt-BR')} às {new Date(sel.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+                  </div>
+                  {/* Empresa */}
+                  <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:8}}>🏢 Empresa Contratada</div>
+                    {sel.empresa?(
+                      <>
+                        <div style={{fontSize:13,color:'var(--text)',fontWeight:500}}>{sel.empresa}</div>
+                        {sel.obs_empresa&&<div style={{fontSize:12,color:'var(--text-secondary)',marginTop:6,padding:'8px 10px',background:'rgba(255,255,255,.02)',borderRadius:6,borderLeft:'2px solid '+ARBO_STATUS[sel.status]?.c}}>{sel.obs_empresa}</div>}
+                      </>
+                    ):(
+                      <div style={{fontSize:12,color:'var(--text-muted)',fontStyle:'italic'}}>Ainda não atribuído</div>
+                    )}
+                  </div>
+                  {/* Prefeitura */}
+                  <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:8}}>🏛️ Prefeitura (Fiscalização)</div>
+                    {sel.status==='fiscalizado'?(
+                      <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{color:'#10b981',fontSize:16}}>✅</span><span style={{fontSize:13,color:'#10b981',fontWeight:600}}>Serviço fiscalizado e aprovado</span></div>
+                    ):(
+                      <div style={{fontSize:12,color:'var(--text-muted)',fontStyle:'italic'}}>Fiscalização pendente</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ações */}
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${sel.lat},${sel.lng}&travelmode=driving`} target="_blank" rel="noopener"
+                    style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'10px 16px',background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.3)',borderRadius:10,color:'#10b981',fontSize:13,fontWeight:600,textDecoration:'none',cursor:'pointer'}}>🗺️ Abrir no Google Maps</a>
+                  <a href={`https://www.waze.com/live-map/directions?to=ll.${sel.lat}%2C${sel.lng}`} target="_blank" rel="noopener"
+                    style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'10px 16px',background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:10,color:'var(--text-secondary)',fontSize:13,fontWeight:600,textDecoration:'none',cursor:'pointer'}}>🧭 Abrir no Waze</a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB: RELATÓRIOS ─── */}
+      {subTab==='relatorios'&&(
+        <div className="arb-report-section">
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+            <h3 style={{fontSize:18,fontWeight:700,color:'var(--text)',margin:0}}>📊 Relatório de Arborização — {filtroPeriodo==='hoje'?'Hoje':filtroPeriodo==='7dias'?'Últimos 7 dias':filtroPeriodo==='30dias'?'Últimos 30 dias':filtroPeriodo==='ano'?'Ano 2026':'Todo o período'}</h3>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={downloadCSV} style={{padding:'8px 16px',background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.3)',borderRadius:10,color:'#10b981',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📥 Exportar CSV</button>
+              <button onClick={()=>window.print()} style={{padding:'8px 16px',background:'rgba(59,130,246,.1)',border:'1px solid rgba(59,130,246,.3)',borderRadius:10,color:'#3b82f6',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>🖨️ Imprimir</button>
+            </div>
+          </div>
+
+          {/* Resumo numérico */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:28}}>
+            {[
+              {l:'Total no período',v:filtrados.length,c:'#10b981'},
+              {l:'Emergências',v:filtrados.filter(x=>x.severidade==='emergencia').length,c:'#ef4444'},
+              {l:'Com empresa atribuída',v:filtrados.filter(x=>x.empresa).length,c:'#3b82f6'},
+              {l:'Finalizadas',v:filtrados.filter(x=>['concluido','fiscalizado'].includes(x.status)).length,c:'#059669'},
+            ].map((k,i)=>(
+              <div key={i} className="rel-kpi rel-animate" style={{animationDelay:i*.08+'s'}}>
+                <div className="rel-kpi-bar" style={{background:k.c}}/>
+                <AnimatedNumber value={k.v} duration={1000} className="rel-kpi-value" style={{color:k.c}}/>
+                <div className="rel-kpi-label">{k.l}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Por tipo de serviço */}
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20,marginBottom:20}}>
+            <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:'0 0 16px',textTransform:'uppercase',letterSpacing:.8}}>Por Tipo de Serviço</h4>
+            {Object.entries(stats.byTipo).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k,v])=>(
+              <div key={k} className="arb-bar-row">
+                <div className="arb-bar-label">{ARBO_CATS[k]?.icon} {ARBO_CATS[k]?.label}</div>
+                <div className="arb-bar-track"><div className="arb-bar-fill" style={{width:Math.round(v/maxByTipo*100)+'%',background:ARBO_CATS[k]?.c}}>{v}</div></div>
+                <div className="arb-bar-count" style={{color:ARBO_CATS[k]?.c}}>{v}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Dois colunas: por bairro + por status */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:20}}>
+            {/* Por bairro */}
+            <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
+              <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:'0 0 16px',textTransform:'uppercase',letterSpacing:.8}}>Top Bairros</h4>
+              {Object.entries(stats.byBairro).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,v])=>(
+                <div key={k} className="arb-bar-row">
+                  <div className="arb-bar-label">{k}</div>
+                  <div className="arb-bar-track"><div className="arb-bar-fill" style={{width:Math.round(v/maxByBairro*100)+'%',background:'#10b981'}}>{v}</div></div>
+                  <div className="arb-bar-count">{v}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Por status + por severidade */}
+            <div style={{display:'flex',flexDirection:'column',gap:20}}>
+              <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
+                <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:'0 0 16px',textTransform:'uppercase',letterSpacing:.8}}>Por Status</h4>
+                {Object.entries(stats.byStatus).filter(([,v])=>v>0).map(([k,v])=>(
+                  <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{fontSize:14}}>{ARBO_STATUS[k]?.icon}</span>
+                      <span style={{fontSize:13,color:'var(--text-secondary)',fontWeight:500}}>{ARBO_STATUS[k]?.label}</span>
+                    </div>
+                    <span style={{fontSize:14,fontWeight:700,color:ARBO_STATUS[k]?.c}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20}}>
+                <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:'0 0 16px',textTransform:'uppercase',letterSpacing:.8}}>Por Severidade</h4>
+                {Object.entries(stats.bySev).filter(([,v])=>v>0).map(([k,v])=>(
+                  <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <div style={{width:8,height:8,borderRadius:'50%',background:ARBO_SEV[k]?.c}}/>
+                      <span style={{fontSize:13,color:'var(--text-secondary)',fontWeight:500}}>{ARBO_SEV[k]?.label}</span>
+                    </div>
+                    <span style={{fontSize:14,fontWeight:700,color:ARBO_SEV[k]?.c}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Por empresa contratada */}
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:20,marginBottom:20}}>
+            <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:'0 0 16px',textTransform:'uppercase',letterSpacing:.8}}>🏢 Desempenho por Empresa Contratada</h4>
+            <table className="rel-table" style={{width:'100%'}}>
+              <thead><tr>
+                <th>Empresa</th><th>Atribuídas</th><th>Em Execução</th><th>Concluídas</th><th>Taxa</th>
+              </tr></thead>
+              <tbody>
+                {Object.entries(stats.byEmpresa).map(([emp,total])=>{
+                  const empDados=filtrados.filter(x=>x.empresa===emp);
+                  const exec=empDados.filter(x=>x.status==='em_execucao').length;
+                  const done=empDados.filter(x=>['concluido','fiscalizado'].includes(x.status)).length;
+                  const taxa=total?Math.round(done/total*100):0;
+                  return(
+                    <tr key={emp}>
+                      <td style={{fontWeight:600,color:'var(--text)'}}>{emp}</td>
+                      <td>{total}</td>
+                      <td><span style={{color:'#8b5cf6',fontWeight:600}}>{exec}</span></td>
+                      <td><span style={{color:'#10b981',fontWeight:600}}>{done}</span></td>
+                      <td>
+                        <div style={{display:'flex',alignItems:'center',gap:8}}>
+                          <div className="rel-progress-track" style={{minWidth:60}}><div className="rel-progress-fill" style={{width:taxa+'%',background:taxa>=70?'#10b981':taxa>=40?'#f59e0b':'#ef4444'}}/></div>
+                          <span style={{fontSize:12,fontWeight:700,color:taxa>=70?'#10b981':taxa>=40?'#f59e0b':'#ef4444'}}>{taxa}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Tabela completa */}
+          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,overflow:'hidden'}}>
+            <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <h4 style={{fontSize:13,fontWeight:700,color:'var(--text)',margin:0,textTransform:'uppercase',letterSpacing:.8}}>Dados Detalhados ({filtrados.length} registros)</h4>
+            </div>
+            <div style={{maxHeight:400,overflowY:'auto'}}>
+              <table className="rel-table">
+                <thead><tr>
+                  <th>Protocolo</th><th>Tipo</th><th>Severidade</th><th>Status</th><th>Bairro</th><th>Data</th><th>Empresa</th><th>Fotos</th>
+                </tr></thead>
+                <tbody>
+                  {filtrados.slice(0,50).map(d=>(
+                    <tr key={d.id} style={{cursor:'pointer'}} onClick={()=>{setSel(d);setSubTab('solicitacoes');}}>
+                      <td style={{fontWeight:600,color:'var(--text)',fontSize:12}}>{d.protocolo}</td>
+                      <td><Pill label={ARBO_CATS[d.tipo]?.label} color={ARBO_CATS[d.tipo]?.c}/></td>
+                      <td><span style={sP(d.severidade)}>{ARBO_SEV[d.severidade]?.label}</span></td>
+                      <td><span style={{color:ARBO_STATUS[d.status]?.c,fontWeight:600,fontSize:12}}>{ARBO_STATUS[d.status]?.icon} {ARBO_STATUS[d.status]?.label}</span></td>
+                      <td style={{fontSize:12}}>{d.bairro}</td>
+                      <td style={{fontSize:12,whiteSpace:'nowrap'}}>{new Date(d.created_at).toLocaleDateString('pt-BR')}</td>
+                      <td style={{fontSize:12}}>{d.empresa||'—'}</td>
+                      <td style={{textAlign:'center'}}>{d.fotos>0?`📷 ${d.fotos}`:'—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── APP ──────────────────────────────────────────────────────── */
 /* ─── AUDIO: Sirene SOS via Web Audio API ───────────────────── */
 const _audioCtxRef={current:null};
@@ -4548,6 +5124,7 @@ function App(){
     {id:'sos',icon:<Ico.shield/>,label:'SOS Mulher',badge:sos>0?sos:null},
     {id:'relatorios',icon:<Ico.report/>,label:'Relatórios'},
     {id:'noticias',icon:<Ico.news/>,label:'Notícias'},
+    {id:'arborizacao',icon:<Ico.tree/>,label:'Arborização'},
   ];
 
   return(
@@ -4612,6 +5189,7 @@ function App(){
             {aba==='sos'&&<SOSMulher/>}
             {aba==='relatorios'&&<Relatorios/>}
             {aba==='noticias'&&<RadarNoticias/>}
+            {aba==='arborizacao'&&<Arborizacao/>}
           </PageTransition>
         </main>
       </div>
