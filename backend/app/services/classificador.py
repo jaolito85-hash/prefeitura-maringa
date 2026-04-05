@@ -83,16 +83,31 @@ IMPORTANTE — Existem DUAS situações:
 - APENAS 5 categorias válidas: pichacao, trafico_drogas, descarte_irregular, furto_fios, depredacao
 - Se o relato NÃO se encaixa em nenhuma dessas 5 → classifique como **generica** (o worker vai mostrar o menu)
 
+### CANAL: arborizacao (ANTES de ocorrencia — qualquer menção a árvore vai pra cá)
+Mensagens sobre ÁRVORES, PODAS, GALHOS, TRONCOS, RAÍZES, TOCOS:
+- Árvore caída, galho na rua, tronco rachado
+- Poda necessária, galhos sobre fiação, copa bloqueando iluminação
+- Raízes quebrando calçada ou tubulação
+- Toco de árvore para retirar
+- Árvore com cupim, árvore morta, risco de queda
+- Galhos atrapalhando pedestres ou veículos
+- REGRA: QUALQUER menção a árvore, poda, galho, tronco, raiz, toco, copa = arborizacao
+- REGRA: "árvore caiu na rua" = arborizacao/arvore_caida (NÃO ocorrencia)
+- REGRA: "galho sobre a fiação" = arborizacao/poda_geral (NÃO ocorrencia)
+- Categorias: poda_geral, poda_complexa, poda_desbarra, remocao, arvore_caida, retirada_toco, risco_queda
+- Urgência: emergencia (risco iminente), urgencia (dano possível), prioridade (precisa atenção), rotina (preventivo)
+- Resposta: confirme recebimento, peça foto se não enviou, peça localização
+
 ### CANAL: ocorrencia
-Mensagens que relatam PROBLEMAS URBANOS ou EMERGÊNCIAS NATURAIS:
-- Queda de árvore, galho na rua
+Mensagens que relatam PROBLEMAS URBANOS ou EMERGÊNCIAS NATURAIS (EXCETO árvores — use arborizacao):
 - Enchente, alagamento, bueiro entupido
 - Buraco no asfalto, cratera
 - Poste caído, falta de iluminação
 - Incêndio, queimada
 - Vendaval, telhado voou
 - Acidente de trânsito
-- Categorias: queda_arvore, enchente_alagamento, buraco_via, iluminacao_publica, incendio, vendaval, acidente, drenagem, outros_urbanos
+- REGRA: NÃO classifique problemas de árvore aqui — use o canal arborizacao
+- Categorias: enchente_alagamento, buraco_via, iluminacao_publica, incendio, vendaval, acidente, drenagem, outros_urbanos
 
 ### CANAL: feedback
 Mensagens que são OPINIÕES, ELOGIOS, RECLAMAÇÕES, PEDIDOS DE AJUDA sobre serviços públicos:
@@ -159,7 +174,7 @@ Gere uma resposta curta e acolhedora para o WhatsApp (máximo 3 linhas).
 ## FORMATO DE RESPOSTA:
 Responda APENAS com JSON válido, sem nenhum texto antes ou depois:
 {
-  "canal": "denuncia|sos_mulher|ocorrencia|feedback|saudacao",
+  "canal": "denuncia|sos_mulher|arborizacao|ocorrencia|feedback|saudacao",
   "categoria": "categoria_especifica",
   "sentimento": "positivo|neutro|negativo",
   "urgencia": "baixa|normal|alta",
@@ -437,6 +452,163 @@ async def classificar_imagem(
     except Exception as exc:
         logger.exception(f"Erro inesperado na classificação de imagem: {exc}")
         return _fallback_imagem("erro_generico")
+
+
+# ── PROMPT DE CLASSIFICAÇÃO POR IMAGEM — ARBORIZAÇÃO ────────────────────
+
+SYSTEM_PROMPT_ARBORIZACAO = """Você é o classificador de arborização urbana da Prefeitura de Maringá-PR.
+Analise a foto enviada pelo cidadão e classifique o tipo de serviço de arborização necessário.
+
+CATEGORIAS (escolha UMA):
+- poda_geral: Galhos sobre fiação, copa bloqueando iluminação, galhos invadindo propriedade, galhos quebrados
+- poda_complexa: Árvore de grande porte sobre telhado, galhos sobre rede de alta tensão, necessita guindaste/equipe especializada
+- poda_desbarra: Galhos finos, brotações excessivas, ramos baixos obstruindo passagem de pedestres
+- remocao: Árvore morta, raízes destruindo infraestrutura (calçada, tubulação), cupim generalizado, espécie invasora
+- arvore_caida: Árvore tombada, tronco caído bloqueando via, galho grande que caiu pós-temporal
+- retirada_toco: Toco remanescente, raiz exposta causando tropeços, toco antigo sem retirada
+- risco_queda: Árvore inclinada, tronco rachado, cavidade interna grave, base comprometida por erosão
+
+SEVERIDADE:
+- emergencia: Árvore caída bloqueando via, risco IMINENTE de queda sobre pessoas/veículos/casas, fiação exposta
+- urgencia: Galhos sobre rede elétrica com risco, árvore visivelmente inclinada, cupim avançado
+- prioridade: Problema claro que precisa atenção mas sem risco imediato
+- rotina: Manutenção preventiva, poda de formação, estética
+
+Responda APENAS em JSON válido:
+{
+  "canal": "arborizacao",
+  "categoria": "slug_da_categoria",
+  "categoria_display": "Nome legível",
+  "sentimento": "negativo",
+  "urgencia": "emergencia|urgencia|prioridade|rotina",
+  "confianca": 85,
+  "resumo": "Descrição objetiva em 1-2 frases do que a IA viu na foto",
+  "resposta_whatsapp": "🌳 Identificamos um problema de arborização...",
+  "pedir_midia": false,
+  "pedir_localizacao": true
+}
+
+Se NÃO conseguir identificar um problema de arborização, retorne canal="feedback", categoria="outros", confianca=0."""
+
+
+SYSTEM_PROMPT_FISCAL = """Você é o fiscal de arborização da Prefeitura de Maringá-PR.
+Compare a foto ANTES (problema reportado pelo cidadão) com a foto DEPOIS (serviço realizado pela empresa contratada).
+
+TIPO DE SERVIÇO: {categoria}
+
+Avalie:
+1. O serviço foi realizado? (a árvore foi podada/removida/o toco retirado?)
+2. A qualidade está aceitável? (corte limpo, área organizada?)
+3. O local ficou seguro? (sem galhos pendurados, sem entulho?)
+4. A calçada/via ficou desobstruída?
+
+Responda APENAS em JSON válido:
+{
+  "aprovado": true,
+  "confianca": 92,
+  "observacao": "Descrição objetiva da avaliação em 1-2 frases"
+}
+
+Se não conseguir avaliar adequadamente (fotos ruins, ângulos diferentes demais), retorne confianca baixa (<60)."""
+
+
+async def classificar_imagem_arborizacao(
+    image_url: str,
+    texto_acompanhante: str = "",
+    telefone: str = "",
+) -> dict[str, Any]:
+    """Classifica imagem de arborização com GPT-4o-mini Vision."""
+    # Moderação primeiro
+    moderacao = await _moderar_imagem(image_url)
+    if moderacao["flagged"]:
+        logger.warning(f"🚫 Imagem arborização bloqueada: {telefone}")
+        return {
+            "canal": "saudacao", "categoria": "imagem_bloqueada",
+            "sentimento": "neutro", "urgencia": "baixa",
+            "resumo": "Imagem bloqueada pela moderação", "resposta_whatsapp": "",
+            "pedir_midia": False, "pedir_localizacao": False,
+            "bloqueado": True, "classificacao_por_imagem": True, "confianca": 0,
+        }
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {settings.openai_api_key}",
+    }
+    payload = {
+        "model": OPENAI_MODEL,
+        "max_tokens": 500,
+        "temperature": 0.1,
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT_ARBORIZACAO},
+            {"role": "user", "content": [
+                {"type": "image_url", "image_url": {"url": image_url, "detail": "low"}},
+                {"type": "text", "text": texto_acompanhante or "Classifique esta imagem de arborização."},
+            ]},
+        ],
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(OPENAI_API_URL, headers=headers, json=payload)
+            response.raise_for_status()
+        data = response.json()
+        texto_resposta = data["choices"][0]["message"]["content"].strip()
+        if texto_resposta.startswith("```"):
+            texto_resposta = texto_resposta.split("\n", 1)[1]
+        if texto_resposta.endswith("```"):
+            texto_resposta = texto_resposta.rsplit("```", 1)[0]
+        resultado = json.loads(texto_resposta.strip())
+        resultado["classificacao_por_imagem"] = True
+        resultado["bloqueado"] = False
+        resultado["confianca"] = int(resultado.get("confianca", 0))
+        logger.info(f"Classificação ARBORIZAÇÃO imagem {telefone}: cat={resultado.get('categoria')} conf={resultado.get('confianca')}")
+        return resultado
+    except Exception as exc:
+        logger.exception(f"Erro classificação arborização imagem: {exc}")
+        return _fallback_imagem("erro_arborizacao")
+
+
+async def comparar_antes_depois(
+    foto_antes_url: str,
+    foto_depois_url: str,
+    categoria: str,
+) -> dict[str, Any]:
+    """Compara fotos antes/depois de serviço de arborização com GPT-4o-mini Vision."""
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {settings.openai_api_key}",
+    }
+    prompt_fiscal = SYSTEM_PROMPT_FISCAL.replace("{categoria}", categoria.replace("_", " ").title())
+    payload = {
+        "model": OPENAI_MODEL,
+        "max_tokens": 300,
+        "temperature": 0.1,
+        "messages": [
+            {"role": "system", "content": prompt_fiscal},
+            {"role": "user", "content": [
+                {"type": "text", "text": "FOTO ANTES (problema):"},
+                {"type": "image_url", "image_url": {"url": foto_antes_url, "detail": "low"}},
+                {"type": "text", "text": "FOTO DEPOIS (serviço realizado):"},
+                {"type": "image_url", "image_url": {"url": foto_depois_url, "detail": "low"}},
+            ]},
+        ],
+    }
+    try:
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            response = await client.post(OPENAI_API_URL, headers=headers, json=payload)
+            response.raise_for_status()
+        data = response.json()
+        texto_resposta = data["choices"][0]["message"]["content"].strip()
+        if texto_resposta.startswith("```"):
+            texto_resposta = texto_resposta.split("\n", 1)[1]
+        if texto_resposta.endswith("```"):
+            texto_resposta = texto_resposta.rsplit("```", 1)[0]
+        resultado = json.loads(texto_resposta.strip())
+        resultado["confianca"] = int(resultado.get("confianca", 0))
+        logger.info(f"Fiscal IA arborização: aprovado={resultado.get('aprovado')} conf={resultado.get('confianca')}")
+        return resultado
+    except Exception as exc:
+        logger.exception(f"Erro fiscal IA arborização: {exc}")
+        return {"aprovado": False, "confianca": 0, "observacao": f"Erro na análise: {exc}"}
 
 
 def _fallback_imagem(motivo: str) -> dict[str, Any]:

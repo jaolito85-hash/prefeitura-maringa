@@ -25,7 +25,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import settings
-from app.services.classificador import classificar_mensagem, classificar_imagem, detectar_sos_rapido
+from app.services.classificador import classificar_mensagem, classificar_imagem, classificar_imagem_arborizacao, detectar_sos_rapido
 from app.services.transcricao_audio import transcrever_audio, MAX_AUDIO_SECONDS
 from app.services.rate_limiter import (
     checar_limite_consulta_protocolo,
@@ -445,6 +445,8 @@ async def receber_webhook_unificado(
             "denuncia": "queue:denuncias",
             "sos_mulher": "queue:sos",
             "ocorrencia": "queue:ocorrencias",
+            "arborizacao": "queue:arborizacao",
+            "arborizacao_empresa": "queue:arborizacao",
             "feedback": "queue:feedbacks",
             "consulta_protocolo": "queue:consultas",
         }
@@ -468,11 +470,23 @@ async def receber_webhook_unificado(
         else:
             image_url = _b64
 
-        classificacao = await classificar_imagem(
-            image_url=image_url,
-            texto_acompanhante=texto or "",
-            telefone=telefone,
-        )
+        # Detectar palavras-chave de árvore no texto/caption
+        _PALAVRAS_ARVORE = {"arvore", "árvore", "poda", "galho", "tronco", "toco", "raiz", "raízes", "copa", "caiu árvore", "arvore caiu"}
+        _texto_lower = (texto or "").lower()
+        _e_arvore = any(p in _texto_lower for p in _PALAVRAS_ARVORE)
+
+        if _e_arvore:
+            classificacao = await classificar_imagem_arborizacao(
+                image_url=image_url,
+                texto_acompanhante=texto or "",
+                telefone=telefone,
+            )
+        else:
+            classificacao = await classificar_imagem(
+                image_url=image_url,
+                texto_acompanhante=texto or "",
+                telefone=telefone,
+            )
 
         # Se moderação bloqueou a imagem
         if classificacao.get("bloqueado"):
@@ -519,6 +533,7 @@ async def receber_webhook_unificado(
         "denuncia": "queue:denuncias",
         "sos_mulher": "queue:sos",
         "ocorrencia": "queue:ocorrencias",
+        "arborizacao": "queue:arborizacao",
         "feedback": "queue:feedbacks",
     }
     fila = fila_map.get(canal, "queue:feedbacks")
