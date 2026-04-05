@@ -3095,6 +3095,11 @@ def _despachar_para_empresa(sb: Client, arb_id: str) -> None:
             f"0️⃣ Não posso atender"
         )
         enviar_whatsapp(arb["empresa_telefone"], os_msg)
+        # Enviar foto do cidadão para a empresa (se disponível)
+        foto_antes = arb.get("foto_antes_urls") or []
+        if foto_antes:
+            enviar_whatsapp_imagem(arb["empresa_telefone"], foto_antes[0],
+                f"📷 Foto enviada pelo cidadão — {arb['protocolo']}")
         # Sessão para empresa com TTL longo (24h)
         # Normalizar telefone com + (webhook salva com +55)
         tel_empresa = arb["empresa_telefone"]
@@ -3342,135 +3347,100 @@ def processar_arborizacao(event: dict, sb: Client) -> None:
         return
 
     # ── Nova solicitação ──
-    categoria = classificacao.get("categoria", "poda_geral")
-    severidade = classificacao.get("urgencia", "rotina")
-    # Mapear urgencia do classificador para severidade da arborização
-    _MAP_SEV = {"alta": "emergencia", "critica": "emergencia", "normal": "prioridade", "baixa": "rotina",
-                "emergencia": "emergencia", "urgencia": "urgencia", "prioridade": "prioridade", "rotina": "rotina"}
-    severidade = _MAP_SEV.get(severidade, "rotina")
-    # Forçar alta severidade para categorias críticas
-    if categoria in ("arvore_caida", "risco_queda") and severidade == "rotina":
-        severidade = "urgencia"
+    tem_foto = event.get("tem_midia") and event.get("tipo_midia") == "imagem"
 
-    resumo = classificacao.get("resumo", texto[:200] if texto else "Solicitação de arborização")
-    tem_loc = event.get("tem_localizacao", False)
-    lat = event.get("latitude")
-    lng = event.get("longitude")
+    # Se cidadão mandou COM foto → já temos classificação visual precisa
+    if tem_foto:
+        categoria = classificacao.get("categoria", "poda_geral")
+        severidade = classificacao.get("urgencia", "rotina")
+        _MAP_SEV = {"alta": "emergencia", "critica": "emergencia", "normal": "prioridade", "baixa": "rotina",
+                    "emergencia": "emergencia", "urgencia": "urgencia", "prioridade": "prioridade", "rotina": "rotina"}
+        severidade = _MAP_SEV.get(severidade, "rotina")
+        if categoria in ("arvore_caida", "risco_queda") and severidade == "rotina":
+            severidade = "urgencia"
+        resumo = classificacao.get("resumo", texto[:200] if texto else "Solicitação de arborização")
 
-    if tem_loc and lat and lng:
-        # Com GPS → cria registro direto
-        endereco_geo, bairro_geo = _geocodificar_sync(lat, lng)
-        protocolo = gerar_protocolo_arb(sb)
-        sla_horas, sla_vencimento = _calcular_sla_arb(severidade)
+        tem_loc = event.get("tem_localizacao", False)
+        lat = event.get("latitude")
+        lng = event.get("longitude")
 
-        # Detectar foto encaminhada (red flag)
-        foto_info = classificar_foto_origem(event) if event.get("tem_midia") else {"foto_origem": None, "foto_flag": None, "foto_flag_motivo": None}
+        if tem_loc and lat and lng:
+            # Foto + GPS → registra completo e despacha
+            endereco_geo, bairro_geo = _geocodificar_sync(lat, lng)
+            protocolo = gerar_protocolo_arb(sb)
+            sla_horas, sla_vencimento = _calcular_sla_arb(severidade)
+            foto_info = classificar_foto_origem(event)
 
-        # Dedup: buscar solicitação similar na mesma região
-        similar = _buscar_arborizacao_similar(sb, categoria, lat, lng, endereco_geo)
-        if similar:
-            logger.info(f"Arborização agrupada com {similar['protocolo']}")
-            enviar_whatsapp(telefone,
-                f"🌳 Obrigado pelo relato! Já temos uma solicitação registrada nessa região.\n\n"
-                f"📋 Protocolo: *{similar['protocolo']}*\n"
-                f"Seu relato foi adicionado. Acompanhe pelo protocolo!")
-            finalizar_sessao(sb, telefone)
-            return
+            similar = _buscar_arborizacao_similar(sb, categoria, lat, lng, endereco_geo)
+            if similar:
+                enviar_whatsapp(telefone, f"🌳 Obrigado! Já temos uma solicitação nessa região.\n📋 Protocolo: *{similar['protocolo']}*")
+                finalizar_sessao(sb, telefone)
+                return
 
-        res = sb.table("arborizacao").insert({
-            "protocolo": protocolo,
-            "telefone": telefone,
-            "nome": push_name or None,
-            "mensagem": texto,
-            "categoria": categoria,
-            "severidade": severidade,
-            "resumo": resumo,
-            "endereco": endereco_geo or f"GPS: {lat:.4f}, {lng:.4f}",
-            "endereco_normalizado": _normalizar_endereco(endereco_geo or ""),
-            "bairro": bairro_geo,
-            "latitude": lat,
-            "longitude": lng,
-            "status": "recebido",
-            "sla_horas": sla_horas,
-            "sla_vencimento": sla_vencimento,
-            "foto_origem": foto_info.get("foto_origem"),
-            "foto_flag": foto_info.get("foto_flag"),
-            "foto_flag_motivo": foto_info.get("foto_flag_motivo"),
-        }).execute()
-
-        registro_id = res.data[0]["id"]
-
-        # Upload foto se enviou
-        tem_foto = event.get("tem_midia") and event.get("tipo_midia") == "imagem"
-        if tem_foto:
+            res = sb.table("arborizacao").insert({
+                "protocolo": protocolo, "telefone": telefone, "nome": push_name or None,
+                "mensagem": texto, "categoria": categoria, "severidade": severidade, "resumo": resumo,
+                "endereco": endereco_geo or f"GPS: {lat:.4f}, {lng:.4f}",
+                "endereco_normalizado": _normalizar_endereco(endereco_geo or ""),
+                "bairro": bairro_geo, "latitude": lat, "longitude": lng,
+                "status": "recebido", "sla_horas": sla_horas, "sla_vencimento": sla_vencimento,
+                "foto_origem": foto_info.get("foto_origem"), "foto_flag": foto_info.get("foto_flag"),
+                "foto_flag_motivo": foto_info.get("foto_flag_motivo"),
+            }).execute()
+            registro_id = res.data[0]["id"]
             _processar_midia_arb(event, sb, registro_id, "antes")
 
-        icone = _ICONE_ARB.get(categoria, "🌳")
-        sev_label = {"emergencia": "🚨 EMERGÊNCIA", "urgencia": "⚠️ URGÊNCIA", "prioridade": "📋 PRIORIDADE", "rotina": "🌿 ROTINA"}
-        cat_display = categoria.replace("_", " ").title()
-
-        if tem_foto:
-            # Tem foto → registra e despacha direto
+            icone = _ICONE_ARB.get(categoria, "🌳")
+            sev_label = {"emergencia": "🚨 EMERGÊNCIA", "urgencia": "⚠️ URGÊNCIA", "prioridade": "📋 PRIORIDADE", "rotina": "🌿 ROTINA"}
             resposta = (
-                f"🌳 Solicitação de arborização registrada!\n\n"
-                f"{icone} Tipo: *{cat_display}*\n"
+                f"🌳 Solicitação registrada!\n\n"
+                f"{icone} *{categoria.replace('_',' ').title()}*\n"
                 f"{sev_label.get(severidade, severidade)}\n"
-                f"📍 {endereco_geo or 'Localização recebida'}\n\n"
+                f"📍 {endereco_geo or 'Localização recebida'}\n"
+                f"📷 Foto recebida!\n\n"
                 f"📋 Protocolo: *{protocolo}*\n"
-                f"📷 Foto recebida!\n"
-                f"Vamos encaminhar para a equipe responsável!"
+                f"Encaminhando para a equipe!"
             )
-            criar_sessao(sb, telefone, "arborizacao", "finalizado", registro_id,
-                         {"protocolo": protocolo, "categoria": categoria})
+            criar_sessao(sb, telefone, "arborizacao", "finalizado", registro_id, {"protocolo": protocolo, "categoria": categoria})
             finalizar_sessao(sb, telefone)
             enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
-            logger.info(f"Arborização registrada: {protocolo} cat={categoria} sev={severidade}")
-            # 🤖 AUTOMAÇÃO: auto-triagem + auto-atribuição + despacho
             _auto_despachar(sb, registro_id, protocolo)
-        else:
-            # Sem foto → pedir foto antes de despachar
-            resposta = (
-                f"🌳 Solicitação de arborização registrada!\n\n"
-                f"{icone} Tipo: *{cat_display}*\n"
-                f"{sev_label.get(severidade, severidade)}\n"
-                f"📍 {endereco_geo or 'Localização recebida'}\n\n"
-                f"📋 Protocolo: *{protocolo}*\n\n"
-                f"📷 *Pode enviar uma foto do problema?*\n"
-                f"A foto ajuda a equipe a avaliar a situação antes de ir ao local.\n"
-                f"Ou envie *pular* para continuar sem foto."
-            )
-            criar_sessao(sb, telefone, "arborizacao", "aguardando_foto", registro_id,
-                         {"protocolo": protocolo, "categoria": categoria})
-            enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
-            logger.info(f"Arborização registrada (aguardando foto): {protocolo}")
+            return
+
+        # Foto sem GPS → guardar foto no contexto, pedir localização
+        placeholder_id = str(uuid.uuid4())
+        criar_sessao(sb, telefone, "arborizacao", "aguardando_endereco", placeholder_id, {
+            "categoria": categoria, "severidade": severidade, "resumo": resumo,
+            "texto_original": texto, "push_name": push_name or "", "_placeholder": True,
+            "tem_foto_pendente": True, "message_id_foto": event.get("message_id", ""),
+            "media_base64_flag": True,
+        })
+        icone = _ICONE_ARB.get(categoria, "🌳")
+        sev_label = {"emergencia": "🚨 EMERGÊNCIA", "urgencia": "⚠️ URGÊNCIA", "prioridade": "📋 PRIORIDADE", "rotina": "🌿 ROTINA"}
+        resposta = (
+            f"📷 Foto recebida! Classificação:\n\n"
+            f"{icone} *{categoria.replace('_',' ').title()}*\n"
+            f"{sev_label.get(severidade, severidade)}\n\n"
+            f"📍 Agora envie sua localização:\n"
+            f"Clique em: 📎 > Localização\n"
+            f"Ou me diga a rua e o bairro."
+        )
+        enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
         return
 
-    # Sem GPS → pedir endereço
-    placeholder_id = str(uuid.uuid4())
-    ctx = {
-        "categoria": categoria,
-        "severidade": severidade,
-        "resumo": resumo,
-        "texto_original": texto,
-        "push_name": push_name or "",
-        "_placeholder": True,
-    }
-    # Se enviou foto, guardar referência no contexto
-    if event.get("tem_midia") and event.get("tipo_midia") == "imagem":
-        ctx["tem_foto_pendente"] = True
-        ctx["media_base64"] = event.get("media_base64", "")[:100]  # Só flag, não o base64 inteiro
-        ctx["message_id_foto"] = event.get("message_id", "")
-
-    criar_sessao(sb, telefone, "arborizacao", "aguardando_endereco", placeholder_id, ctx)
-
-    icone = _ICONE_ARB.get(categoria, "🌳")
-    cat_display = categoria.replace("_", " ").title()
+    # ── Cidadão mandou TEXTO sem foto → PEDIR FOTO PRIMEIRO ──
     resposta = (
-        f"🌳 Problema identificado: *{cat_display}*\n\n"
-        f"📍 Pode enviar sua localização?\n"
-        f"Clique em: 📎 > Localização\n"
-        f"Ou me diga a rua e o bairro."
+        f"🌳 Entendi que você tem um problema com árvore!\n\n"
+        f"📷 *Envie uma foto* para avaliarmos a gravidade da situação.\n"
+        f"A foto ajuda a IA a classificar a urgência e encaminhar corretamente.\n\n"
+        f"📎 > Câmera ou Galeria"
     )
+    placeholder_id = str(uuid.uuid4())
+    criar_sessao(sb, telefone, "arborizacao", "aguardando_foto_inicial", placeholder_id, {
+        "texto_original": texto, "push_name": push_name or "", "_placeholder": True,
+        "classificacao_texto": classificacao,
+    })
+    enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
     enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
 
 
@@ -3483,29 +3453,72 @@ def _continuar_arborizacao(event: dict, sb: Client) -> None:
     contexto = sessao.get("contexto", {})
     registro_id = sessao.get("registro_id", "")
 
-    if etapa == "aguardando_foto":
-        protocolo = contexto.get("protocolo", "")
+    if etapa == "aguardando_foto_inicial":
+        # Cidadão mandou texto antes, agora esperamos a foto pra classificar com Vision
         tem_foto = event.get("tem_midia") and event.get("tipo_midia") == "imagem"
 
         if tem_foto:
-            # Cidadão enviou foto → salvar e despachar
-            foto_info = classificar_foto_origem(event)
-            _processar_midia_arb(event, sb, registro_id, "antes")
-            sb.table("arborizacao").update({
-                "foto_origem": foto_info.get("foto_origem"),
-                "foto_flag": foto_info.get("foto_flag"),
-                "foto_flag_motivo": foto_info.get("foto_flag_motivo"),
-            }).eq("id", registro_id).execute()
-            enviar_whatsapp(telefone, f"📷 Foto recebida! Sua solicitação *{protocolo}* está sendo encaminhada para a equipe.")
-            finalizar_sessao(sb, telefone)
-            _auto_despachar(sb, registro_id, protocolo)
+            # Classificar com Vision IA
+            import asyncio
+            from app.services.classificador import classificar_imagem_arborizacao
+            _mime = event.get("mimetype", "image/jpeg") or "image/jpeg"
+            _b64 = event.get("media_base64", "")
+            if _b64 and not _b64.startswith("data:"):
+                image_url = f"data:{_mime};base64,{_b64}"
+            else:
+                image_url = _b64
+
+            try:
+                loop = asyncio.new_event_loop()
+                resultado_vision = loop.run_until_complete(
+                    classificar_imagem_arborizacao(image_url, contexto.get("texto_original", ""), telefone)
+                )
+                loop.close()
+            except Exception as e:
+                logger.error(f"Erro Vision arborização: {e}")
+                resultado_vision = {"categoria": "poda_geral", "urgencia": "prioridade", "resumo": contexto.get("texto_original", "")}
+
+            categoria = resultado_vision.get("categoria", "poda_geral")
+            severidade = resultado_vision.get("urgencia", "prioridade")
+            _MAP_SEV = {"alta": "emergencia", "critica": "emergencia", "normal": "prioridade", "baixa": "rotina",
+                        "emergencia": "emergencia", "urgencia": "urgencia", "prioridade": "prioridade", "rotina": "rotina"}
+            severidade = _MAP_SEV.get(severidade, "prioridade")
+            if categoria in ("arvore_caida", "risco_queda") and severidade == "rotina":
+                severidade = "urgencia"
+            resumo = resultado_vision.get("resumo", contexto.get("texto_original", ""))
+
+            # Atualizar sessão com classificação real e pedir localização
+            novo_ctx = {**contexto,
+                "categoria": categoria, "severidade": severidade, "resumo": resumo,
+                "tem_foto_pendente": True, "message_id_foto": event.get("message_id", ""),
+                "media_base64_flag": True,
+            }
+            atualizar_sessao(sb, telefone, "aguardando_endereco", novo_ctx)
+
+            icone = _ICONE_ARB.get(categoria, "🌳")
+            sev_label = {"emergencia": "🚨 EMERGÊNCIA", "urgencia": "⚠️ URGÊNCIA", "prioridade": "📋 PRIORIDADE", "rotina": "🌿 ROTINA"}
+            resposta = (
+                f"📷 Foto analisada pela IA!\n\n"
+                f"{icone} Tipo: *{categoria.replace('_',' ').title()}*\n"
+                f"{sev_label.get(severidade, severidade)}\n"
+                f"📝 {resumo}\n\n"
+                f"📍 Agora envie sua *localização*:\n"
+                f"Clique em: 📎 > Localização\n"
+                f"Ou me diga a rua e o bairro."
+            )
+            enviar_whatsapp(telefone, resposta)
         elif texto and texto.strip().lower() in ("pular", "não", "nao", "sem foto", "n"):
-            # Cidadão pulou a foto → despachar mesmo assim
-            enviar_whatsapp(telefone, f"Ok! Sua solicitação *{protocolo}* está sendo encaminhada para a equipe mesmo sem foto.")
-            finalizar_sessao(sb, telefone)
-            _auto_despachar(sb, registro_id, protocolo)
+            # Sem foto → usar classificação de texto (menos precisa)
+            cls_texto = contexto.get("classificacao_texto", {})
+            novo_ctx = {**contexto,
+                "categoria": cls_texto.get("categoria", "poda_geral"),
+                "severidade": "prioridade",
+                "resumo": cls_texto.get("resumo", contexto.get("texto_original", "")),
+            }
+            atualizar_sessao(sb, telefone, "aguardando_endereco", novo_ctx)
+            enviar_whatsapp(telefone, "Ok! 📍 Envie sua localização ou me diga a rua e o bairro.")
         else:
-            enviar_whatsapp(telefone, "📷 Envie uma foto do problema, ou digite *pular* para continuar sem foto.")
+            enviar_whatsapp(telefone, "📷 Envie uma *foto* do problema para avaliarmos a gravidade.\nOu digite *pular* para continuar sem foto.")
         return
 
     if etapa == "aguardando_endereco":
