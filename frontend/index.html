@@ -4605,7 +4605,6 @@ function Arborizacao(){
   const [subTab,setSubTab]=useState('solicitacoes');
   const mapRef=useRef(null);
   const mapInst=useRef(null);
-  const markersRef=useRef([]);
 
   /* ── Filtros ── */
   const filtrados=useMemo(()=>{
@@ -4632,30 +4631,97 @@ function Arborizacao(){
     return {total:t,emerg,exec,done,pend,taxa};
   },[]);
 
-  /* ── Mapa ── */
+  /* ── Mapa (layers nativos — fixos no zoom/pitch) ── */
+  const arbPopup=useRef(null);
   useEffect(()=>{
     if(subTab!=='solicitacoes'||!mapRef.current) return;
     mapboxgl.accessToken=MAPBOX_TOKEN;
     const map=new mapboxgl.Map({container:mapRef.current,style:'mapbox://styles/mapbox/dark-v11',center:[-51.9383,-23.4205],zoom:12.5,attributionControl:false});
     map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
+    arbPopup.current=new mapboxgl.Popup({closeButton:false,closeOnClick:true,maxWidth:'260px',offset:10});
     mapInst.current=map;
-    return ()=>{map.remove();mapInst.current=null;markersRef.current=[];};
+
+    map.on('load',()=>{
+      const sevStops=['emergencia','#ef4444','urgencia','#f59e0b','prioridade','#3b82f6','rotina','#10b981'];
+
+      map.addSource('arb-points',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+
+      // Glow (só emergência/urgência)
+      map.addLayer({id:'arb-glow',type:'circle',source:'arb-points',
+        filter:['in',['get','severidade'],['literal',['emergencia','urgencia']]],
+        paint:{
+          'circle-radius':['match',['get','severidade'],'emergencia',24,'urgencia',18,14],
+          'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
+          'circle-opacity':0.12,'circle-blur':1.2,
+      }});
+
+      // Pulse halo
+      map.addLayer({id:'arb-pulse',type:'circle',source:'arb-points',paint:{
+        'circle-radius':['match',['get','severidade'],'emergencia',16,'urgencia',13,'prioridade',10,'rotina',8,9],
+        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
+        'circle-opacity':0.4,'circle-blur':0.6,
+      }});
+
+      // Ponto principal
+      map.addLayer({id:'arb-main',type:'circle',source:'arb-points',paint:{
+        'circle-radius':['match',['get','severidade'],'emergencia',8,'urgencia',7,'prioridade',5.5,'rotina',4.5,5],
+        'circle-color':['match',['get','severidade'],...sevStops,'#8b949e'],
+        'circle-opacity':0.95,
+        'circle-stroke-width':1.5,'circle-stroke-color':'rgba(255,255,255,0.7)',
+      }});
+
+      // Click → selecionar
+      map.on('click','arb-main',(e)=>{
+        const f=e.features[0];
+        const id=f.properties.id;
+        const item=ARBO_MOCK.find(x=>x.id===id);
+        if(item) setSel(item);
+      });
+
+      // Hover → popup + cursor
+      map.on('mouseenter','arb-main',(e)=>{
+        map.getCanvas().style.cursor='pointer';
+        const f=e.features[0];const p=f.properties;const coords=f.geometry.coordinates.slice();
+        arbPopup.current.setLngLat(coords).setHTML(
+          `<div style="font-family:Outfit,sans-serif;padding:4px 0"><strong style="font-size:12px;color:#e2e8f0">${p.descricao}</strong><div style="font-size:11px;color:#94a3b8;margin-top:4px">📍 ${p.bairro} · ${p.protocolo}</div></div>`
+        ).addTo(map);
+      });
+      map.on('mouseleave','arb-main',()=>{map.getCanvas().style.cursor='';arbPopup.current.remove();});
+
+      // Pulse animation
+      let pulseDir=1,pulseVal=0;
+      const pulseAnim=()=>{
+        if(!mapInst.current) return;
+        pulseVal+=pulseDir*0.015;
+        if(pulseVal>1){pulseDir=-1;pulseVal=1;}
+        if(pulseVal<0){pulseDir=1;pulseVal=0;}
+        try{map.setPaintProperty('arb-pulse','circle-opacity',0.2+pulseVal*0.3);}catch(e){}
+        requestAnimationFrame(pulseAnim);
+      };
+      requestAnimationFrame(pulseAnim);
+    });
+
+    return ()=>{map.remove();mapInst.current=null;};
   },[subTab]);
 
+  /* ── Atualizar dados do mapa quando filtros mudam ── */
   useEffect(()=>{
     if(!mapInst.current) return;
-    markersRef.current.forEach(m=>m.remove());
-    markersRef.current=[];
-    filtrados.forEach(d=>{
-      const el=document.createElement('div');
-      const sc=ARBO_SEV[d.severidade]?.c||'#10b981';
-      el.style.cssText=`width:${d.severidade==='emergencia'?18:14}px;height:${d.severidade==='emergencia'?18:14}px;border-radius:50%;background:${sc};border:2px solid rgba(255,255,255,.9);cursor:pointer;box-shadow:0 0 10px ${sc}80;transition:transform .2s`;
-      el.onmouseenter=()=>{el.style.transform='scale(1.4)';};
-      el.onmouseleave=()=>{el.style.transform='scale(1)';};
-      el.onclick=()=>setSel(d);
-      const m=new mapboxgl.Marker(el).setLngLat([d.lng,d.lat]).addTo(mapInst.current);
-      markersRef.current.push(m);
-    });
+    const map=mapInst.current;
+    const updateSource=()=>{
+      const src=map.getSource('arb-points');
+      if(!src) return;
+      src.setData({
+        type:'FeatureCollection',
+        features:filtrados.map(d=>({
+          type:'Feature',
+          geometry:{type:'Point',coordinates:[d.lng,d.lat]},
+          properties:{id:d.id,protocolo:d.protocolo,descricao:d.descricao,bairro:d.bairro,severidade:d.severidade,tipo:d.tipo,status:d.status},
+        })),
+      });
+    };
+    if(map.isStyleLoaded()) updateSource();
+    else map.on('load',updateSource);
   },[filtrados,subTab]);
 
   /* ── Download CSV ── */
