@@ -458,6 +458,40 @@ async def receber_webhook_unificado(
         }, is_continuacao=True, sessao=sessao)
         return _enfileirar(event, fila)
 
+    # ── 5b. EMPRESA DE ARBORIZAÇÃO sem sessão ativa? ──
+    # Se o telefone pertence a uma empresa cadastrada E tem OS ativa → rotear direto
+    try:
+        sb_check = get_supabase()
+        _tel_limpo = telefone.lstrip("+")
+        empresa_cfg = sb_check.table("arborizacao_config").select("valor").eq("tipo", "empresa").execute()
+        _empresa_match = None
+        for ec in (empresa_cfg.data or []):
+            if ec["valor"].get("telefone", "").lstrip("+") == _tel_limpo:
+                _empresa_match = ec["valor"]
+                break
+        if _empresa_match:
+            # Buscar OS ativa atribuída a esta empresa
+            arb_ativo = sb_check.table("arborizacao").select("id, protocolo, status").eq(
+                "empresa_telefone", _empresa_match["telefone"]
+            ).in_("status", ["atribuido", "em_execucao"]).order("created_at", desc=True).limit(1).execute()
+            if arb_ativo.data:
+                arb = arb_ativo.data[0]
+                logger.info(f"📱 Empresa reconhecida sem sessão: {_empresa_match['nome']} → {arb['protocolo']}")
+                # Recriar sessão e rotear
+                sessao_empresa = {
+                    "canal": "arborizacao_empresa",
+                    "etapa": "em_execucao",
+                    "registro_id": arb["id"],
+                    "contexto": {"protocolo": arb["protocolo"], "arb_id": arb["id"], "empresa_nome": _empresa_match["nome"]},
+                }
+                event = _montar_evento(dados, request, classificacao={
+                    "canal": "arborizacao_empresa",
+                    "categoria": "",
+                }, is_continuacao=True, sessao=sessao_empresa)
+                return _enfileirar(event, "queue:arborizacao")
+    except Exception as exc:
+        logger.error(f"Erro check empresa arborização: {exc}")
+
     # ── 6. MENSAGEM NOVA — classificar com IA ──
 
     # ── 6a. Se tem IMAGEM → classificar por visão (NOVO) ──

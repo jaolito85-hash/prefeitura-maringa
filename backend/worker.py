@@ -481,10 +481,11 @@ def processar_midia(event: dict, sb: Client, registro_id: str, tabela: str) -> s
 SESSAO_TTL_MINUTOS = 5  # Tempo de vida da sessão (minutos)
 
 def criar_sessao(sb: Client, telefone: str, canal: str, etapa: str,
-                 registro_id: str, contexto: dict) -> None:
+                 registro_id: str, contexto: dict, ttl_minutos: int = None) -> None:
     """Cria ou atualiza sessao de conversa pra esse telefone."""
     try:
-        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=SESSAO_TTL_MINUTOS)).isoformat()
+        ttl = ttl_minutos or SESSAO_TTL_MINUTOS
+        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=ttl)).isoformat()
         sb.table("sessoes_conversa").upsert({
             "telefone": telefone,
             "canal": canal,
@@ -500,10 +501,11 @@ def criar_sessao(sb: Client, telefone: str, canal: str, etapa: str,
         logger.error(f"Erro ao criar sessao: {exc}")
 
 
-def atualizar_sessao(sb: Client, telefone: str, etapa: str, contexto: dict) -> None:
+def atualizar_sessao(sb: Client, telefone: str, etapa: str, contexto: dict, ttl_minutos: int = None) -> None:
     """Atualiza a etapa e contexto da sessao ativa sem mudar canal/registro_id."""
     try:
-        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=SESSAO_TTL_MINUTOS)).isoformat()
+        ttl = ttl_minutos or SESSAO_TTL_MINUTOS
+        expira_em = (datetime.now(timezone.utc) + timedelta(minutes=ttl)).isoformat()
         sb.table("sessoes_conversa").update({
             "etapa": etapa,
             "contexto": contexto,
@@ -3287,16 +3289,18 @@ def _processar_resposta_empresa(event: dict, sb: Client) -> None:
         return
 
     # ── "1" = Aceitar OS ──
+    _TTL_EMPRESA = 10080  # 7 dias em minutos
+
     if texto == "1":
         sb.table("arborizacao").update({"status": "em_execucao"}).eq("id", arb_id).execute()
-        atualizar_sessao(sb, telefone, "em_execucao", contexto)
+        atualizar_sessao(sb, telefone, "em_execucao", contexto, ttl_minutos=_TTL_EMPRESA)
         enviar_whatsapp(telefone, "✅ OS aceita! Quando concluir, envie *3* + foto do serviço realizado.")
         logger.info(f"Empresa aceitou OS: {contexto.get('protocolo')}")
 
     # ── "2" = Equipe a caminho (aceita implicitamente) ──
     elif texto == "2":
         sb.table("arborizacao").update({"status": "em_execucao"}).eq("id", arb_id).execute()
-        atualizar_sessao(sb, telefone, "em_execucao", contexto)
+        atualizar_sessao(sb, telefone, "em_execucao", contexto, ttl_minutos=_TTL_EMPRESA)
         enviar_whatsapp(telefone, "📍 Registrado: equipe a caminho. Quando concluir, envie *3* + foto.")
         logger.info(f"Empresa a caminho: {contexto.get('protocolo')}")
 
