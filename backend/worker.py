@@ -297,6 +297,30 @@ def enviar_whatsapp(telefone: str, mensagem: str) -> bool:
         return False
 
 
+def enviar_whatsapp_imagem(telefone: str, image_url: str, caption: str = "") -> bool:
+    """Envia imagem via Evolution API (sendMedia)."""
+    if not EVOLUTION_API_URL or not EVOLUTION_API_KEY:
+        return False
+    numero = telefone.lstrip("+")
+    url = f"{EVOLUTION_API_URL}/message/sendMedia/{WA_INSTANCE_NAME}"
+    try:
+        response = httpx.post(url, json={
+            "number": numero,
+            "mediatype": "image",
+            "media": image_url,
+            "caption": caption,
+        }, headers={"Content-Type": "application/json", "apikey": EVOLUTION_API_KEY}, timeout=15.0)
+        if response.status_code in (200, 201):
+            logger.info(f"WhatsApp imagem enviada para {telefone}")
+            return True
+        else:
+            logger.error(f"Falha WhatsApp imagem: {response.status_code}")
+            return False
+    except Exception as exc:
+        logger.error(f"Erro WhatsApp imagem: {exc}")
+        return False
+
+
 def download_media(message_id: str, media_base64: str = "") -> bytes | None:
     """
     Baixa a mídia de uma mensagem.
@@ -3200,15 +3224,24 @@ def _auto_fiscalizar_e_notificar(sb: Client, arb_id: str) -> None:
             }).eq("id", arb_id).execute()
             logger.info(f"🤖 AUTO-FISCAL (sem antes): {arb['protocolo']}")
 
-        # ── Notificar cidadão ──
+        # ── Notificar cidadão com foto do depois ──
         cat_display = arb["categoria"].replace("_", " ").title()
+
+        # Enviar foto do serviço concluído (se disponível)
+        foto_depois = (arb.get("foto_depois_urls") or [])
+        if foto_depois:
+            enviar_whatsapp_imagem(arb["telefone"], foto_depois[0],
+                f"✅ Serviço concluído!\n📋 {arb['protocolo']} — {cat_display}\n📍 {arb.get('endereco', '')}")
+
         resposta_cidadao = (
             f"✅ Ótima notícia! O serviço de arborização foi concluído!\n\n"
             f"📋 Protocolo: *{arb['protocolo']}*\n"
             f"🌳 Tipo: *{cat_display}*\n"
-            f"📍 {arb.get('endereco', '')}\n\n"
-            f"A equipe já realizou o serviço e foi aprovado pela fiscalização.\n\n"
-            f"⭐ Quer avaliar o atendimento? (1 a 5)"
+            f"📍 {arb.get('endereco', '')}\n"
+            f"🏢 Empresa: {arb.get('empresa_atribuida', '—')}\n\n"
+            f"A equipe realizou o serviço e foi aprovado pela fiscalização. ✅\n\n"
+            f"⭐ *Avalie o atendimento de 1 a 5:*\n"
+            f"1️⃣ Péssimo  2️⃣ Ruim  3️⃣ Regular  4️⃣ Bom  5️⃣ Excelente"
         )
         enviar_whatsapp(arb["telefone"], resposta_cidadao)
 
@@ -3368,29 +3401,48 @@ def processar_arborizacao(event: dict, sb: Client) -> None:
         registro_id = res.data[0]["id"]
 
         # Upload foto se enviou
-        if event.get("tem_midia") and event.get("tipo_midia") == "imagem":
+        tem_foto = event.get("tem_midia") and event.get("tipo_midia") == "imagem"
+        if tem_foto:
             _processar_midia_arb(event, sb, registro_id, "antes")
 
         icone = _ICONE_ARB.get(categoria, "🌳")
         sev_label = {"emergencia": "🚨 EMERGÊNCIA", "urgencia": "⚠️ URGÊNCIA", "prioridade": "📋 PRIORIDADE", "rotina": "🌿 ROTINA"}
         cat_display = categoria.replace("_", " ").title()
-        resposta = (
-            f"🌳 Solicitação de arborização registrada!\n\n"
-            f"{icone} Tipo: *{cat_display}*\n"
-            f"{sev_label.get(severidade, severidade)}\n"
-            f"📍 {endereco_geo or 'Localização recebida'}\n\n"
-            f"📋 Protocolo: *{protocolo}*\n"
-            f"Vamos encaminhar para a equipe responsável!"
-        )
 
-        criar_sessao(sb, telefone, "arborizacao", "finalizado", registro_id,
-                     {"protocolo": protocolo, "categoria": categoria})
-        finalizar_sessao(sb, telefone)
-        enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
-        logger.info(f"Arborização registrada: {protocolo} cat={categoria} sev={severidade}")
-
-        # 🤖 AUTOMAÇÃO: auto-triagem + auto-atribuição + despacho
-        _auto_despachar(sb, registro_id, protocolo)
+        if tem_foto:
+            # Tem foto → registra e despacha direto
+            resposta = (
+                f"🌳 Solicitação de arborização registrada!\n\n"
+                f"{icone} Tipo: *{cat_display}*\n"
+                f"{sev_label.get(severidade, severidade)}\n"
+                f"📍 {endereco_geo or 'Localização recebida'}\n\n"
+                f"📋 Protocolo: *{protocolo}*\n"
+                f"📷 Foto recebida!\n"
+                f"Vamos encaminhar para a equipe responsável!"
+            )
+            criar_sessao(sb, telefone, "arborizacao", "finalizado", registro_id,
+                         {"protocolo": protocolo, "categoria": categoria})
+            finalizar_sessao(sb, telefone)
+            enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+            logger.info(f"Arborização registrada: {protocolo} cat={categoria} sev={severidade}")
+            # 🤖 AUTOMAÇÃO: auto-triagem + auto-atribuição + despacho
+            _auto_despachar(sb, registro_id, protocolo)
+        else:
+            # Sem foto → pedir foto antes de despachar
+            resposta = (
+                f"🌳 Solicitação de arborização registrada!\n\n"
+                f"{icone} Tipo: *{cat_display}*\n"
+                f"{sev_label.get(severidade, severidade)}\n"
+                f"📍 {endereco_geo or 'Localização recebida'}\n\n"
+                f"📋 Protocolo: *{protocolo}*\n\n"
+                f"📷 *Pode enviar uma foto do problema?*\n"
+                f"A foto ajuda a equipe a avaliar a situação antes de ir ao local.\n"
+                f"Ou envie *pular* para continuar sem foto."
+            )
+            criar_sessao(sb, telefone, "arborizacao", "aguardando_foto", registro_id,
+                         {"protocolo": protocolo, "categoria": categoria})
+            enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+            logger.info(f"Arborização registrada (aguardando foto): {protocolo}")
         return
 
     # Sem GPS → pedir endereço
@@ -3430,6 +3482,31 @@ def _continuar_arborizacao(event: dict, sb: Client) -> None:
     etapa = sessao.get("etapa", "")
     contexto = sessao.get("contexto", {})
     registro_id = sessao.get("registro_id", "")
+
+    if etapa == "aguardando_foto":
+        protocolo = contexto.get("protocolo", "")
+        tem_foto = event.get("tem_midia") and event.get("tipo_midia") == "imagem"
+
+        if tem_foto:
+            # Cidadão enviou foto → salvar e despachar
+            foto_info = classificar_foto_origem(event)
+            _processar_midia_arb(event, sb, registro_id, "antes")
+            sb.table("arborizacao").update({
+                "foto_origem": foto_info.get("foto_origem"),
+                "foto_flag": foto_info.get("foto_flag"),
+                "foto_flag_motivo": foto_info.get("foto_flag_motivo"),
+            }).eq("id", registro_id).execute()
+            enviar_whatsapp(telefone, f"📷 Foto recebida! Sua solicitação *{protocolo}* está sendo encaminhada para a equipe.")
+            finalizar_sessao(sb, telefone)
+            _auto_despachar(sb, registro_id, protocolo)
+        elif texto and texto.strip().lower() in ("pular", "não", "nao", "sem foto", "n"):
+            # Cidadão pulou a foto → despachar mesmo assim
+            enviar_whatsapp(telefone, f"Ok! Sua solicitação *{protocolo}* está sendo encaminhada para a equipe mesmo sem foto.")
+            finalizar_sessao(sb, telefone)
+            _auto_despachar(sb, registro_id, protocolo)
+        else:
+            enviar_whatsapp(telefone, "📷 Envie uma foto do problema, ou digite *pular* para continuar sem foto.")
+        return
 
     if etapa == "aguardando_endereco":
         lat = event.get("latitude")
