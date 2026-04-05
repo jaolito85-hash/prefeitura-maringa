@@ -16,6 +16,7 @@ import secrets
 import sys
 import time
 import unicodedata
+import urllib.parse
 import uuid
 from datetime import date, datetime, timezone, timedelta
 from typing import Any
@@ -46,7 +47,7 @@ MAX_FOTO_SIZE_BYTES = 5 * 1024 * 1024     # 5MB
 STORAGE_BUCKET = "evidencias"
 
 # SOS primeiro — prioridade maxima
-QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:feedbacks", "queue:consultas", "queue:saudacoes"]
+QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:arborizacao", "queue:feedbacks", "queue:consultas", "queue:saudacoes"]
 
 # ── Programa Cidadão Ativo — Decreto 291/2026 ──
 # APENAS as 5 categorias que a Prefeitura de Maringá paga recompensa.
@@ -2932,10 +2933,423 @@ def processar_saudacao(event: dict, sb: Client) -> None:
     logger.info(f"Saudação respondida para {telefone}")
 
 
+# ══════════════════════════════════════════════════════════════
+# ARBORIZAÇÃO — Pipeline agentic
+# ══════════════════════════════════════════════════════════════
+
+SLA_ARBORIZACAO = {
+    "emergencia": 4,
+    "urgencia": 24,
+    "prioridade": 72,
+    "rotina": 168,
+}
+
+_ICONE_ARB = {
+    "poda_geral": "✂️", "poda_complexa": "🏗️", "poda_desbarra": "🌿",
+    "remocao": "🪓", "arvore_caida": "🌳", "retirada_toco": "🪵", "risco_queda": "⚠️",
+}
+
+
+def gerar_protocolo_arb(sb: Client) -> str:
+    """Gera protocolo ARB-YYYY-XXXXX."""
+    ano = date.today().year
+    try:
+        result = sb.table("arborizacao").select("protocolo").like(
+            "protocolo", f"ARB-{ano}-%"
+        ).order("protocolo", desc=True).limit(1).execute()
+        if result.data and result.data[0].get("protocolo"):
+            try:
+                max_num = int(result.data[0]["protocolo"].split("-")[-1])
+            except (ValueError, IndexError):
+                max_num = 0
+        else:
+            max_num = 0
+        protocolo = f"ARB-{ano}-{str(max_num + 1).zfill(5)}"
+        logger.info(f"Protocolo arborização gerado: {protocolo}")
+        return protocolo
+    except Exception as exc:
+        logger.error(f"Falha protocolo ARB: {exc}")
+        return f"ARB-{ano}-{secrets.token_hex(4).upper()}"
+
+
+def _calcular_sla_arb(severidade: str) -> tuple[int, str]:
+    """Retorna (sla_horas, sla_vencimento_iso)."""
+    horas = SLA_ARBORIZACAO.get(severidade, 168)
+    vencimento = (datetime.now(timezone.utc) + timedelta(hours=horas)).isoformat()
+    return horas, vencimento
+
+
+def _processar_midia_arb(event: dict, sb: Client, registro_id: str, momento: str) -> str | None:
+    """Upload foto e armazena em foto_antes_urls ou foto_depois_urls."""
+    campo = "foto_antes_urls" if momento == "antes" else "foto_depois_urls"
+    flag = "tem_foto_antes" if momento == "antes" else "tem_foto_depois"
+    try:
+        media_b64 = event.get("media_base64", "")
+        message_id = event.get("message_id", "")
+        file_bytes = download_media(message_id, media_b64)
+        if not file_bytes:
+            logger.warning(f"Não conseguiu baixar mídia arborização {registro_id}")
+            return None
+        mimetype = event.get("mimetype", "image/jpeg")
+        public_url = upload_to_storage(sb, file_bytes, f"arb-{registro_id}", "imagem", mimetype)
+        if not public_url:
+            return None
+        # Append URL ao array existente
+        arb = sb.table("arborizacao").select(campo).eq("id", registro_id).single().execute()
+        urls = (arb.data or {}).get(campo, []) or []
+        urls.append(public_url)
+        sb.table("arborizacao").update({campo: urls, flag: True}).eq("id", registro_id).execute()
+        logger.info(f"Foto {momento} arborização salva: {public_url}")
+        return public_url
+    except Exception as exc:
+        logger.error(f"Erro mídia arborização: {exc}")
+        return None
+
+
+def _despachar_para_empresa(sb: Client, arb_id: str) -> None:
+    """Envia OS via WhatsApp para empresa contratada."""
+    try:
+        arb = sb.table("arborizacao").select("*").eq("id", arb_id).single().execute().data
+        if not arb or not arb.get("empresa_telefone"):
+            return
+        cat = arb["categoria"].replace("_", " ").title()
+        sev = arb["severidade"].upper()
+        icone = _ICONE_ARB.get(arb["categoria"], "🌳")
+        gmaps = f"https://www.google.com/maps?q={arb.get('latitude',0)},{arb.get('longitude',0)}"
+        os_msg = (
+            f"📋 *ORDEM DE SERVIÇO — ARBORIZAÇÃO MARINGÁ*\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"{icone} Tipo: *{cat}*\n"
+            f"🚨 Severidade: *{sev}*\n"
+            f"📋 Protocolo: {arb['protocolo']}\n"
+            f"📍 {arb.get('endereco', 'Endereço não informado')}\n"
+            f"🏘️ {arb.get('bairro', '—')}\n"
+            f"🗺️ Maps: {gmaps}\n"
+            f"⏱️ SLA: {arb.get('sla_horas', '—')}h\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Responda:\n"
+            f"1️⃣ Aceitar OS\n"
+            f"2️⃣ Equipe a caminho\n"
+            f"3️⃣ Concluído (envie foto)\n"
+            f"0️⃣ Não posso atender"
+        )
+        enviar_whatsapp(arb["empresa_telefone"], os_msg)
+        # Sessão para empresa com TTL longo (24h)
+        expira_24h = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+        sb.table("sessoes_conversa").upsert({
+            "telefone": arb["empresa_telefone"],
+            "canal": "arborizacao_empresa",
+            "etapa": "aguardando_aceite",
+            "registro_id": arb_id,
+            "contexto": {"protocolo": arb["protocolo"], "arb_id": arb_id, "empresa_nome": arb.get("empresa_atribuida", "")},
+            "expira_em": expira_24h,
+            "handoff_ativo": False,
+            "handoff_operador": "",
+        }, on_conflict="telefone").execute()
+        logger.info(f"OS arborização despachada: {arb['protocolo']} → {arb.get('empresa_atribuida')}")
+    except Exception as exc:
+        logger.error(f"Erro despacho empresa arborização: {exc}")
+
+
+def _processar_resposta_empresa(event: dict, sb: Client) -> None:
+    """Processa resposta da empresa via WhatsApp (1=aceitar, 2=caminho, 3=concluído, 0=recusar)."""
+    sessao = event.get("sessao", {})
+    contexto = sessao.get("contexto", {})
+    arb_id = contexto.get("arb_id") or sessao.get("registro_id", "")
+    telefone = event.get("telefone", "")
+    texto = (event.get("texto", "") or "").strip()
+    etapa = sessao.get("etapa", "")
+
+    if not arb_id:
+        logger.warning(f"Resposta empresa sem arb_id: {telefone}")
+        return
+
+    if texto == "1" and etapa == "aguardando_aceite":
+        sb.table("arborizacao").update({"status": "em_execucao"}).eq("id", arb_id).execute()
+        atualizar_sessao(sb, telefone, "em_execucao", contexto)
+        enviar_whatsapp(telefone, "✅ OS aceita! Quando concluir, envie *3* + foto do serviço realizado.")
+
+    elif texto == "2":
+        enviar_whatsapp(telefone, "📍 Registrado: equipe a caminho.")
+
+    elif texto == "3" or (etapa == "em_execucao" and event.get("tem_midia") and event.get("tipo_midia") == "imagem"):
+        sb.table("arborizacao").update({
+            "status": "concluido",
+            "concluido_em": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", arb_id).execute()
+        if event.get("tem_midia"):
+            _processar_midia_arb(event, sb, arb_id, "depois")
+        finalizar_sessao(sb, telefone)
+        enviar_whatsapp(telefone, "✅ Serviço registrado como concluído! Foto recebida para fiscalização.")
+        logger.info(f"Arborização concluída pela empresa: {contexto.get('protocolo')}")
+
+    elif texto == "0":
+        sb.table("arborizacao").update({"status": "triado", "empresa_atribuida": None, "empresa_telefone": None}).eq("id", arb_id).execute()
+        finalizar_sessao(sb, telefone)
+        enviar_whatsapp(telefone, "Entendido. OS devolvida para reatribuição.")
+
+    else:
+        enviar_whatsapp(telefone, "Responda com:\n1️⃣ Aceitar\n2️⃣ A caminho\n3️⃣ Concluído + foto\n0️⃣ Recusar")
+
+
+def processar_arborizacao(event: dict, sb: Client) -> None:
+    """Processa mensagens do canal arborização."""
+    is_continuacao = event.get("is_continuacao", False)
+    telefone = event.get("telefone", "desconhecido")
+    texto = event.get("texto", "")
+    push_name = event.get("push_name", "")
+    classificacao = event.get("classificacao", {})
+
+    # Se é resposta de empresa contratada
+    sessao = event.get("sessao", {})
+    if sessao and sessao.get("canal") == "arborizacao_empresa":
+        _processar_resposta_empresa(event, sb)
+        return
+
+    # Continuação de sessão do cidadão
+    if is_continuacao:
+        _continuar_arborizacao(event, sb)
+        return
+
+    # ── Nova solicitação ──
+    categoria = classificacao.get("categoria", "poda_geral")
+    severidade = classificacao.get("urgencia", "rotina")
+    # Mapear urgencia do classificador para severidade da arborização
+    _MAP_SEV = {"alta": "emergencia", "critica": "emergencia", "normal": "prioridade", "baixa": "rotina",
+                "emergencia": "emergencia", "urgencia": "urgencia", "prioridade": "prioridade", "rotina": "rotina"}
+    severidade = _MAP_SEV.get(severidade, "rotina")
+    # Forçar alta severidade para categorias críticas
+    if categoria in ("arvore_caida", "risco_queda") and severidade == "rotina":
+        severidade = "urgencia"
+
+    resumo = classificacao.get("resumo", texto[:200] if texto else "Solicitação de arborização")
+    tem_loc = event.get("tem_localizacao", False)
+    lat = event.get("latitude")
+    lng = event.get("longitude")
+
+    if tem_loc and lat and lng:
+        # Com GPS → cria registro direto
+        endereco_geo, bairro_geo = _geocodificar_sync(lat, lng)
+        protocolo = gerar_protocolo_arb(sb)
+        sla_horas, sla_vencimento = _calcular_sla_arb(severidade)
+
+        res = sb.table("arborizacao").insert({
+            "protocolo": protocolo,
+            "telefone": telefone,
+            "nome": push_name or None,
+            "mensagem": texto,
+            "categoria": categoria,
+            "severidade": severidade,
+            "resumo": resumo,
+            "endereco": endereco_geo or f"GPS: {lat:.4f}, {lng:.4f}",
+            "endereco_normalizado": _normalizar_endereco(endereco_geo or ""),
+            "bairro": bairro_geo,
+            "latitude": lat,
+            "longitude": lng,
+            "status": "recebido",
+            "sla_horas": sla_horas,
+            "sla_vencimento": sla_vencimento,
+        }).execute()
+
+        registro_id = res.data[0]["id"]
+
+        # Upload foto se enviou
+        if event.get("tem_midia") and event.get("tipo_midia") == "imagem":
+            _processar_midia_arb(event, sb, registro_id, "antes")
+
+        icone = _ICONE_ARB.get(categoria, "🌳")
+        sev_label = {"emergencia": "🚨 EMERGÊNCIA", "urgencia": "⚠️ URGÊNCIA", "prioridade": "📋 PRIORIDADE", "rotina": "🌿 ROTINA"}
+        cat_display = categoria.replace("_", " ").title()
+        resposta = (
+            f"🌳 Solicitação de arborização registrada!\n\n"
+            f"{icone} Tipo: *{cat_display}*\n"
+            f"{sev_label.get(severidade, severidade)}\n"
+            f"📍 {endereco_geo or 'Localização recebida'}\n\n"
+            f"📋 Protocolo: *{protocolo}*\n"
+            f"Vamos encaminhar para a equipe responsável!"
+        )
+
+        criar_sessao(sb, telefone, "arborizacao", "finalizado", registro_id,
+                     {"protocolo": protocolo, "categoria": categoria})
+        finalizar_sessao(sb, telefone)
+        enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+        logger.info(f"Arborização registrada: {protocolo} cat={categoria} sev={severidade}")
+        return
+
+    # Sem GPS → pedir endereço
+    placeholder_id = str(uuid.uuid4())
+    ctx = {
+        "categoria": categoria,
+        "severidade": severidade,
+        "resumo": resumo,
+        "texto_original": texto,
+        "push_name": push_name or "",
+        "_placeholder": True,
+    }
+    # Se enviou foto, guardar referência no contexto
+    if event.get("tem_midia") and event.get("tipo_midia") == "imagem":
+        ctx["tem_foto_pendente"] = True
+        ctx["media_base64"] = event.get("media_base64", "")[:100]  # Só flag, não o base64 inteiro
+        ctx["message_id_foto"] = event.get("message_id", "")
+
+    criar_sessao(sb, telefone, "arborizacao", "aguardando_endereco", placeholder_id, ctx)
+
+    icone = _ICONE_ARB.get(categoria, "🌳")
+    cat_display = categoria.replace("_", " ").title()
+    resposta = (
+        f"🌳 Problema identificado: *{cat_display}*\n\n"
+        f"📍 Pode enviar sua localização?\n"
+        f"Clique em: 📎 > Localização\n"
+        f"Ou me diga a rua e o bairro."
+    )
+    enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+
+
+def _continuar_arborizacao(event: dict, sb: Client) -> None:
+    """Continua sessão de arborização do cidadão."""
+    sessao = event.get("sessao", {})
+    telefone = event.get("telefone", "")
+    texto = event.get("texto", "")
+    etapa = sessao.get("etapa", "")
+    contexto = sessao.get("contexto", {})
+    registro_id = sessao.get("registro_id", "")
+
+    if etapa == "aguardando_endereco":
+        lat = event.get("latitude")
+        lng = event.get("longitude")
+
+        if lat and lng:
+            endereco_geo, bairro_geo = _geocodificar_sync(lat, lng)
+        elif texto:
+            # Tentar geocodificar texto como endereço
+            try:
+                geo_url = (
+                    f"https://api.mapbox.com/geocoding/v5/mapbox.places/"
+                    f"{urllib.parse.quote(texto + ', Maringá, Paraná, Brasil')}.json"
+                    f"?access_token={MAPBOX_TOKEN}&limit=1"
+                )
+                geo_resp = httpx.get(geo_url, timeout=5.0)
+                if geo_resp.status_code == 200:
+                    feats = geo_resp.json().get("features", [])
+                    if feats:
+                        coords = feats[0]["geometry"]["coordinates"]
+                        lng, lat = coords[0], coords[1]
+                        endereco_geo = feats[0].get("place_name", texto)
+                        bairro_geo = ""
+                        for ctx_item in feats[0].get("context", []):
+                            if "neighborhood" in ctx_item.get("id", "") or "locality" in ctx_item.get("id", ""):
+                                bairro_geo = ctx_item.get("text", "")
+                                break
+                    else:
+                        endereco_geo, bairro_geo = texto, ""
+                        lat, lng = None, None
+                else:
+                    endereco_geo, bairro_geo = texto, ""
+                    lat, lng = None, None
+            except Exception:
+                endereco_geo, bairro_geo = texto, ""
+                lat, lng = None, None
+        else:
+            enviar_whatsapp(telefone, "📍 Preciso do endereço para registrar. Envie sua localização ou digite a rua e bairro.")
+            return
+
+        categoria = contexto.get("categoria", "poda_geral")
+        severidade = contexto.get("severidade", "rotina")
+        resumo = contexto.get("resumo", contexto.get("texto_original", ""))
+        push_name = contexto.get("push_name", "")
+        protocolo = gerar_protocolo_arb(sb)
+        sla_horas, sla_vencimento = _calcular_sla_arb(severidade)
+
+        res = sb.table("arborizacao").insert({
+            "protocolo": protocolo,
+            "telefone": telefone,
+            "nome": push_name or None,
+            "mensagem": contexto.get("texto_original", ""),
+            "categoria": categoria,
+            "severidade": severidade,
+            "resumo": resumo,
+            "endereco": endereco_geo or f"GPS: {lat:.4f}, {lng:.4f}" if lat else "Endereço informado via texto",
+            "endereco_normalizado": _normalizar_endereco(endereco_geo or texto or ""),
+            "bairro": bairro_geo or "",
+            "latitude": lat,
+            "longitude": lng,
+            "status": "recebido",
+            "sla_horas": sla_horas,
+            "sla_vencimento": sla_vencimento,
+        }).execute()
+
+        novo_id = res.data[0]["id"]
+
+        # Upload foto pendente se existir
+        if contexto.get("tem_foto_pendente") and contexto.get("message_id_foto"):
+            _processar_midia_arb({
+                "message_id": contexto["message_id_foto"],
+                "media_base64": event.get("media_base64", ""),
+                "mimetype": "image/jpeg",
+            }, sb, novo_id, "antes")
+
+        icone = _ICONE_ARB.get(categoria, "🌳")
+        sev_label = {"emergencia": "🚨 EMERGÊNCIA", "urgencia": "⚠️ URGÊNCIA", "prioridade": "📋 PRIORIDADE", "rotina": "🌿 ROTINA"}
+        resposta = (
+            f"🌳 Solicitação registrada com sucesso!\n\n"
+            f"{icone} *{categoria.replace('_', ' ').title()}*\n"
+            f"{sev_label.get(severidade, severidade)}\n"
+            f"📍 {endereco_geo or texto}\n\n"
+            f"📋 Protocolo: *{protocolo}*\n"
+            f"Vamos encaminhar para a equipe responsável!"
+        )
+        criar_sessao(sb, telefone, "arborizacao", "finalizado", novo_id,
+                     {"protocolo": protocolo, "categoria": categoria})
+        finalizar_sessao(sb, telefone)
+        enviar_whatsapp(telefone, resposta)
+        logger.info(f"Arborização registrada (continuação): {protocolo}")
+
+    elif etapa == "aguardando_avaliacao":
+        # Cidadão enviou avaliação (1-5)
+        try:
+            nota = int(texto.strip())
+            if 1 <= nota <= 5:
+                sb.table("arborizacao").update({
+                    "cidadao_avaliacao": nota,
+                }).eq("id", registro_id).execute()
+                estrelas = "⭐" * nota
+                enviar_whatsapp(telefone, f"{estrelas}\nObrigado pela sua avaliação! Maringá agradece sua participação! 🌳💙")
+                finalizar_sessao(sb, telefone)
+            else:
+                enviar_whatsapp(telefone, "Por favor, avalie de 1 a 5 estrelas.")
+        except ValueError:
+            enviar_whatsapp(telefone, "Por favor, envie um número de 1 a 5 para avaliar o serviço.")
+
+    else:
+        finalizar_sessao(sb, telefone)
+
+
+def _verificar_sla_arborizacao(sb: Client) -> None:
+    """Verifica SLAs estourados e notifica empresas."""
+    try:
+        agora = datetime.now(timezone.utc).isoformat()
+        result = sb.table("arborizacao").select(
+            "id, protocolo, empresa_telefone, empresa_atribuida, sla_vencimento, status"
+        ).lt("sla_vencimento", agora).eq(
+            "sla_estourado", False
+        ).not_.in_("status", ["concluido", "fiscalizado", "recebido"]).execute()
+
+        for arb in (result.data or []):
+            sb.table("arborizacao").update({"sla_estourado": True}).eq("id", arb["id"]).execute()
+            if arb.get("empresa_telefone"):
+                enviar_whatsapp(arb["empresa_telefone"],
+                    f"⚠️ *SLA ESTOURADO* — {arb['protocolo']}\n"
+                    f"O prazo para esta OS venceu. Atualize o status urgentemente.")
+            logger.warning(f"SLA arborização estourado: {arb['protocolo']}")
+    except Exception as exc:
+        logger.error(f"Erro verificação SLA arborização: {exc}")
+
+
 PROCESSADORES = {
     "queue:sos": processar_sos,
     "queue:denuncias": processar_denuncia,
     "queue:ocorrencias": processar_ocorrencia,
+    "queue:arborizacao": processar_arborizacao,
     "queue:feedbacks": processar_feedback,
     "queue:consultas": processar_consulta_protocolo,
     "queue:saudacoes": processar_saudacao,
@@ -2968,10 +3382,18 @@ def main():
     r, sb = conectar()
     logger.info("Pronto!")
 
+    _sla_counter = 0
     while True:
         try:
             resultado = r.blpop(QUEUES, timeout=5)
             if resultado is None:
+                _sla_counter += 1
+                if _sla_counter >= 60:  # ~5 minutos (60 * 5s timeout)
+                    _sla_counter = 0
+                    try:
+                        _verificar_sla_arborizacao(sb)
+                    except Exception as sla_exc:
+                        logger.error(f"Erro SLA check: {sla_exc}")
                 continue
 
             fila, raw = resultado
