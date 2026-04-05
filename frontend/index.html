@@ -1317,7 +1317,7 @@ function RoutePanel({route,base,incident,onClose}){
   const durMin=Math.ceil(route.duration/60);
   const distKm=(route.distance/1000).toFixed(1);
   const gmapLink=googleMapsLink(base.lat,base.lng,incident.lat,incident.lng);
-  const wazeLink=`https://waze.com/ul?ll=${incident.lat},${incident.lng}&navigate=yes`;
+  const wazeLink=`https://www.waze.com/live-map/directions?from=ll.${base.lat}%2C${base.lng}&to=ll.${incident.lat}%2C${incident.lng}`;
   const msgText=encodeURIComponent(`🚨 DESPACHO URGENTE\n📍 ${incident.titulo||incident.mensagem||'Alerta SOS'}\n🏘️ ${incident.bairro||'—'}\n⏱️ ETA: ${durMin}min (${distKm}km)\n🗺️ Rota: ${gmapLink}`);
   return(
     <div className="route-panel">
