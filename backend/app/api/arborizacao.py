@@ -188,11 +188,14 @@ async def atribuir_empresa(arb_id: str, body: AtribuirEmpresa):
             _httpx.post(url, json={"number": numero, "text": os_msg},
                        headers={"Content-Type": "application/json", "apikey": EVOLUTION_API_KEY}, timeout=10.0)
 
-            # Criar sessão para empresa
+            # Criar sessão para empresa (normalizar telefone com +)
             from datetime import timedelta as _td
+            tel_emp = arb_full["empresa_telefone"]
+            if not tel_emp.startswith("+"):
+                tel_emp = "+" + tel_emp
             expira = (datetime.now(timezone.utc) + _td(hours=24)).isoformat()
             sb.table("sessoes_conversa").upsert({
-                "telefone": arb_full["empresa_telefone"],
+                "telefone": tel_emp,
                 "canal": "arborizacao_empresa",
                 "etapa": "aguardando_aceite",
                 "registro_id": arb_id,

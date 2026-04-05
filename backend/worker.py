@@ -3035,9 +3035,13 @@ def _despachar_para_empresa(sb: Client, arb_id: str) -> None:
         )
         enviar_whatsapp(arb["empresa_telefone"], os_msg)
         # Sessão para empresa com TTL longo (24h)
+        # Normalizar telefone com + (webhook salva com +55)
+        tel_empresa = arb["empresa_telefone"]
+        if not tel_empresa.startswith("+"):
+            tel_empresa = "+" + tel_empresa
         expira_24h = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
         sb.table("sessoes_conversa").upsert({
-            "telefone": arb["empresa_telefone"],
+            "telefone": tel_empresa,
             "canal": "arborizacao_empresa",
             "etapa": "aguardando_aceite",
             "registro_id": arb_id,
