@@ -3056,42 +3056,66 @@ def _despachar_para_empresa(sb: Client, arb_id: str) -> None:
 
 
 def _processar_resposta_empresa(event: dict, sb: Client) -> None:
-    """Processa resposta da empresa via WhatsApp (1=aceitar, 2=caminho, 3=concluído, 0=recusar)."""
+    """Processa resposta da empresa via WhatsApp.
+
+    Fluxo correto:
+    ┌─ OS chega → etapa: aguardando_aceite
+    │
+    ├─ "1" (Aceitar) → status: em_execucao, etapa: em_execucao
+    ├─ "2" (A caminho) → status: em_execucao, etapa: em_execucao
+    │   (aceita implicitamente se ainda estava em aguardando_aceite)
+    │
+    ├─ "3" ou FOTO (Concluído) → status: concluido, etapa: finalizado
+    │   (aceita em qualquer etapa: aguardando_aceite, em_execucao)
+    │
+    └─ "0" (Recusar) → status: triado, etapa: finalizado
+    """
     sessao = event.get("sessao", {})
     contexto = sessao.get("contexto", {})
     arb_id = contexto.get("arb_id") or sessao.get("registro_id", "")
     telefone = event.get("telefone", "")
     texto = (event.get("texto", "") or "").strip()
     etapa = sessao.get("etapa", "")
+    tem_foto = event.get("tem_midia") and event.get("tipo_midia") == "imagem"
 
     if not arb_id:
         logger.warning(f"Resposta empresa sem arb_id: {telefone}")
         return
 
-    if texto == "1" and etapa == "aguardando_aceite":
+    # ── "1" = Aceitar OS ──
+    if texto == "1":
         sb.table("arborizacao").update({"status": "em_execucao"}).eq("id", arb_id).execute()
         atualizar_sessao(sb, telefone, "em_execucao", contexto)
         enviar_whatsapp(telefone, "✅ OS aceita! Quando concluir, envie *3* + foto do serviço realizado.")
+        logger.info(f"Empresa aceitou OS: {contexto.get('protocolo')}")
 
+    # ── "2" = Equipe a caminho (aceita implicitamente) ──
     elif texto == "2":
-        enviar_whatsapp(telefone, "📍 Registrado: equipe a caminho.")
+        sb.table("arborizacao").update({"status": "em_execucao"}).eq("id", arb_id).execute()
+        atualizar_sessao(sb, telefone, "em_execucao", contexto)
+        enviar_whatsapp(telefone, "📍 Registrado: equipe a caminho. Quando concluir, envie *3* + foto.")
+        logger.info(f"Empresa a caminho: {contexto.get('protocolo')}")
 
-    elif texto == "3" or (etapa == "em_execucao" and event.get("tem_midia") and event.get("tipo_midia") == "imagem"):
+    # ── "3" ou FOTO = Serviço concluído ──
+    elif texto == "3" or tem_foto:
         sb.table("arborizacao").update({
             "status": "concluido",
             "concluido_em": datetime.now(timezone.utc).isoformat(),
         }).eq("id", arb_id).execute()
-        if event.get("tem_midia"):
+        if tem_foto:
             _processar_midia_arb(event, sb, arb_id, "depois")
         finalizar_sessao(sb, telefone)
         enviar_whatsapp(telefone, "✅ Serviço registrado como concluído! Foto recebida para fiscalização.")
         logger.info(f"Arborização concluída pela empresa: {contexto.get('protocolo')}")
 
+    # ── "0" = Recusar ──
     elif texto == "0":
         sb.table("arborizacao").update({"status": "triado", "empresa_atribuida": None, "empresa_telefone": None}).eq("id", arb_id).execute()
         finalizar_sessao(sb, telefone)
         enviar_whatsapp(telefone, "Entendido. OS devolvida para reatribuição.")
+        logger.info(f"Empresa recusou OS: {contexto.get('protocolo')}")
 
+    # ── Mensagem não reconhecida ──
     else:
         enviar_whatsapp(telefone, "Responda com:\n1️⃣ Aceitar\n2️⃣ A caminho\n3️⃣ Concluído + foto\n0️⃣ Recusar")
 
