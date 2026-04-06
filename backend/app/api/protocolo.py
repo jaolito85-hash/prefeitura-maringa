@@ -35,6 +35,11 @@ CAMPOS_SOS = (
     "sos_cadastros(nome, endereco, referencia)"
 )
 
+CAMPOS_ARBORIZACAO = (
+    "id, protocolo, categoria, severidade, status, resumo, mensagem, bairro, "
+    "endereco, latitude, longitude, empresa_atribuida, sla_horas, created_at"
+)
+
 
 def _buscar_em_tabela(sb, tabela: str, campos: str, protocolo: str):
     """Busca um protocolo em uma tabela específica. Retorna o registro ou None."""
@@ -57,18 +62,19 @@ async def buscar_protocolo(numero: str):
     numero = numero.strip().upper()
 
     # Validação básica do formato
-    if not numero.startswith("MGA-"):
+    if not (numero.startswith("MGA-") or numero.startswith("ARB-")):
         raise HTTPException(
             status_code=400,
-            detail="Formato de protocolo inválido. Use o formato MGA-AAAA-XXXXX (ex: MGA-2026-00001)"
+            detail="Formato de protocolo inválido. Use MGA-2026-XXXXX ou ARB-2026-XXXXX"
         )
 
     sb = get_supabase()
 
-    # Busca na ordem de prioridade (denúncias são mais comuns)
+    # Busca na ordem de prioridade
     tabelas = [
         ("denuncias", CAMPOS_DENUNCIA, "denuncia"),
         ("ocorrencias", CAMPOS_OCORRENCIA, "ocorrencia"),
+        ("arborizacao", CAMPOS_ARBORIZACAO, "arborizacao"),
         ("feedbacks", CAMPOS_FEEDBACK, "feedback"),
         ("sos_alertas", CAMPOS_SOS, "sos"),
     ]

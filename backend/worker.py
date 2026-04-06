@@ -2924,8 +2924,8 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
         criar_sessao(sb, telefone, "consulta_protocolo", "aguardando_protocolo",
                      "", {"tipo": "consulta_protocolo"})
         enviar_whatsapp(telefone,
-            "🔍 Para consultar sua denúncia ou ocorrência, me envie o número do protocolo.\n\n"
-            "Exemplo: *MGA-2026-00607*\n\n"
+            "🔍 Para consultar, me envie o número do protocolo.\n\n"
+            "Exemplo: *MGA-2026-00607* ou *ARB-2026-00051*\n\n"
             "O protocolo foi informado quando você fez o registro.")
         return
 
@@ -2936,21 +2936,19 @@ def processar_consulta_protocolo(event: dict, sb: Client) -> None:
         texto = (event.get("texto") or "").strip()
 
         if etapa == "aguardando_protocolo":
-            # Tenta extrair protocolo do texto
-            protocolo_match = re.search(r"MGA-\d{4}-\d{4,6}", texto.upper())
+            # Tenta extrair protocolo do texto (MGA ou ARB, números ou hex)
+            protocolo_match = re.search(r"(MGA|ARB)-\d{4}-[A-Z0-9]{4,8}", texto.upper())
             if protocolo_match:
                 protocolo = protocolo_match.group(0)
                 logger.info(f"🔍 Protocolo recebido na sessão: {protocolo} de {telefone}")
                 finalizar_sessao(sb, telefone)
-                # Redireciona para a busca real
                 _buscar_e_responder_protocolo(sb, telefone, protocolo)
                 return
             else:
-                # Texto não contém protocolo válido
                 enviar_whatsapp(telefone,
                     "❌ Não consegui identificar o protocolo.\n\n"
-                    "O formato correto é *MGA-2026-XXXXX*.\n\n"
-                    "Tente novamente ou envie sua mensagem normalmente para outro atendimento.")
+                    "Formato: *MGA-2026-XXXXX* ou *ARB-2026-XXXXX*\n\n"
+                    "Tente novamente ou envie sua mensagem normalmente.")
                 return
         # Sessão em etapa desconhecida — finaliza
         finalizar_sessao(sb, telefone)
@@ -3100,6 +3098,36 @@ def _buscar_e_responder_protocolo(sb: Client, telefone: str, protocolo: str) -> 
     except Exception as exc:
         logger.error(f"Erro busca feedback: {exc}")
 
+    # ── Busca em arborização ──
+    try:
+        result = sb.table("arborizacao").select(
+            "protocolo, categoria, status, severidade, resumo, empresa_atribuida, telefone, created_at"
+        ).eq("protocolo", protocolo).limit(1).execute()
+
+        if result.data:
+            a = result.data[0]
+            if not protocolo_pertence_ao_telefone and a.get("telefone") != telefone:
+                enviar_whatsapp(telefone, _msg_protocolo_privado(protocolo))
+                return
+            msg = f"🌳 *Arborização {a['protocolo']}*\n"
+            msg += f"Tipo: {(a.get('categoria') or '').replace('_', ' ').title()}\n"
+            if a.get("empresa_atribuida"):
+                msg += f"Empresa: {a['empresa_atribuida']}\n"
+            msg += "\n"
+            status_map = {
+                "recebido": "📥 *Recebida* — Solicitação registrada, aguardando triagem.",
+                "triado": "📋 *Triada* — Classificada, aguardando atribuição à empresa.",
+                "atribuido": "🏢 *Atribuída* — Encaminhada para a empresa contratada.",
+                "em_execucao": "⚙️ *Em execução* — Equipe da empresa trabalhando no local.",
+                "concluido": "✅ *Concluído* — Serviço realizado, aguardando fiscalização.",
+                "fiscalizado": "🔍 *Fiscalizado e aprovado* — Serviço concluído com sucesso!",
+            }
+            msg += status_map.get(a["status"], f"Status: {a['status']}")
+            enviar_whatsapp(telefone, msg)
+            return
+    except Exception as exc:
+        logger.error(f"Erro busca arborização: {exc}")
+
     # ── Busca em SOS ──
     try:
         result = sb.table("sos_alertas").select(
@@ -3127,8 +3155,8 @@ def _buscar_e_responder_protocolo(sb: Client, telefone: str, protocolo: str) -> 
 
     # ── Não encontrou ──
     msg = (f"😕 Não encontrei nenhum registro com o protocolo *{protocolo}*.\n\n"
-           f"Verifique se digitou corretamente. O formato é MGA-2026-XXXXX.\n\n"
-           f"Se precisar de ajuda, envie sua mensagem normalmente e vamos te atender!")
+           f"Verifique se digitou corretamente.\nFormato: MGA-2026-XXXXX ou ARB-2026-XXXXX\n\n"
+           f"Se precisar de ajuda, envie sua mensagem normalmente!")
     enviar_whatsapp(telefone, msg)
 
 

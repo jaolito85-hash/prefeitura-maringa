@@ -370,7 +370,7 @@ async def receber_webhook_unificado(
         }
 
     # ── 3. CONSULTA DE PROTOCOLO — detecta MGA-XXXX-XXXXX antes da IA ──
-    protocolo_match = re.search(r"MGA-\d{4}-\d{4,6}", texto.upper()) if texto else None
+    protocolo_match = re.search(r"(MGA|ARB)-\d{4}-[A-Z0-9]{4,8}", texto.upper()) if texto else None
     if protocolo_match and not sessao:
         protocolo_num = protocolo_match.group(0)
         logger.info(f"🔍 Consulta de protocolo detectada: {protocolo_num} de {telefone}")
