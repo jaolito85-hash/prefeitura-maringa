@@ -2490,7 +2490,7 @@ function Denuncias(){
             <input type="text" placeholder="Buscar protocolo, mensagem ou bairro..." value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}}/>
           </div>
           <div className="den-filter-group">
-            {[['todos','Todos'],['novo','Novo'],['em_analise','Em análise'],['encaminhada','Encaminhado'],['procedente','Procedente'],['suspeitas','⚠ Suspeitas']].map(([k,l])=>(
+            {[['todos','Todos'],['novo','Novo'],['em_analise','Em análise'],['encaminhada','Encaminhado'],['procedente','Procedente'],['improcedente','✕ Improcedente'],['suspeitas','⚠ Suspeitas']].map(([k,l])=>(
               <button key={k} className={`den-filter-btn ${statusFilter===k?'active':''}`} onClick={()=>{setStatusFilter(k);setPage(1)}}>{l}</button>
             ))}
           </div>
