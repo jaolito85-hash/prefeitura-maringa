@@ -189,14 +189,22 @@ async def get_dados_pagamento(recompensa_id: str, request: Request, operador: st
         dados_extra={"campos_acessados": ["cpf_encrypted", "chave_pix_encrypted"]},
     )
 
-    # Em produção: aqui faria o decrypt AES-256
-    # Na demo: retorna os valores como estão (ENC_AES256_demo_...)
+    # Decriptar dados para o operador financeiro
+    import base64
+    def _decrypt(val):
+        if not val: return "—"
+        if val.startswith("ENC_") and not val.startswith("ENC_AES256_"):
+            try: return base64.b64decode(val[4:].encode('utf-8')).decode('utf-8')
+            except: pass
+        if val.startswith("ENC_AES256_"): return f"***{val[-4:]}"
+        return val
+
     return {
         "id": recompensa["id"],
         "protocolo": recompensa["protocolo"],
         "valor": recompensa["valor"],
-        "cpf": recompensa["cpf_encrypted"],             # Em prod: decrypt(cpf_encrypted)
-        "chave_pix": recompensa["chave_pix_encrypted"],  # Em prod: decrypt(chave_pix_encrypted)
+        "cpf": _decrypt(recompensa["cpf_encrypted"]),
+        "chave_pix": _decrypt(recompensa["chave_pix_encrypted"]),
         "tipo_chave_pix": recompensa["tipo_chave_pix"],
         "aviso": "⚠️ Acesso registrado no log de auditoria (LGPD)",
     }
