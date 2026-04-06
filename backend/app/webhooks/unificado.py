@@ -550,18 +550,41 @@ async def receber_webhook_unificado(
 
     canal = classificacao.get("canal", "feedback")
 
-    # ── SAFETY NET: árvore SEMPRE vai pra arborizacao ──
-    # Se IA classificou como ocorrencia/queda_arvore mas NÃO mencionou temporal → corrigir
-    _WEATHER_WORDS = {"temporal", "chuva", "vendaval", "tempestade", "enchente", "alagamento", "inundação", "inundacao"}
+    # ── SAFETY NET: diferenciar árvore emergência vs serviço ──
+    _WEATHER_WORDS = {"temporal", "chuva", "vendaval", "tempestade", "enchente", "alagamento", "inundação", "inundacao", "tormenta", "ciclone", "granizo"}
+    _SERVICE_WORDS = {"poda", "podar", "cortar", "cupim", "raiz", "raízes", "toco", "morta", "seca", "galho seco", "fiação", "fiacao", "iluminação", "calçada", "calcada"}
     _texto_lower = (texto or "").lower()
     _categoria = classificacao.get("categoria", "")
-    if canal == "ocorrencia" and _categoria == "queda_arvore":
+
+    # Se IA classificou como arvore em qualquer canal
+    _is_arvore = (_categoria in ("queda_arvore", "arvore_caida", "risco_queda", "poda_geral", "poda_complexa", "poda_desbarra", "remocao", "retirada_toco") or
+                  canal == "arborizacao")
+
+    if _is_arvore:
         _tem_weather = any(w in _texto_lower for w in _WEATHER_WORDS)
-        if not _tem_weather:
-            logger.info(f"🔄 SAFETY NET: queda_arvore sem weather → redirecionando para arborizacao")
+        _tem_service = any(w in _texto_lower for w in _SERVICE_WORDS)
+
+        if _tem_weather and not _tem_service:
+            # Mencionou temporal/chuva → OCORRÊNCIA (Defesa Civil)
+            canal = "ocorrencia"
+            classificacao["canal"] = "ocorrencia"
+            classificacao["categoria"] = "queda_arvore"
+            logger.info(f"🌧️ SAFETY NET: árvore + weather → ocorrencia/queda_arvore")
+        elif _tem_service and not _tem_weather:
+            # Mencionou poda/cortar/cupim → ARBORIZAÇÃO (empresa)
             canal = "arborizacao"
             classificacao["canal"] = "arborizacao"
-            classificacao["categoria"] = "arvore_caida"
+            if _categoria not in ("poda_geral", "poda_complexa", "poda_desbarra", "remocao", "retirada_toco", "risco_queda", "arvore_caida"):
+                classificacao["categoria"] = "arvore_caida"
+            logger.info(f"🌳 SAFETY NET: árvore + serviço → arborizacao")
+        elif not _tem_weather and not _tem_service:
+            # Ambíguo (ex: "árvore caiu na rua") → ARBORIZAÇÃO por padrão
+            # (empresa remove, se for emergência o operador reclassifica)
+            canal = "arborizacao"
+            classificacao["canal"] = "arborizacao"
+            if _categoria not in ("poda_geral", "poda_complexa", "poda_desbarra", "remocao", "retirada_toco", "risco_queda", "arvore_caida"):
+                classificacao["categoria"] = "arvore_caida"
+            logger.info(f"🔄 SAFETY NET: árvore ambígua → arborizacao (padrão)")
 
     # ── 6b. SAUDAÇÃO — responde sem criar protocolo ──
     if canal == "saudacao":
