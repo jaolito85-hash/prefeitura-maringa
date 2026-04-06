@@ -1593,6 +1593,7 @@ def processar_sos(event: dict, sb: Client) -> None:
         try:
             sb.table("emergencia_sessoes").insert({
                 "token": token_rastreamento,
+                "alerta_id": registro_id,
                 "telefone": telefone,
                 "nome": nome_cadastro or "Não identificada",
                 "status": "ativa",
@@ -1805,25 +1806,46 @@ def _calcular_severidade(total_relatos: int, severidade_categoria: str = "baixa"
     return severidade_categoria
 
 
+# Categorias relacionadas — se não achar a exata, busca também nestas
+_CATEGORIAS_RELACIONADAS = {
+    "incendio": ["incendio", "outros_urbanos"],
+    "queda_arvore": ["queda_arvore", "outros_urbanos"],
+    "enchente_alagamento": ["enchente_alagamento", "drenagem", "outros_urbanos"],
+    "buraco_via": ["buraco_via", "outros_urbanos"],
+    "iluminacao_publica": ["iluminacao_publica", "outros_urbanos"],
+    "vendaval": ["vendaval", "outros_urbanos"],
+    "acidente": ["acidente", "outros_urbanos"],
+    "drenagem": ["drenagem", "enchente_alagamento", "outros_urbanos"],
+    "outros_urbanos": ["outros_urbanos", "incendio", "enchente_alagamento", "buraco_via", "iluminacao_publica", "vendaval", "acidente", "drenagem", "queda_arvore"],
+}
+
+
 def _buscar_ocorrencia_similar(sb: Client, categoria: str,
                                 latitude: float | None = None,
                                 longitude: float | None = None,
                                 endereco: str | None = None) -> dict | None:
-    """Busca ocorrência ATIVA com mesma categoria nas últimas 6h
-    que esteja próxima (< 500m por GPS ou mesmo endereço normalizado)."""
-    limite = (datetime.now(timezone.utc) - timedelta(hours=6)).isoformat()
+    """Busca ocorrência ATIVA nas últimas 12h que esteja próxima.
+    Busca na categoria exata + categorias relacionadas.
+    Retorna match exato (GPS <500m) ou match parcial (mesma rua, pode ser outro número)."""
+    limite = (datetime.now(timezone.utc) - timedelta(hours=12)).isoformat()
+
+    # Buscar na categoria exata + relacionadas
+    cats = _CATEGORIAS_RELACIONADAS.get(categoria, [categoria, "outros_urbanos"])
+    cats_uniq = list(set(cats))
 
     result = sb.table("ocorrencias").select(
-        "id, protocolo, latitude, longitude, endereco_normalizado, total_relatos, titulo, bairro, severidade, categoria"
-    ).eq("categoria", categoria).neq(
+        "id, protocolo, latitude, longitude, endereco_normalizado, endereco, total_relatos, titulo, bairro, severidade, categoria"
+    ).in_("categoria", cats_uniq).neq(
         "status", "resolvido"
     ).gte("created_at", limite).execute()
 
     if not result.data:
         return None
 
+    end_norm = _normalizar_endereco(endereco) if endereco else ""
+
     for oc in result.data:
-        # Critério 1: GPS próximo (< 500 metros)
+        # Critério 1: GPS próximo (< 500 metros) — match direto
         if latitude and longitude and oc.get("latitude") and oc.get("longitude"):
             dist = _haversine(latitude, longitude, oc["latitude"], oc["longitude"])
             if dist < 500:
@@ -1831,21 +1853,63 @@ def _buscar_ocorrencia_similar(sb: Client, categoria: str,
                 return oc
 
         # Critério 2: Endereço normalizado similar
-        if endereco and oc.get("endereco_normalizado"):
-            end_norm = _normalizar_endereco(endereco)
-            if end_norm and len(end_norm) > 5:
-                oc_norm = oc["endereco_normalizado"]
-                # Substring match
-                if end_norm in oc_norm or oc_norm in end_norm:
-                    logger.info(f"Agrupamento endereço: '{end_norm}' ~ '{oc_norm}' → {oc['protocolo']}")
-                    return oc
-                # Palavras-chave em comum (≥2 palavras significativas)
-                palavras_end = set(end_norm.split())
-                palavras_oc = set(oc_norm.split())
-                palavras_sig = {p for p in (palavras_end & palavras_oc) if len(p) > 2}
-                if len(palavras_sig) >= 2:
-                    logger.info(f"Agrupamento palavras-chave: {palavras_sig} → {oc['protocolo']}")
-                    return oc
+        if end_norm and len(end_norm) > 4 and oc.get("endereco_normalizado"):
+            oc_norm = oc["endereco_normalizado"]
+            # Substring match (ex: "rua jose bonifacio" in "rua jose bonifacio 354, maringa...")
+            if end_norm in oc_norm or oc_norm in end_norm:
+                logger.info(f"Agrupamento endereço substring: '{end_norm}' ~ '{oc_norm}' → {oc['protocolo']}")
+                return oc
+            # Palavras-chave em comum (≥2 palavras significativas > 2 chars)
+            palavras_end = set(end_norm.split())
+            palavras_oc = set(oc_norm.split())
+            palavras_sig = {p for p in (palavras_end & palavras_oc) if len(p) > 2}
+            if len(palavras_sig) >= 2:
+                logger.info(f"Agrupamento palavras-chave: {palavras_sig} → {oc['protocolo']}")
+                return oc
+
+    return None
+
+
+def _buscar_ocorrencia_mesma_rua(sb: Client, categoria: str,
+                                  endereco: str | None = None) -> dict | None:
+    """Busca ocorrência na MESMA RUA (nome da rua) mas possivelmente em número diferente.
+    Retorna match parcial para perguntar ao cidadão se é o mesmo caso."""
+    if not endereco:
+        return None
+    limite = (datetime.now(timezone.utc) - timedelta(hours=12)).isoformat()
+    cats = _CATEGORIAS_RELACIONADAS.get(categoria, [categoria])
+
+    result = sb.table("ocorrencias").select(
+        "id, protocolo, latitude, longitude, endereco_normalizado, endereco, total_relatos, titulo, bairro, severidade, categoria"
+    ).in_("categoria", list(set(cats))).neq(
+        "status", "resolvido"
+    ).gte("created_at", limite).execute()
+
+    if not result.data:
+        return None
+
+    end_norm = _normalizar_endereco(endereco)
+    if not end_norm or len(end_norm) < 5:
+        return None
+
+    # Extrair nome da rua (sem números)
+    import re
+    rua_nova = re.sub(r'\d+', '', end_norm).strip()
+    rua_nova = re.sub(r'\s+', ' ', rua_nova).strip()
+    if len(rua_nova) < 5:
+        return None
+
+    for oc in result.data:
+        oc_norm = oc.get("endereco_normalizado", "")
+        if not oc_norm:
+            continue
+        rua_oc = re.sub(r'\d+', '', oc_norm).strip()
+        rua_oc = re.sub(r'\s+', ' ', rua_oc).strip()
+
+        # Mesma rua (substring sem números)
+        if rua_nova in rua_oc or rua_oc in rua_nova:
+            logger.info(f"Match parcial mesma rua: '{rua_nova}' ~ '{rua_oc}' → {oc['protocolo']}")
+            return oc
 
     return None
 
@@ -2020,6 +2084,31 @@ def processar_ocorrencia(event: dict, sb: Client) -> None:
             _agrupar_relato(event, sb, similar)
             return
 
+        # Buscar na mesma rua (pode ser outro número) → perguntar ao cidadão
+        mesma_rua = _buscar_ocorrencia_mesma_rua(sb, categoria, endereco=endereco_geo)
+        if mesma_rua:
+            placeholder_id = str(uuid.uuid4())
+            criar_sessao(sb, telefone, "ocorrencia", "aguardando_confirmacao_dedup", placeholder_id, {
+                "categoria": categoria, "resumo": resumo, "severidade": severidade,
+                "texto_original": texto, "push_name": push_name or "",
+                "latitude": lat, "longitude": lng,
+                "endereco_geo": endereco_geo, "bairro_geo": bairro_geo,
+                "oc_similar_id": mesma_rua["id"], "oc_similar_protocolo": mesma_rua["protocolo"],
+                "oc_similar_endereco": mesma_rua.get("endereco", ""),
+                "oc_similar_total": mesma_rua.get("total_relatos", 1),
+            })
+            cat_display = categoria.replace("_", " ").title()
+            resposta = (
+                f"⚠️ Já temos *{mesma_rua.get('total_relatos', 1)} relato(s)* de *{cat_display}* perto de você:\n\n"
+                f"📍 {mesma_rua.get('endereco', mesma_rua.get('endereco_normalizado', ''))}\n"
+                f"📋 Protocolo: {mesma_rua['protocolo']}\n\n"
+                f"É o *mesmo caso*?\n"
+                f"1️⃣ Sim, é o mesmo\n"
+                f"2️⃣ Não, é outro problema diferente"
+            )
+            enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
+            return
+
         # Nova ocorrência COM endereço
         protocolo = gerar_protocolo(sb)
         endereco_inicial = endereco_geo or f"GPS: {lat:.4f}, {lng:.4f}"
@@ -2121,6 +2210,60 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
                 f"tem_loc={tem_loc}, etapa={etapa_atual}, texto='{texto[:50]}'")
 
     # ══════════════════════════════════════════════════════════
+    # CONFIRMAÇÃO DEDUP — cidadão diz se é o mesmo caso ou não
+    # ══════════════════════════════════════════════════════════
+    if etapa_atual == "aguardando_confirmacao_dedup":
+        resp = texto.strip().lower()
+        if resp in ("1", "sim", "mesmo", "é o mesmo", "é sim"):
+            oc_id = contexto.get("oc_similar_id")
+            if oc_id:
+                oc_existente = sb.table("ocorrencias").select(
+                    "id, protocolo, latitude, longitude, endereco_normalizado, total_relatos, titulo, bairro, severidade, categoria"
+                ).eq("id", oc_id).single().execute()
+                if oc_existente.data:
+                    event_completo = {**event, "push_name": push_name}
+                    if not event_completo.get("texto"):
+                        event_completo["texto"] = contexto.get("texto_original", "")
+                    if contexto.get("latitude"):
+                        event_completo["latitude"] = contexto["latitude"]
+                        event_completo["longitude"] = contexto["longitude"]
+                    _agrupar_relato(event_completo, sb, oc_existente.data)
+                    finalizar_sessao(sb, telefone)
+                    return
+            enviar_whatsapp(telefone, f"Agrupado ao protocolo *{contexto.get('oc_similar_protocolo', '')}*. Obrigado!")
+            finalizar_sessao(sb, telefone)
+            return
+        elif resp in ("2", "nao", "não", "outro", "diferente", "é outro"):
+            lat = contexto.get("latitude")
+            lng = contexto.get("longitude")
+            endereco_geo = contexto.get("endereco_geo", "")
+            bairro_geo = contexto.get("bairro_geo", "")
+            resumo = contexto.get("resumo", "")
+            severidade = contexto.get("severidade", "baixa")
+            novo_protocolo = gerar_protocolo(sb)
+            res = sb.table("ocorrencias").insert({
+                "protocolo": novo_protocolo, "categoria": categoria,
+                "titulo": resumo, "descricao": contexto.get("texto_original", ""),
+                "endereco": endereco_geo or "Endereço informado",
+                "endereco_normalizado": _normalizar_endereco(endereco_geo or ""),
+                "bairro": bairro_geo or "", "status": "aberto",
+                "severidade": severidade, "total_relatos": 1,
+                "latitude": lat, "longitude": lng,
+            }).execute()
+            novo_id = res.data[0]["id"]
+            icone = {"incendio": "🔥", "enchente_alagamento": "🌊", "buraco_via": "🕳️", "iluminacao_publica": "💡"}.get(categoria, "⚠️")
+            resposta = (f"{icone} *Nova ocorrência registrada!*\n\n"
+                        f"📋 Protocolo: *{novo_protocolo}*\n"
+                        f"📍 {endereco_geo or 'Localização registrada'}\nEquipe notificada!")
+            criar_sessao(sb, telefone, "ocorrencia", "finalizado", novo_id, {"protocolo": novo_protocolo, "categoria": categoria})
+            finalizar_sessao(sb, telefone)
+            enviar_whatsapp(telefone, resposta)
+            return
+        else:
+            enviar_whatsapp(telefone, "Responda:\n1️⃣ Sim, é o mesmo caso\n2️⃣ Não, é outro problema")
+            return
+
+    # ══════════════════════════════════════════════════════════
     # CONFIRMAÇÃO IMAGEM — cidadão confirma classificação da foto
     # ══════════════════════════════════════════════════════════
     if etapa_atual == "aguardando_confirmacao_imagem":
@@ -2215,6 +2358,29 @@ def _continuar_ocorrencia(event: dict, sb: Client) -> None:
                 event_completo["texto"] = contexto.get("texto_original", "")
             _agrupar_relato(event_completo, sb, similar)
             finalizar_sessao(sb, telefone)
+            return
+
+        # Buscar na mesma rua → perguntar se é o mesmo caso
+        mesma_rua = _buscar_ocorrencia_mesma_rua(sb, categoria, endereco=endereco)
+        if mesma_rua:
+            ctx_dedup = {**contexto,
+                "latitude": latitude, "longitude": longitude,
+                "endereco_geo": endereco, "bairro_geo": bairro if 'bairro' in dir() else "",
+                "oc_similar_id": mesma_rua["id"], "oc_similar_protocolo": mesma_rua["protocolo"],
+                "oc_similar_endereco": mesma_rua.get("endereco", ""),
+                "oc_similar_total": mesma_rua.get("total_relatos", 1),
+            }
+            atualizar_sessao(sb, telefone, "aguardando_confirmacao_dedup", ctx_dedup)
+            cat_display = categoria.replace("_", " ").title()
+            resposta = (
+                f"⚠️ Já temos *{mesma_rua.get('total_relatos', 1)} relato(s)* de *{cat_display}* nessa região:\n\n"
+                f"📍 {mesma_rua.get('endereco', '')}\n"
+                f"📋 Protocolo: {mesma_rua['protocolo']}\n\n"
+                f"É o *mesmo caso*?\n"
+                f"1️⃣ Sim, é o mesmo\n"
+                f"2️⃣ Não, é outro problema diferente"
+            )
+            enviar_whatsapp(telefone, resposta)
             return
 
         # NÃO encontrou similar — CRIAR NOVA OCORRÊNCIA agora
