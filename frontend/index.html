@@ -4253,7 +4253,7 @@ function SearchProtocolo({setAba}){
         </button>
       </div>
 
-      {show&&(
+      {show&&ReactDOM.createPortal(
         <div className="modal-overlay" onClick={()=>setShow(false)}>
           <div className="modal-box" style={{maxWidth:480}} onClick={e=>e.stopPropagation()}>
             <div style={{padding:'18px 22px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -4296,7 +4296,7 @@ function SearchProtocolo({setAba}){
             </div>
           </div>
         </div>
-      )}
+      ,document.body)}
     </>
   );
 }
