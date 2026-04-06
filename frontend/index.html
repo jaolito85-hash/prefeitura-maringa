@@ -1569,17 +1569,23 @@ function Central({sos}){
             {feed.map((item,i)=>{
               const isSOS=item.tipo==='sos';const isDen=item.tipo==='den';
               const cat=isDen?CAT_DEN[item.categoria]:CAT_OC[item.categoria];
-              const borderColor=isSOS?'#dc2626':isDen?'#7c3aed':'#3b82f6';
+              const isUrgent=isDen&&item.status==='novo';
+              const borderColor=isSOS?'#dc2626':isDen?(isUrgent?'#ef4444':'#7c3aed'):'#3b82f6';
+              const bgUrgent=isUrgent?'rgba(239,68,68,.04)':'transparent';
               const statusMap=isSOS?{ativo:{label:'Ativo',badge:'b-red'},resolvido:{label:'Resolvido',badge:'b-green'}}:isDen?S_DEN:S_OC;
               const st=statusMap[item.status]||{label:item.status||'—',badge:'b-gray'};
               const horaExata=item.created_at?new Date(item.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
               const dataExata=item.created_at?new Date(item.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):'';
               return(
-                <div key={i} onClick={()=>setSelFeed(item)} style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',borderLeft:`3px solid ${borderColor}`,cursor:'pointer',transition:'background .15s'}}
-                  onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,.04)'}
-                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                <div key={i} onClick={()=>setSelFeed(item)} style={{padding:'14px 16px',borderBottom:'1px solid var(--border)',borderLeft:`4px solid ${borderColor}`,cursor:'pointer',transition:'all .2s',background:bgUrgent,
+                  ...(isUrgent?{boxShadow:'inset 0 0 20px rgba(239,68,68,.03)'}:{})}}
+                  onMouseEnter={e=>{e.currentTarget.style.background=isUrgent?'rgba(239,68,68,.08)':'rgba(255,255,255,.04)';e.currentTarget.style.borderLeftColor=isUrgent?'#f87171':borderColor;}}
+                  onMouseLeave={e=>{e.currentTarget.style.background=bgUrgent;e.currentTarget.style.borderLeftColor=borderColor;}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-                    <span style={{fontSize:11,fontWeight:600,color:isSOS?'#f87171':isDen?'#a78bfa':'#3b82f6',textTransform:'uppercase',letterSpacing:'.5px'}}>{isSOS?'SOS MULHER':(cat?.label||item.categoria)}</span>
+                    <span style={{fontSize:11,fontWeight:600,color:isSOS?'#f87171':isDen?(isUrgent?'#f87171':'#a78bfa'):'#3b82f6',textTransform:'uppercase',letterSpacing:'.5px'}}>
+                      {isUrgent&&<span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:'#ef4444',marginRight:6,animation:'oc-pulse-s 2s infinite'}}/>}
+                      {isSOS?'SOS MULHER':(cat?.label||item.categoria)}{isUrgent?' — NOVA':''}
+                    </span>
                     <span style={{fontSize:10,color:'var(--text-muted)',fontFamily:'var(--font-mono)'}}>{dataExata} {horaExata}</span>
                   </div>
                   <div className="truncate" style={{fontSize:13.5,color:'var(--text)',fontWeight:500,marginBottom:4}}>{item.titulo||item.mensagem||item.sos_cadastros?.nome||'—'}</div>
@@ -2598,7 +2604,25 @@ function Denuncias(){
                   </div>
                 )}
               </div>
-              <div style={{display:'flex',gap:10}}>
+
+              {/* ── Rota & Despacho ── */}
+              {sel.latitude&&sel.longitude&&(
+                <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:10,padding:14,marginTop:12}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:10}}>📍 Rota & Despacho</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                    <a href={`https://www.google.com/maps/dir/?api=1&destination=${sel.latitude},${sel.longitude}&travelmode=driving`} target="_blank" rel="noopener"
+                      style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'10px',background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.2)',borderRadius:8,color:'#10b981',fontSize:12,fontWeight:600,textDecoration:'none'}}>🗺️ Google Maps</a>
+                    <a href={`https://www.waze.com/live-map/directions?to=ll.${sel.latitude}%2C${sel.longitude}`} target="_blank" rel="noopener"
+                      style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'10px',background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-secondary)',fontSize:12,fontWeight:600,textDecoration:'none'}}>🧭 Waze</a>
+                    <a href={`https://wa.me/?text=${encodeURIComponent(`🚨 DESPACHO — DENÚNCIA\n📋 ${sel.protocolo}\n📍 ${sel.endereco||sel.bairro||''}\n🏘️ ${sel.bairro||''}\n📢 ${(sel.categoria||'').replace(/_/g,' ').toUpperCase()}\n🗺️ https://www.google.com/maps?q=${sel.latitude},${sel.longitude}`)}`} target="_blank" rel="noopener"
+                      style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'10px',background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-secondary)',fontSize:12,fontWeight:600,textDecoration:'none'}}>📲 WhatsApp</a>
+                    <button onClick={()=>{navigator.clipboard.writeText(`🚨 DESPACHO — DENÚNCIA\n📋 ${sel.protocolo}\n📍 ${sel.endereco||sel.bairro||''}\n🏘️ ${sel.bairro||''}\n📢 ${(sel.categoria||'').replace(/_/g,' ').toUpperCase()}\n🗺️ https://www.google.com/maps?q=${sel.latitude},${sel.longitude}`);alert('Despacho copiado!')}}
+                      style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'10px',background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-secondary)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>📋 Copiar Despacho</button>
+                  </div>
+                </div>
+              )}
+
+              <div style={{display:'flex',gap:10,marginTop:12}}>
                 {sel.cidadania_ativa&&sel.status!=='procedente'&&sel.status!=='recompensa_paga'?(
                   <button className="btn btn-primary" style={{flex:1,justifyContent:'center',background:'linear-gradient(135deg,#059669,#10b981)'}} onClick={async()=>{
                     try{const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/validar-recompensa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operador:'admin'})});const d=await res.json();if(d.ok){alert(`✅ Denúncia validada! Recompensa de R$ ${d.valor} criada na aba Recompensas.`);setSel(null)}else{alert('Erro: '+(d.error||'Falha'))}}catch(e){alert('Erro: '+e.message)}
