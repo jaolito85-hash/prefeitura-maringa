@@ -5069,7 +5069,7 @@ function App(){
     {id:'central',icon:<Ico.grid/>,label:'Painel'},
     {id:'mapa',icon:<Ico.map/>,label:'Mapa'},
     {id:'ocorrencias',icon:<Ico.alert/>,label:'Ocorrências'},
-    {id:'denuncias',icon:<Ico.eye/>,label:'Denúncias'},
+    {id:'denuncias',icon:<Ico.eye/>,label:'Denúncias',badge:DEN.filter(d=>d.status==='novo').length||null},
     {id:'feedbacks',icon:<Ico.chat/>,label:'Feedbacks',badge:FBK.filter(f=>f.prioridade==='critico').length||null},
     {id:'recompensas',icon:<Ico.coin/>,label:'Recompensas',badge:RECOMP.filter(r=>r.status==='pendente_validacao').length||null},
     {id:'sos',icon:<Ico.shield/>,label:'SOS Mulher',badge:sos>0?sos:null},
