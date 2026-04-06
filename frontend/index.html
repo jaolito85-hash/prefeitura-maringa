@@ -2409,8 +2409,8 @@ function Denuncias(){
 
   const range=_denGetRange(period,offset);
   const prevRange=_denGetRange(period,offset+1);
-  const periodItems=DEN.filter(d=>_denInRange(d.created_at,range));
-  const prevItems=DEN.filter(d=>_denInRange(d.created_at,prevRange));
+  const periodItems=period==='all'?DEN:DEN.filter(d=>_denInRange(d.created_at,range));
+  const prevItems=period==='all'?[]:DEN.filter(d=>_denInRange(d.created_at,prevRange));
 
   // Summary calculations
   const pagoV=periodItems.filter(d=>d.status==='procedente'||d.status==='recompensa_paga').reduce((a,d)=>a+(d.valor_recompensa||0),0);
@@ -2462,15 +2462,15 @@ function Denuncias(){
         {/* PERIOD SELECTOR */}
         <div className="den-period-bar">
           <div className="den-period-group">
-            {['day','week','month'].map(p=>(
-              <button key={p} className={`den-period-btn ${period===p?'active':''}`} onClick={()=>{setPeriod(p);setOffset(0);setPage(1)}}>{p==='day'?'Dia':p==='week'?'Semana':'Mês'}</button>
+            {['day','week','month','all'].map(p=>(
+              <button key={p} className={`den-period-btn ${period===p?'active':''}`} onClick={()=>{setPeriod(p);setOffset(0);setPage(1)}}>{p==='day'?'Dia':p==='week'?'Semana':p==='month'?'Mês':'Total'}</button>
             ))}
           </div>
-          <span className="den-period-label"><strong>{_denFmtShort(range.start)}</strong> — <strong>{_denFmtFull(range.end)}</strong></span>
-          <div className="den-period-nav">
+          <span className="den-period-label">{period==='all'?<strong>Todos os registros</strong>:<><strong>{_denFmtShort(range.start)}</strong> — <strong>{_denFmtFull(range.end)}</strong></>}</span>
+          {period!=='all'&&<div className="den-period-nav">
             <button onClick={()=>{setOffset(o=>o+1);setPage(1)}}>‹</button>
             <button onClick={()=>{setOffset(o=>Math.max(0,o-1));setPage(1)}}>›</button>
-          </div>
+          </div>}
         </div>
 
         {/* SUMMARY CARDS */}
