@@ -310,17 +310,22 @@ async def receber_webhook_unificado(
     telefone = dados["telefone"]
     texto = dados["texto"]
 
-    # ── MODERAÇÃO DE LINGUAGEM (antes de tudo) ──
-    moderacao = _checar_moderacao(telefone, texto)
-    if moderacao:
-        logger.warning(f"🚫 Moderação: {telefone} — blocked={moderacao.get('blocked')}")
-        # Enviar resposta de moderação via fila de saudação
-        event = _montar_evento(dados, request, classificacao={
-            "canal": "saudacao",
-            "categoria": "moderacao",
-            "resposta_whatsapp": moderacao["msg"],
-        }, is_continuacao=False)
-        return _enfileirar(event, "queue:saudacoes")
+    # ── DETECÇÃO SOS RÁPIDA (ANTES de moderação — emergência NUNCA é bloqueada) ──
+    _SOS_CODES = {".", "socorro", "me ajuda", "ajuda", "femi", "sos"}
+    _texto_sos = (texto or "").strip().lower()
+    _is_sos = _texto_sos in _SOS_CODES or any(c in _texto_sos for c in ["socorro", "me ajuda", "femi"])
+    # Se é SOS, pula moderação completamente
+    if not _is_sos:
+        # ── MODERAÇÃO DE LINGUAGEM ──
+        moderacao = _checar_moderacao(telefone, texto)
+        if moderacao:
+            logger.warning(f"🚫 Moderação: {telefone} — blocked={moderacao.get('blocked')}")
+            event = _montar_evento(dados, request, classificacao={
+                "canal": "saudacao",
+                "categoria": "moderacao",
+                "resposta_whatsapp": moderacao["msg"],
+            }, is_continuacao=False)
+            return _enfileirar(event, "queue:saudacoes")
 
     # ── TRANSCRIÇÃO DE ÁUDIO (Whisper) ──
     # Se o cidadão mandou áudio, transcreve antes de tudo.

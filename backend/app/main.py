@@ -22,7 +22,7 @@ app = FastAPI(
 # CORS — Permite que o dashboard React acesse a API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173", "https://dashboard.seudominio.com.br"],
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "https://maringa.nodedata.com.br", "http://maringa.nodedata.com.br"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
