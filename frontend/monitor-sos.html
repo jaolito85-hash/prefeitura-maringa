@@ -142,17 +142,66 @@ function iniciarRealtime(){
   },3000);
 }
 
+var _routeCache={};
+var _routeQueue=[];
+var _routeProcessing=false;
+
+async function _fetchRoute(lonA,latA,lonB,latB){
+  var key=lonA.toFixed(5)+','+latA.toFixed(5)+'>'+lonB.toFixed(5)+','+latB.toFixed(5);
+  if(_routeCache[key]) return _routeCache[key];
+  try{
+    var url='https://api.mapbox.com/directions/v5/mapbox/driving/'+lonA+','+latA+';'+lonB+','+latB+'?geometries=geojson&overview=full&access_token='+MAPBOX_TOKEN;
+    var r=await fetch(url);
+    if(!r.ok) return null;
+    var data=await r.json();
+    if(data.routes&&data.routes[0]){
+      var coords=data.routes[0].geometry.coordinates;
+      _routeCache[key]=coords;
+      return coords;
+    }
+  }catch(e){}
+  return null;
+}
+
+async function _buildSmartLine(pontosList){
+  // Constrói linha que segue ruas quando distância entre pontos > 200m
+  var THRESHOLD=200; // metros
+  var allCoords=[];
+  for(var i=0;i<pontosList.length;i++){
+    var cur=[pontosList[i].longitude,pontosList[i].latitude];
+    if(i===0){allCoords.push(cur);continue;}
+    var prev=[pontosList[i-1].longitude,pontosList[i-1].latitude];
+    var dist=haversine(prev[1],prev[0],cur[1],cur[0]);
+    if(dist>THRESHOLD){
+      // Distância grande → buscar rota pelas ruas
+      var route=await _fetchRoute(prev[0],prev[1],cur[0],cur[1]);
+      if(route&&route.length>1){
+        // Adicionar pontos da rota (exceto o primeiro que já está)
+        for(var j=1;j<route.length;j++) allCoords.push(route[j]);
+      }else{
+        allCoords.push(cur);
+      }
+    }else{
+      allCoords.push(cur);
+    }
+  }
+  return allCoords;
+}
+
 function atualizarMapa(){
   if(!pontos.length)return;
-  // Pontos
+  // Pontos (sempre atualiza imediatamente)
   var features=pontos.map(function(p,i){return{type:'Feature',geometry:{type:'Point',coordinates:[p.longitude,p.latitude]},properties:{n:i+1}};});
   map.getSource('trail').setData({type:'FeatureCollection',features:features});
-  // Linha
-  var coords=pontos.map(function(p){return[p.longitude,p.latitude];});
-  map.getSource('trail-line').setData({type:'Feature',geometry:{type:'LineString',coordinates:coords}});
   // Ponto mais recente
   var last=pontos[pontos.length-1];
   map.getSource('latest').setData({type:'Feature',geometry:{type:'Point',coordinates:[last.longitude,last.latitude]}});
+  // Linha inteligente (async — segue ruas quando há saltos)
+  _buildSmartLine(pontos).then(function(coords){
+    if(coords&&coords.length>1){
+      map.getSource('trail-line').setData({type:'Feature',geometry:{type:'LineString',coordinates:coords}});
+    }
+  });
 }
 
 function atualizarStats(){
