@@ -912,17 +912,18 @@ def processar_denuncia(event: dict, sb: Client) -> None:
         if valor:
             dados_ant = _buscar_dados_anteriores(sb, telefone)
             if dados_ant:
-                _criar_recompensa(sb, registro_id, protocolo, valor,
-                                  dados_ant["cpf_encrypted"],
-                                  dados_ant["chave_pix_encrypted"],
-                                  dados_ant["tipo_chave_pix"],
-                                  _pre_encrypted=True)
+                # Marcar como elegível + salvar dados na denúncia (NÃO cria recompensa ainda)
+                sb.table("denuncias").update({
+                    "cidadania_ativa": True,
+                    "valor_recompensa": valor,
+                    "cpf_encrypted": dados_ant["cpf_encrypted"],
+                    "dados_bancarios_encrypted": dados_ant["chave_pix_encrypted"],
+                }).eq("id", registro_id).execute()
                 etapa = "finalizado"
                 resposta = (f"✅ Denúncia registrada com sucesso!\n\n"
                             f"💰 *Programa Cidadão Ativo*\n"
                             f"Sua denúncia é elegível a *R$ {valor:.2f}*.\n"
-                            f"Já temos seus dados cadastrados de denúncia anterior — "
-                            f"recompensa vinculada automaticamente! 🎉\n\n"
+                            f"Após validação pela equipe, o pagamento será processado.\n\n"
                             f"📋 Protocolo: {protocolo}")
             else:
                 etapa = "aguardando_cidadania"
@@ -1202,7 +1203,16 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
         tipo_pix = _detectar_tipo_pix(chave_pix)
         valor = _buscar_valor_recompensa(sb, categoria)
 
-        if valor and _criar_recompensa(sb, registro_id, protocolo, valor, cpf, chave_pix, tipo_pix):
+        # Salvar CPF/PIX na denúncia + marcar como elegível (NÃO cria recompensa)
+        cpf_enc = _encriptar_dado(cpf)
+        pix_enc = _encriptar_dado(chave_pix)
+        sb.table("denuncias").update({
+            "cidadania_ativa": True,
+            "valor_recompensa": valor or 0,
+            "cpf_encrypted": cpf_enc,
+            "dados_bancarios_encrypted": pix_enc,
+        }).eq("id", registro_id).execute()
+        if valor:
             nova_etapa = "finalizado"
             resposta = (f"✅ *Cadastro no Cidadão Ativo concluído!*\n\n"
                         f"📋 Protocolo: {protocolo}\n"
@@ -1211,7 +1221,7 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
                         f"Quando sua denúncia for validada pela equipe, "
                         f"o pagamento será feito via PIX.\n\n"
                         f"Obrigado por ajudar Maringá! 🏙️")
-            logger.info(f"Cidadão Ativo cadastrado: {protocolo} (R$ {valor})")
+            logger.info(f"Cidadão Ativo cadastrado (aguardando validação): {protocolo} (R$ {valor})")
         else:
             nova_etapa = "finalizado"
             resposta = (f"Ocorreu um erro ao processar seu cadastro, mas "
@@ -1302,13 +1312,15 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
         if valor:
             dados_ant = _buscar_dados_anteriores(sb, telefone)
             if dados_ant:
-                _criar_recompensa(sb, registro_id, protocolo, valor,
-                                  dados_ant["cpf_encrypted"], dados_ant["chave_pix_encrypted"],
-                                  dados_ant["tipo_chave_pix"], _pre_encrypted=True)
+                sb.table("denuncias").update({
+                    "cidadania_ativa": True, "valor_recompensa": valor,
+                    "cpf_encrypted": dados_ant["cpf_encrypted"],
+                    "dados_bancarios_encrypted": dados_ant["chave_pix_encrypted"],
+                }).eq("id", registro_id).execute()
                 nova_etapa = "finalizado"
                 resposta = (f"📍 Localização registrada!\n\n"
-                            f"💰 *Programa Cidadão Ativo* — Recompensa de *R$ {valor:.2f}* "
-                            f"vinculada automaticamente (dados já cadastrados)! 🎉\n\n"
+                            f"💰 *Programa Cidadão Ativo* — Elegível a *R$ {valor:.2f}*!\n"
+                            f"Após validação pela equipe, o pagamento será processado.\n\n"
                             f"📋 Protocolo: {protocolo}")
             else:
                 nova_etapa = "aguardando_cidadania"
@@ -1336,13 +1348,15 @@ def _executar_continuacao_denuncia(event, sb, sessao, telefone, contexto,
         if valor:
             dados_ant = _buscar_dados_anteriores(sb, telefone)
             if dados_ant:
-                _criar_recompensa(sb, registro_id, protocolo, valor,
-                                  dados_ant["cpf_encrypted"], dados_ant["chave_pix_encrypted"],
-                                  dados_ant["tipo_chave_pix"], _pre_encrypted=True)
+                sb.table("denuncias").update({
+                    "cidadania_ativa": True, "valor_recompensa": valor,
+                    "cpf_encrypted": dados_ant["cpf_encrypted"],
+                    "dados_bancarios_encrypted": dados_ant["chave_pix_encrypted"],
+                }).eq("id", registro_id).execute()
                 nova_etapa = "finalizado"
                 resposta = (f"📍 Endereço registrado: {texto}\n\n"
-                            f"💰 *Programa Cidadão Ativo* — Recompensa de *R$ {valor:.2f}* "
-                            f"vinculada automaticamente (dados já cadastrados)! 🎉\n\n"
+                            f"💰 *Programa Cidadão Ativo* — Elegível a *R$ {valor:.2f}*!\n"
+                            f"Após validação pela equipe, o pagamento será processado.\n\n"
                             f"📋 Protocolo: {protocolo}")
             else:
                 nova_etapa = "aguardando_cidadania"

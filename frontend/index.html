@@ -2599,9 +2599,15 @@ function Denuncias(){
                 )}
               </div>
               <div style={{display:'flex',gap:10}}>
-                <button className="btn btn-primary" style={{flex:1,justifyContent:'center'}} onClick={async()=>{
-                  try{const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'procedente',operador:'admin'})});if(res.ok){alert('Denúncia marcada como procedente!');setSel(null)}else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText))}}catch(e){alert('Erro: '+e.message)}
-                }}>✓ Procedente</button>
+                {sel.cidadania_ativa&&sel.status!=='procedente'&&sel.status!=='recompensa_paga'?(
+                  <button className="btn btn-primary" style={{flex:1,justifyContent:'center',background:'linear-gradient(135deg,#059669,#10b981)'}} onClick={async()=>{
+                    try{const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/validar-recompensa',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operador:'admin'})});const d=await res.json();if(d.ok){alert(`✅ Denúncia validada! Recompensa de R$ ${d.valor} criada na aba Recompensas.`);setSel(null)}else{alert('Erro: '+(d.error||'Falha'))}}catch(e){alert('Erro: '+e.message)}
+                  }}>💰 Validar e Encaminhar para Pagamento</button>
+                ):(
+                  <button className="btn btn-primary" style={{flex:1,justifyContent:'center'}} onClick={async()=>{
+                    try{const res=await fetch(API_URL+'/api/denuncias/'+sel.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'procedente',operador:'admin'})});if(res.ok){alert('Denúncia marcada como procedente!');setSel(null)}else{const err=await res.json().catch(()=>({}));alert('Erro: '+(err.detail||res.statusText))}}catch(e){alert('Erro: '+e.message)}
+                  }}>✓ Procedente</button>
+                )}
                 <button className="btn btn-outline" style={{flex:1,justifyContent:'center'}} onClick={async()=>{
                   const destino=prompt('Encaminhar para qual órgão?\n\n1 - Polícia Civil\n2 - Guarda Municipal\n3 - Meio Ambiente\n4 - Fiscalização\n\nDigite o número:');
                   const orgaos={'1':'Polícia Civil','2':'Guarda Municipal','3':'Meio Ambiente','4':'Fiscalização'};const orgao=orgaos[destino];if(!orgao){if(destino!==null)alert('Opção inválida.');return}
