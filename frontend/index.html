@@ -4297,20 +4297,30 @@ function SearchProtocolo({setAba}){
                       res.dados?.status&&['Status',res.dados.status.replace(/_/g,' ').toUpperCase()],
                       res.dados?.categoria&&['Categoria',res.dados.categoria.replace(/_/g,' ')],
                       res.dados?.nome&&['Cidadão',res.dados.nome],
-                      res.dados?.bairro&&['Bairro',res.dados.bairro],
+                      res.dados?.endereco&&['Endereço',res.dados.endereco],
+                      res.dados?.bairro&&!res.dados?.endereco&&['Bairro',res.dados.bairro],
                       res.dados?.mensagem&&['Mensagem',res.dados.mensagem],
                       res.dados?.cidadania_ativa&&['Cidadão Ativo','SIM — Elegível a recompensa'],
                       res.dados?.created_at&&['Data',new Date(res.dados.created_at).toLocaleString('pt-BR')],
                     ].filter(Boolean).map(([l,v])=>(
                       <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'8px 12px',background:'rgba(255,255,255,.02)',borderRadius:8,border:'1px solid var(--border)',gap:12}}>
                         <span style={{color:'var(--text-muted)',flexShrink:0}}>{l}</span>
-                        <span style={{fontWeight:500,color:l==='Cidadão Ativo'?'#4ade80':'var(--text)',textAlign:'right'}}>{v}</span>
+                        <span style={{fontWeight:500,color:l==='Cidadão Ativo'?'#4ade80':'var(--text)',textAlign:'right',maxWidth:280,wordBreak:'break-word'}}>{v}</span>
                       </div>
                     ))}
                   </div>
+                  {/* Rota & Despacho */}
+                  {res.dados?.latitude&&res.dados?.longitude&&(
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}}>
+                      <a href={`https://www.google.com/maps/dir/?api=1&destination=${res.dados.latitude},${res.dados.longitude}&travelmode=driving`} target="_blank" rel="noopener"
+                        style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'9px',background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.2)',borderRadius:8,color:'#10b981',fontSize:12,fontWeight:600,textDecoration:'none'}}>🗺️ Google Maps</a>
+                      <a href={`https://www.waze.com/live-map/directions?to=ll.${res.dados.latitude}%2C${res.dados.longitude}`} target="_blank" rel="noopener"
+                        style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'9px',background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-secondary)',fontSize:12,fontWeight:600,textDecoration:'none'}}>🧭 Waze</a>
+                    </div>
+                  )}
                   <button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}}
                     onClick={()=>{setAba(abaMap[res.canal]||'central');setShow(false);}}>
-                    Ir para aba {canalLabel[res.canal]?.split(' ')[1]||'Central'}
+                    Ver {canalLabel[res.canal]?.split(' ')[1]||'Detalhes'}
                   </button>
                 </div>
               )}
