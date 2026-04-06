@@ -34,6 +34,87 @@ from app.services.rate_limiter import (
 )
 from app.services.supabase_client import get_supabase
 from app.services.webhook_queue import enqueue_webhook, QueueUnavailableError
+import redis as redis_lib
+
+# ── MODERAÇÃO DE LINGUAGEM ──────────────────────────────────────────
+# Palavras proibidas (sem duplo sentido — apenas xingamentos claros)
+_PALAVRAS_PROIBIDAS = {
+    # Xingamentos diretos
+    "puta", "puto", "putaria", "putinha", "putão", "putao",
+    "caralho", "cacete", "pau no cu", "porra", "merda",
+    "filho da puta", "filha da puta", "fdp", "fdp",
+    "cuzão", "cuzao", "cu ", " cu,", " cu.", " cu!",
+    "arrombado", "arrombada",
+    "vagabundo", "vagabunda",
+    "viado", "viada", "veado", "viadinho",
+    "desgraçado", "desgraçada", "desgraca",
+    "corno", "corna", "cornudo",
+    "otário", "otaria", "otario",
+    "imbecil", "idiota", "retardado", "retardada",
+    "babaca", "bosta", "buceta", "boceta",
+    "piranha", "prostituta", "quenga",
+    "vá se fuder", "vai se fuder", "vai tomar no cu",
+    "foda-se", "foda se", "fodase", "se foda", "se fuder",
+    "cabaço", "cabaco",
+    "punheta", "punheteiro",
+    "pau no seu cu", "enfia no cu",
+    "lixo humano", "seu lixo",
+    "cretino", "cretina",
+    "safado", "safada",
+    "maldito", "maldita",
+    "nojento", "nojenta",
+    "inútil", "inutil",
+}
+
+def _contem_palavrao(texto: str) -> bool:
+    """Verifica se o texto contém palavras proibidas."""
+    if not texto:
+        return False
+    t = texto.lower()
+    # Normalizar acentos
+    import unicodedata
+    t = unicodedata.normalize("NFKD", t)
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    # Adicionar espaços para match de bordas
+    t = f" {t} "
+    for palavra in _PALAVRAS_PROIBIDAS:
+        p = unicodedata.normalize("NFKD", palavra)
+        p = "".join(c for c in p if not unicodedata.combining(c))
+        if p in t:
+            return True
+    return False
+
+_REDIS_URL = settings.redis_url if hasattr(settings, 'redis_url') else "redis://redis:6379"
+
+def _checar_moderacao(telefone: str, texto: str) -> dict | None:
+    """Verifica linguagem e aplica sistema de 3 strikes.
+    Retorna None se OK, ou dict com resposta de moderação."""
+    if not _contem_palavrao(texto):
+        return None
+    try:
+        r = redis_lib.Redis.from_url(_REDIS_URL, decode_responses=True, socket_timeout=2)
+        # Verificar ban ativo
+        ban_key = f"ban:{telefone}"
+        if r.exists(ban_key):
+            ttl = r.ttl(ban_key)
+            horas = max(1, ttl // 3600)
+            return {"blocked": True, "msg": f"🚫 Seu acesso está suspenso por uso de linguagem inadequada.\n\nTempo restante: ~{horas}h.\nRespeite para poder utilizar o serviço."}
+        # Incrementar strikes
+        strike_key = f"strikes:{telefone}"
+        strikes = r.incr(strike_key)
+        r.expire(strike_key, 86400 * 7)  # Strikes expiram em 7 dias
+        if strikes == 1:
+            return {"blocked": False, "msg": "⚠️ *Atenção:* Linguagem inadequada detectada.\n\nEste é um canal oficial da Prefeitura de Maringá. Por favor, mantenha o respeito nas mensagens.\n\n_Este é o seu 1º aviso._"}
+        elif strikes == 2:
+            return {"blocked": False, "msg": "🚨 *Último aviso:* Linguagem inadequada detectada novamente.\n\nNa próxima ocorrência, seu acesso será *suspenso por 72 horas*.\n\n_Este é o seu 2º e último aviso._"}
+        else:
+            # Strike 3+ → ban de 72 horas
+            r.setex(ban_key, 86400 * 3, "banned")  # 72h
+            r.delete(strike_key)
+            return {"blocked": True, "msg": "🚫 *Acesso suspenso por 72 horas* devido ao uso repetido de linguagem inadequada.\n\nEste é um serviço público. Respeite para poder utilizar."}
+    except Exception as exc:
+        logger.error(f"Erro moderação: {exc}")
+        return None
 from app.webhooks.common import require_evolution_apikey
 
 logger = logging.getLogger("webhook.unificado")
@@ -228,6 +309,18 @@ async def receber_webhook_unificado(
 
     telefone = dados["telefone"]
     texto = dados["texto"]
+
+    # ── MODERAÇÃO DE LINGUAGEM (antes de tudo) ──
+    moderacao = _checar_moderacao(telefone, texto)
+    if moderacao:
+        logger.warning(f"🚫 Moderação: {telefone} — blocked={moderacao.get('blocked')}")
+        # Enviar resposta de moderação via fila de saudação
+        event = _montar_evento(dados, request, classificacao={
+            "canal": "saudacao",
+            "categoria": "moderacao",
+            "resposta_whatsapp": moderacao["msg"],
+        }, is_continuacao=False)
+        return _enfileirar(event, "queue:saudacoes")
 
     # ── TRANSCRIÇÃO DE ÁUDIO (Whisper) ──
     # Se o cidadão mandou áudio, transcreve antes de tudo.
