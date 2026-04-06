@@ -292,35 +292,32 @@ MÓDULO FEEDBACK (manutenção rotineira — canal: "feedback"):
 - sinalizacao: Sinalização danificada / ausente
 - veiculo_abandonado: Veículo abandonado
 
-MÓDULO ARBORIZAÇÃO (serviço de árvores — canal: "arborizacao"):
-- poda_geral: Galhos sobre fiação, copa bloqueando luz, galhos invadindo propriedade
-- poda_complexa: Árvore grande sobre telhado, galhos em alta tensão
-- poda_desbarra: Galhos finos, brotações, ramos baixos
-- remocao: Árvore morta, cupim, raízes destruindo calçada
-- arvore_caida: Árvore tombada (sem contexto de temporal)
-- retirada_toco: Toco remanescente, raiz exposta
-- risco_queda: Árvore inclinada, tronco rachado, cavidade
-
-MÓDULO OCORRÊNCIA (emergência/desastre — canal: "ocorrencia"):
-- queda_arvore: Árvore caída por TEMPORAL/CHUVA/VENDAVAL (emergência, Defesa Civil)
+MÓDULO OCORRÊNCIA (emergência — canal: "ocorrencia"):
+- queda_arvore: Queda de árvore / árvore caída / risco de queda / galhos caídos / poda necessária
 - alagamento: Enchente / alagamento
 - deslizamento: Deslizamento / desmoronamento
 - incendio: Incêndio
 - vendaval: Vendaval / danos por vento
 - acidente: Acidente de trânsito
-REGRA ÁRVORES: se a foto mostra destruição por temporal/enchente → ocorrencia/queda_arvore.
-Se mostra árvore com cupim, poda necessária, toco, raiz → arborizacao.
 
 MÓDULO DENÚNCIA / CIDADANIA ATIVA (canal: "denuncia"):
 - pichacao: Pichação / vandalismo
 - trafico: Tráfico de drogas / atividade suspeita
 - descarte_irregular: Descarte irregular de resíduos / entulho
-- furto_fios: Vandalismo / furto de fios e cabos
+- furto_fios: Vandalismo / furto de fios e cabos / pessoa em poste / fios cortados
 - depredacao: Depredação de bens públicos
+
+SECRETARIAS DE MARINGÁ:
+- SEMUSP (Serviços Públicos): buracos, calçadas, iluminação, esgoto
+- SEMA (Meio Ambiente): árvores, mato alto, animais
+- SEMOB (Mobilidade Urbana): sinalização, trânsito
+- Defesa Civil: alagamento, deslizamento, incêndio, vendaval
+- Guarda Municipal: denúncias, tráfico, vandalismo, pichação, furto de fios
+- SELURB (Limpeza Urbana): descarte irregular, lixo
 
 Responda APENAS em JSON válido:
 {
-  "canal": "arborizacao|feedback|ocorrencia|denuncia",
+  "canal": "feedback|ocorrencia|denuncia",
   "categoria": "slug_da_categoria",
   "categoria_display": "Nome legível da categoria",
   "sentimento": "negativo|neutro|urgente",
