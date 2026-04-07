@@ -1664,6 +1664,12 @@ function Central({sos}){
                         </div>
                       ))}
                     </div>
+                    {f.sos_cadastros.agressor_foto_url&&(
+                      <div style={{marginTop:8,textAlign:'center'}}>
+                        <div style={{fontSize:9,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:4}}>Foto do Agressor</div>
+                        <img src={f.sos_cadastros.agressor_foto_url} alt="Foto do agressor" style={{maxWidth:120,maxHeight:120,borderRadius:8,border:'2px solid rgba(248,113,113,.3)',objectFit:'cover'}} />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -2876,6 +2882,15 @@ function SOSMulher(){
                         </div>
                       ))}
                     </div>
+                    {cad.agressor_foto_url&&(
+                      <div style={{marginTop:10,display:'flex',alignItems:'center',gap:12,background:'rgba(248,113,113,.06)',border:'1px solid rgba(248,113,113,.15)',borderRadius:8,padding:12}}>
+                        <img src={cad.agressor_foto_url} alt="Foto do agressor" style={{width:80,height:80,borderRadius:8,border:'2px solid rgba(248,113,113,.3)',objectFit:'cover'}} />
+                        <div>
+                          <div style={{fontSize:10,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:4}}>Foto do Agressor</div>
+                          <div style={{fontSize:12,color:'var(--text-muted)'}}>Enviada no cadastro</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 {/* Notas */}
@@ -2952,6 +2967,15 @@ function SOSMulher(){
                         </div>
                       ))}
                     </div>
+                    {cad.agressor_foto_url&&(
+                      <div style={{marginTop:10,display:'flex',alignItems:'center',gap:12,background:'rgba(248,113,113,.06)',border:'1px solid rgba(248,113,113,.15)',borderRadius:8,padding:12}}>
+                        <img src={cad.agressor_foto_url} alt="Foto do agressor" style={{width:80,height:80,borderRadius:8,border:'2px solid rgba(248,113,113,.3)',objectFit:'cover'}} />
+                        <div>
+                          <div style={{fontSize:10,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:4}}>Foto do Agressor</div>
+                          <div style={{fontSize:12,color:'var(--text-muted)'}}>Enviada no cadastro</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 {/* Sem cadastro */}
@@ -3089,6 +3113,16 @@ function SOSMulher(){
                   </div>
                 ))}
               </div>
+              {sel.sos_cadastros?.agressor_foto_url&&(
+                <div style={{marginTop:12,display:'flex',alignItems:'center',gap:14,background:'rgba(248,113,113,.06)',border:'1px solid rgba(248,113,113,.2)',borderRadius:10,padding:14}}>
+                  <img src={sel.sos_cadastros.agressor_foto_url} alt="Foto do agressor" style={{width:90,height:90,borderRadius:10,border:'2px solid rgba(248,113,113,.3)',objectFit:'cover',flexShrink:0}} />
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:4}}>Foto do Agressor</div>
+                    <div style={{fontSize:13,color:'var(--text)',fontWeight:500}}>{sel.sos_cadastros?.agressor||'Nome não informado'}</div>
+                    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>Enviada pela vítima no cadastro</div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           {/* Corpo: mapa + painel lateral */}

@@ -1660,14 +1660,65 @@ def _continuar_cadastro_sos(event: dict, sb: Client, sessao: dict) -> None:
     if etapa == "cadastro_agressor":
         if texto.lower() in ("pular", "nao", "não", "n", "prefiro nao", "prefiro não"):
             contexto["agressor"] = None
+            # Sem agressor → pula foto, vai pro contato
+            atualizar_sessao(sb, telefone, "cadastro_contato", contexto)
+            enviar_whatsapp(telefone,
+                "👤 *Qual o nome e telefone de uma pessoa de confiança?*\n"
+                "(Ex: Minha mãe Maria — 44999001234)\n"
+                "Essa pessoa será avisada em caso de emergência.\n\n"
+                "Se preferir não informar, envie *pular*")
         else:
             contexto["agressor"] = texto
-        atualizar_sessao(sb, telefone, "cadastro_contato", contexto)
+            atualizar_sessao(sb, telefone, "cadastro_foto_agressor", contexto)
+            enviar_whatsapp(telefone,
+                "📷 *Deseja enviar uma foto do agressor?*\n"
+                "A foto ajuda a equipe a identificá-lo rapidamente.\n\n"
+                "Envie a *foto* ou digite *pular* para continuar sem foto.")
+        return
+
+    if etapa == "cadastro_foto_agressor":
+        # Usuário quer pular
+        if texto.lower() in ("pular", "nao", "não", "n", "sem foto"):
+            contexto["agressor_foto_url"] = None
+            atualizar_sessao(sb, telefone, "cadastro_contato", contexto)
+            enviar_whatsapp(telefone,
+                "👤 *Qual o nome e telefone de uma pessoa de confiança?*\n"
+                "(Ex: Minha mãe Maria — 44999001234)\n"
+                "Essa pessoa será avisada em caso de emergência.\n\n"
+                "Se preferir não informar, envie *pular*")
+            return
+
+        # Usuário enviou imagem
+        tipo_midia = event.get("tipo_midia")
+        if tipo_midia == "imagem":
+            message_id = event.get("message_id")
+            media_base64 = event.get("media_base64", "")
+            mimetype = event.get("mimetype", "image/jpeg")
+
+            file_bytes = download_media(message_id, media_base64)
+            if file_bytes:
+                # Upload para storage na pasta "agressor"
+                foto_url = upload_to_storage(sb, file_bytes, f"agressor/{telefone.lstrip('+')}", "imagem", mimetype)
+                if foto_url:
+                    contexto["agressor_foto_url"] = foto_url
+                    logger.info(f"📷 Foto do agressor salva para {telefone}")
+                    enviar_whatsapp(telefone, "✓ Foto recebida!")
+                else:
+                    enviar_whatsapp(telefone, "⚠️ Não conseguimos salvar a foto, mas vamos continuar.")
+            else:
+                enviar_whatsapp(telefone, "⚠️ Não conseguimos baixar a foto, mas vamos continuar.")
+
+            atualizar_sessao(sb, telefone, "cadastro_contato", contexto)
+            enviar_whatsapp(telefone,
+                "👤 *Qual o nome e telefone de uma pessoa de confiança?*\n"
+                "(Ex: Minha mãe Maria — 44999001234)\n"
+                "Essa pessoa será avisada em caso de emergência.\n\n"
+                "Se preferir não informar, envie *pular*")
+            return
+
+        # Usuário enviou texto que não é "pular" — lembrar de enviar foto
         enviar_whatsapp(telefone,
-            "👤 *Qual o nome e telefone de uma pessoa de confiança?*\n"
-            "(Ex: Minha mãe Maria — 44999001234)\n"
-            "Essa pessoa será avisada em caso de emergência.\n\n"
-            "Se preferir não informar, envie *pular*")
+            "Por favor, envie a *foto* do agressor ou digite *pular* para continuar sem foto.")
         return
 
     if etapa == "cadastro_contato":
@@ -1695,6 +1746,7 @@ def _continuar_cadastro_sos(event: dict, sb: Client, sessao: dict) -> None:
                 "nome": contexto.get("nome", ""),
                 "endereco": contexto.get("endereco"),
                 "agressor": contexto.get("agressor"),
+                "agressor_foto_url": contexto.get("agressor_foto_url"),
                 "contato_confianca_nome": contexto.get("contato_nome"),
                 "contato_confianca_telefone": contexto.get("contato_tel"),
                 "ativo": True,
