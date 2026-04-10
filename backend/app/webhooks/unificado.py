@@ -592,8 +592,89 @@ async def receber_webhook_unificado(
 
     # ── 6. MENSAGEM NOVA — classificar com IA ──
 
+    # ══════════════════════════════════════════════════════════════════════
+    # ── 6-PRE. INTERCEPTADOR DETERMINÍSTICO (ANTES da IA) ──
+    # Palavras-chave forçam roteamento sem depender da IA.
+    # REGRA 1: "chuva/temporal/tempestade" → OBRIGATORIAMENTE ocorrencia
+    # REGRA 2: árvore/galho/poda SEM clima → OBRIGATORIAMENTE arborizacao
+    # ══════════════════════════════════════════════════════════════════════
+    _WEATHER_KW = {"temporal", "chuva", "vendaval", "tempestade", "enchente",
+                   "alagamento", "inundação", "inundacao", "tormenta", "ciclone", "granizo"}
+    _TREE_KW = {"arvore", "árvore", "poda", "galho", "galhos", "tronco", "toco",
+                "raiz", "raízes", "copa", "arvore caiu", "caiu árvore",
+                "arvore caida", "árvore caída"}
+    _TREE_PHRASES = {
+        "arvore caiu na minha casa", "arvore caiu na minha rua",
+        "árvore caiu na minha casa", "árvore caiu na minha rua",
+        "galhos na fiação", "galhos na fiacao",
+        "poda de arvore", "poda de árvore",
+        "cortar arvore", "cortar árvore",
+    }
+    _texto_pre = (texto or "").lower()
+    _tem_weather_pre = any(w in _texto_pre for w in _WEATHER_KW)
+    _tem_tree_pre = (any(w in _texto_pre for w in _TREE_KW) or
+                     any(p in _texto_pre for p in _TREE_PHRASES))
+
+    _interceptado = False
+
+    if _tem_weather_pre:
+        # ── REGRA 1: Mencionou chuva/temporal/tempestade → OCORRÊNCIA ──
+        # Independe se mencionou árvore ou não — clima = Defesa Civil
+        _cat_pre = "queda_arvore" if _tem_tree_pre else "outros_urbanos"
+        classificacao = {
+            "canal": "ocorrencia",
+            "categoria": _cat_pre,
+            "sentimento": "negativo",
+            "urgencia": "alta",
+            "resumo": f"Ocorrência climática reportada pelo cidadão: {texto[:100] if texto else ''}",
+            "resposta_whatsapp": (
+                "⚠️ Recebemos seu relato sobre a situação climática!\n\n"
+                "A equipe da Defesa Civil foi acionada.\n"
+                "Se possível, envie sua *localização* 📍 para agilizar o atendimento."
+            ),
+            "pedir_midia": True,
+            "pedir_localizacao": True,
+        }
+        logger.info(f"🌧️ INTERCEPTADOR: weather keyword detectada → ocorrencia/{_cat_pre}")
+        _interceptado = True
+
+    elif _tem_tree_pre and not _tem_weather_pre:
+        # ── REGRA 2: Árvore SEM clima → ARBORIZAÇÃO ──
+        # Determina categoria mais específica por palavras-chave
+        if any(p in _texto_pre for p in ("poda", "podar")):
+            _cat_arb = "poda_geral"
+        elif any(p in _texto_pre for p in ("caiu", "caída", "caida", "tombou")):
+            _cat_arb = "arvore_caida"
+        elif any(p in _texto_pre for p in ("risco", "inclinada", "rachado", "rachada")):
+            _cat_arb = "risco_queda"
+        elif any(p in _texto_pre for p in ("galho", "galhos", "fiação", "fiacao")):
+            _cat_arb = "poda_geral"
+        elif any(p in _texto_pre for p in ("toco", "raiz", "raízes")):
+            _cat_arb = "retirada_toco"
+        elif any(p in _texto_pre for p in ("cortar", "cupim", "morta", "seca")):
+            _cat_arb = "remocao"
+        else:
+            _cat_arb = "arvore_caida"
+        classificacao = {
+            "canal": "arborizacao",
+            "categoria": _cat_arb,
+            "sentimento": "negativo",
+            "urgencia": "urgencia" if "caiu" in _texto_pre else "prioridade",
+            "resumo": f"Serviço de arborização: {texto[:100] if texto else ''}",
+            "resposta_whatsapp": (
+                "🌳 Recebemos seu relato sobre arborização!\n\n"
+                "Para encaminhar à equipe responsável, preciso de:\n"
+                "📍 *Localização* (ou endereço completo)\n"
+                "📸 *Foto* da situação (se possível)"
+            ),
+            "pedir_midia": True,
+            "pedir_localizacao": True,
+        }
+        logger.info(f"🌳 INTERCEPTADOR: tree keyword sem clima → arborizacao/{_cat_arb}")
+        _interceptado = True
+
     # ── 6a. Se tem IMAGEM → classificar por visão (NOVO) ──
-    if dados["tem_midia"] and dados["tipo_midia"] == "imagem" and dados.get("media_base64"):
+    if not _interceptado and dados["tem_midia"] and dados["tipo_midia"] == "imagem" and dados.get("media_base64"):
         # Montar data URI a partir do base64 do webhook
         _mime = dados.get("mimetype", "image/jpeg") or "image/jpeg"
         _b64 = dados["media_base64"]
@@ -636,8 +717,8 @@ async def receber_webhook_unificado(
         if classificacao.get("confianca", 0) < 70:
             classificacao["mostrar_menu"] = True
 
-    # ── 6b. Se NÃO tem imagem → classificar por texto (FLUXO ATUAL) ──
-    else:
+    # ── 6b. Se NÃO tem imagem e NÃO foi interceptado → classificar por texto (FLUXO ATUAL) ──
+    elif not _interceptado:
         classificacao = await classificar_mensagem(
             texto=texto or "[Mídia sem legenda]",
             telefone=telefone,
@@ -649,10 +730,22 @@ async def receber_webhook_unificado(
     canal = classificacao.get("canal", "feedback")
 
     # ── SAFETY NET: diferenciar árvore emergência vs serviço ──
+    # (Redundância — o interceptador pré-IA já cuida disso, mas a safety net
+    #  cobre casos onde a IA foi chamada e pode ter reclassificado errado)
     _WEATHER_WORDS = {"temporal", "chuva", "vendaval", "tempestade", "enchente", "alagamento", "inundação", "inundacao", "tormenta", "ciclone", "granizo"}
     _SERVICE_WORDS = {"poda", "podar", "cortar", "cupim", "raiz", "raízes", "toco", "morta", "seca", "galho seco", "fiação", "fiacao", "iluminação", "calçada", "calcada"}
     _texto_lower = (texto or "").lower()
     _categoria = classificacao.get("categoria", "")
+
+    # ── SAFETY NET GLOBAL: qualquer mensagem com weather keyword → ocorrencia ──
+    # Mesmo que a IA tenha classificado em outro canal, clima = Defesa Civil
+    _tem_weather_sn = any(w in _texto_lower for w in _WEATHER_WORDS)
+    if _tem_weather_sn and canal != "ocorrencia":
+        canal = "ocorrencia"
+        classificacao["canal"] = "ocorrencia"
+        if _categoria not in ("queda_arvore", "enchente_alagamento", "vendaval", "incendio", "outros_urbanos"):
+            classificacao["categoria"] = "outros_urbanos"
+        logger.info(f"🌧️ SAFETY NET GLOBAL: weather keyword + canal={canal} → forçando ocorrencia")
 
     # Se IA classificou como arvore em qualquer canal
     _is_arvore = (_categoria in ("queda_arvore", "arvore_caida", "risco_queda", "poda_geral", "poda_complexa", "poda_desbarra", "remocao", "retirada_toco") or
@@ -662,14 +755,15 @@ async def receber_webhook_unificado(
         _tem_weather = any(w in _texto_lower for w in _WEATHER_WORDS)
         _tem_service = any(w in _texto_lower for w in _SERVICE_WORDS)
 
-        if _tem_weather and not _tem_service:
-            # Mencionou temporal/chuva → OCORRÊNCIA (Defesa Civil)
+        if _tem_weather:
+            # Mencionou temporal/chuva → SEMPRE OCORRÊNCIA (Defesa Civil)
+            # Mesmo que TAMBÉM tenha palavras de serviço, clima tem prioridade
             canal = "ocorrencia"
             classificacao["canal"] = "ocorrencia"
             classificacao["categoria"] = "queda_arvore"
             logger.info(f"🌧️ SAFETY NET: árvore + weather → ocorrencia/queda_arvore")
         elif _tem_service and not _tem_weather:
-            # Mencionou poda/cortar/cupim → ARBORIZAÇÃO (empresa)
+            # Mencionou poda/cortar/cupim SEM clima → ARBORIZAÇÃO (empresa)
             canal = "arborizacao"
             classificacao["canal"] = "arborizacao"
             if _categoria not in ("poda_geral", "poda_complexa", "poda_desbarra", "remocao", "retirada_toco", "risco_queda", "arvore_caida"):
