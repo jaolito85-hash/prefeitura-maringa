@@ -1899,6 +1899,7 @@ function Mapa({modoApresentacao=false}){
         <MapboxMap
           items={isHeat?[]:denMapped}
           fullscreen={true}
+          showBases={true}
           heatmapData={isHeat?heatPoints:null}
           heatmapMode={isHeat}
           route={apRoute}
