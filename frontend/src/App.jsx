@@ -8,9 +8,10 @@ import Denuncias from './pages/Denuncias'
 import SOSMulher from './pages/SOSMulher'
 import Ocorrencias from './pages/Ocorrencias'
 import Recompensas from './pages/Recompensas'
+import MapaPresentacao from './pages/MapaPresentacao'
 import AudioManager from './components/AudioManager'
 
-const ABAS = [
+const ABAS_COMPLETAS = [
   { id: 'central', icon: '📊', label: 'CENTRAL' },
   { id: 'denuncias', icon: '📋', label: 'DENÚNCIAS' },
   { id: 'sos', icon: '🛡️', label: 'SOS MULHER' },
@@ -18,9 +19,35 @@ const ABAS = [
   { id: 'recompensas', icon: '💰', label: 'RECOMPENSAS' },
 ]
 
+const ABAS_APRESENTACAO = [
+  { id: 'mapa', icon: '🗺️', label: 'MAPA' },
+  { id: 'denuncias', icon: '📋', label: 'DENÚNCIAS' },
+  { id: 'recompensas', icon: '💰', label: 'RECOMPENSAS' },
+]
+
 export default function App() {
-  const [abaAtiva, setAbaAtiva] = useState('central')
+  const [modoApresentacao, setModoApresentacao] = useState(
+    () => localStorage.getItem('modoApresentacao') === '1',
+  )
+  const ABAS = modoApresentacao ? ABAS_APRESENTACAO : ABAS_COMPLETAS
+
+  const [abaAtiva, setAbaAtiva] = useState(() => (
+    localStorage.getItem('modoApresentacao') === '1' ? 'mapa' : 'central'
+  ))
   const [mutado, setMutado] = useState(false)
+
+  // Garante que a aba ativa sempre exista no conjunto atual de abas
+  useEffect(() => {
+    if (!ABAS.some((a) => a.id === abaAtiva)) {
+      setAbaAtiva(ABAS[0].id)
+    }
+  }, [modoApresentacao])
+
+  const alternarApresentacao = () => {
+    const novo = !modoApresentacao
+    setModoApresentacao(novo)
+    localStorage.setItem('modoApresentacao', novo ? '1' : '0')
+  }
   const [sosAtivos, setSosAtivos] = useState(0)
   const [ultimoSOS, setUltimoSOS] = useState(null)
   const [hora, setHora] = useState(new Date())
@@ -138,6 +165,18 @@ export default function App() {
           </div>
 
           <button
+            onClick={alternarApresentacao}
+            className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+              modoApresentacao
+                ? 'bg-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-900/40'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+            title={modoApresentacao ? 'Sair do modo apresentação' : 'Ativar modo apresentação'}
+          >
+            🎬 {modoApresentacao ? 'Apresentação ON' : 'Apresentação'}
+          </button>
+
+          <button
             onClick={() => setMutado(!mutado)}
             className={`px-3 py-2 rounded-lg text-lg transition-all ${
               mutado ? 'bg-gray-700 text-gray-400 hover:bg-gray-600' : 'bg-blue-600 text-white hover:bg-blue-500'
@@ -149,7 +188,7 @@ export default function App() {
         </div>
       </header>
 
-      {sosAtivos > 0 && ultimoSOS && (
+      {!modoApresentacao && sosAtivos > 0 && ultimoSOS && (
         <div
           className="flex items-center justify-between px-6 py-3 bg-red-600 animate-pulse cursor-pointer flex-shrink-0"
           onClick={() => setAbaAtiva('sos')}
@@ -206,6 +245,7 @@ export default function App() {
 
         <main className="flex-1 overflow-hidden">
           {abaAtiva === 'central' && <Central sosAtivos={sosAtivos} />}
+          {abaAtiva === 'mapa' && <MapaPresentacao />}
           {abaAtiva === 'denuncias' && <Denuncias />}
           {abaAtiva === 'sos' && <SOSMulher />}
           {abaAtiva === 'ocorrencias' && <Ocorrencias />}

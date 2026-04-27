@@ -43,6 +43,10 @@ const EMOJI_CATEGORIA = {
   deslizamento: '⛰️',
   pichacao:     '🖊️',
   trafico:      '💊',
+  lixo:         '🗑️',
+  depredacao:   '🏚️',
+  vandalismo:   '🔨',
+  furto_fios:   '🔌',
   sos_mulher:   '🛡️',
 }
 
