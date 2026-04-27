@@ -754,6 +754,104 @@ tr{transition:.12s}
 .arb-flow-line{position:absolute;top:14px;left:calc(50% + 15px);right:calc(-50% + 15px);height:2px;background:var(--border)}
 .arb-flow-line.done{background:#059669}
 .arb-flow-label{font-size:10px;color:var(--text-muted);margin-top:8px;text-align:center;font-weight:600;letter-spacing:.3px}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODO APRESENTAÇÃO — RESPONSIVO MOBILE (até 820px de largura)
+   Otimizado para celular vertical, apenas 3 abas: mapa, denúncias,
+   recompensas. Sidebar vira navegação inferior fixa.
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 820px){
+  body.apresentacao-mobile{overflow:hidden}
+  body.apresentacao-mobile .app{height:100vh;display:flex;flex-direction:column}
+
+  /* Header compacto */
+  body.apresentacao-mobile .hdr{padding:8px 10px;flex-wrap:wrap;gap:6px;min-height:auto}
+  body.apresentacao-mobile .hdr .logo{flex:1;min-width:0;gap:6px}
+  body.apresentacao-mobile .hdr .logo svg{width:28px;height:28px;flex-shrink:0}
+  body.apresentacao-mobile .hdr .logo-text{font-size:14px}
+  body.apresentacao-mobile .hdr .logo-sep,
+  body.apresentacao-mobile .hdr .logo-sub{display:none}
+  body.apresentacao-mobile .hdr-right{gap:6px;flex-wrap:wrap}
+  body.apresentacao-mobile .hdr-right .clock-area,
+  body.apresentacao-mobile .hdr-right .status-badge{display:none}
+  body.apresentacao-mobile .hdr-right .hdr-btn{padding:6px 10px !important;font-size:11px !important;height:auto !important}
+  body.apresentacao-mobile .hdr-right > div:first-child{flex:1;min-width:0}
+
+  /* Body vira coluna: conteúdo no topo, nav embaixo */
+  body.apresentacao-mobile .body{flex-direction:column;flex:1;min-height:0}
+  body.apresentacao-mobile main{flex:1;min-height:0;overflow:hidden;order:1}
+
+  /* Sidebar vira bottom navigation */
+  body.apresentacao-mobile .sidebar{
+    width:100% !important;min-width:0 !important;
+    flex-direction:row !important;
+    border-right:none !important;border-top:1px solid var(--border) !important;
+    padding:6px 4px !important;gap:4px !important;
+    order:2;flex-shrink:0;height:auto;
+    background:#0a0b10;
+    box-shadow:0 -4px 20px rgba(0,0,0,.5);
+  }
+  body.apresentacao-mobile .sidebar .sidebar-section,
+  body.apresentacao-mobile .sidebar .nav-divider,
+  body.apresentacao-mobile .sidebar .ws-row,
+  body.apresentacao-mobile .sidebar > div[style*="margin-top"]{display:none !important}
+  body.apresentacao-mobile .sidebar .nav-item{
+    flex:1;justify-content:center;flex-direction:column;
+    padding:8px 4px !important;gap:4px !important;
+    font-size:11px !important;text-align:center;
+    border-radius:10px !important;
+  }
+  body.apresentacao-mobile .sidebar .nav-item svg{width:20px;height:20px}
+  body.apresentacao-mobile .sidebar .nav-item span{font-size:10px;font-weight:700;letter-spacing:.3px}
+  body.apresentacao-mobile .sidebar .nav-badge{position:absolute;top:4px;right:8px;font-size:9px}
+
+  /* Mapa em modo apresentação — badges e card menores */
+  body.apresentacao-mobile .apresent-toolbar{
+    left:8px !important;right:8px !important;top:8px !important;gap:6px !important;
+  }
+  body.apresentacao-mobile .apresent-toolbar > div{padding:6px !important}
+  body.apresentacao-mobile .apresent-toolbar button{
+    font-size:10px !important;padding:6px 10px !important;
+  }
+  body.apresentacao-mobile .apresent-counter{
+    top:auto !important;right:8px !important;bottom:8px !important;left:8px !important;
+    padding:8px 14px !important;min-width:0 !important;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;
+  }
+  body.apresentacao-mobile .apresent-counter .mono{font-size:26px !important}
+
+  /* Denúncias — 1 coluna, padding menor */
+  body.apresentacao-mobile .den-toolbar{padding:10px;flex-wrap:wrap;gap:8px}
+  body.apresentacao-mobile .den-search{min-width:0;width:100%}
+  body.apresentacao-mobile .den-summary-row{grid-template-columns:repeat(2,1fr) !important;gap:8px}
+  body.apresentacao-mobile .den-grid{grid-template-columns:1fr !important;gap:10px;padding:10px}
+  body.apresentacao-mobile .den-card{padding:12px}
+  body.apresentacao-mobile .den-pagination{padding:10px;flex-wrap:wrap}
+
+  /* Recompensas — adaptado pra mobile */
+  body.apresentacao-mobile .rec-toolbar{padding:10px;flex-wrap:wrap;gap:8px}
+  body.apresentacao-mobile .rec-search{min-width:0;width:100%}
+  body.apresentacao-mobile .rec-summary-row{grid-template-columns:repeat(2,1fr) !important;gap:8px}
+  body.apresentacao-mobile .rec-grid,
+  body.apresentacao-mobile .rec-list{grid-template-columns:1fr !important;gap:10px;padding:10px}
+  body.apresentacao-mobile .rel-hero-label{font-size:12px}
+
+  /* Modal — full-width no mobile */
+  body.apresentacao-mobile .modal-overlay{padding:0;align-items:flex-end}
+  body.apresentacao-mobile .modal-box{
+    width:100% !important;max-width:none !important;max-height:90vh !important;
+    border-radius:16px 16px 0 0 !important;
+  }
+
+  /* RoutePanel — fica acima do bottom nav */
+  body.apresentacao-mobile .route-panel{
+    bottom:88px !important;left:8px !important;right:8px !important;
+    max-width:none !important;
+  }
+
+  /* Banner SOS já está oculto pelo modo apresentação */
+  body.apresentacao-mobile .sos-banner{display:none}
+}
 </style>
 </head>
 <body>
@@ -1864,9 +1962,9 @@ function Mapa({modoApresentacao=false}){
       categoria:d.categoria,weight:1.2,
     }));
     return(
-      <div style={{position:'relative',height:'100%'}}>
+      <div className="apresent-map-wrap" style={{position:'relative',height:'100%'}}>
         {/* Barra superior: toggle modo + badges de categoria */}
-        <div style={{position:'absolute',top:16,left:16,right:240,zIndex:10,display:'flex',flexDirection:'column',gap:8}}>
+        <div className="apresent-toolbar" style={{position:'absolute',top:16,left:16,right:240,zIndex:10,display:'flex',flexDirection:'column',gap:8}}>
           {/* Toggle markers / heatmap */}
           <div style={{display:'flex',gap:4,background:'rgba(18,18,18,0.92)',backdropFilter:'blur(12px)',border:'1px solid var(--border)',borderRadius:8,padding:4,alignSelf:'flex-start'}}>
             <button onClick={()=>setModo('markers')} className="btn" style={{
@@ -1891,7 +1989,7 @@ function Mapa({modoApresentacao=false}){
           </div>
         </div>
         {/* Card de contagem */}
-        <div style={{position:'absolute',top:16,right:16,zIndex:10,background:'rgba(18,18,18,0.95)',backdropFilter:'blur(12px)',border:`2px solid ${isHeat?'#dc2626':'#3b82f6'}`,borderRadius:12,padding:'14px 22px',textAlign:'center',boxShadow:`0 0 24px ${isHeat?'rgba(220,38,38,.4)':'rgba(59,130,246,.4)'}`,minWidth:200}}>
+        <div className="apresent-counter" style={{position:'absolute',top:16,right:16,zIndex:10,background:'rgba(18,18,18,0.95)',backdropFilter:'blur(12px)',border:`2px solid ${isHeat?'#dc2626':'#3b82f6'}`,borderRadius:12,padding:'14px 22px',textAlign:'center',boxShadow:`0 0 24px ${isHeat?'rgba(220,38,38,.4)':'rgba(59,130,246,.4)'}`,minWidth:200}}>
           <div className="mono" style={{fontSize:38,fontWeight:800,color:isHeat?'#f87171':'#60a5fa',lineHeight:1}}>{denFiltradas.length}</div>
           <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1.5px',marginTop:4,fontWeight:700}}>Denúncias</div>
           {catApresent!=='todas'&&<div style={{fontSize:11,color:isHeat?'#f87171':'#60a5fa',marginTop:6,fontWeight:600}}>{APRESENT_CATS.find(c=>c.id===catApresent)?.icon} {APRESENT_CATS.find(c=>c.id===catApresent)?.label}</div>}
@@ -5261,6 +5359,10 @@ function App(){
     localStorage.setItem('modoApresentacao',n?'1':'0');
     setAba(n?'mapa':'central');
   };
+  useEffect(()=>{
+    document.body.classList.toggle('apresentacao-mobile',modoApresentacao);
+    return()=>document.body.classList.remove('apresentacao-mobile');
+  },[modoApresentacao]);
   const sos=SOS.length;
   const prevSosRef=useRef(0);
   const sireneTimerRef=useRef(null);
