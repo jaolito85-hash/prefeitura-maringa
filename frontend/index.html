@@ -1068,12 +1068,14 @@ function Logo(){
 }
 
 /* ─── MAPBOX (100% NATIVE LAYERS — circle + pulse) ───────────── */
-function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=null,heatmapData=null,heatmapMode=false}){
+function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=null,heatmapData=null,heatmapMode=false,onItemClick=null}){
   const mapRef=useRef(null);
   const containerRef=useRef(null);
   const popupRef=useRef(null);
   const readyRef=useRef(false);
   const pulseRef=useRef(null);
+  const onItemClickRef=useRef(onItemClick);
+  useEffect(()=>{onItemClickRef.current=onItemClick;},[onItemClick]);
   const [basesVisible,setBasesVisible]=useState(showBases);
 
   const sevStops=['critica','#dc2626','alta','#ef4444','media','#d97706','baixa','#059669'];
@@ -1246,6 +1248,10 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
       // ── Popups ──
       map.on('click','inc-main',(e)=>{
         const f=e.features[0];const coords=f.geometry.coordinates.slice();const p=f.properties;
+        if(onItemClickRef.current){
+          onItemClickRef.current(p,coords);
+          return;
+        }
         const sevCores={critica:'#ef4444',alta:'#f97316',media:'#eab308',baixa:'#22c55e'};
         const sevCor=sevCores[p.severidade]||'#6b7280';
         const sevLabel=(p.severidade||'baixa').charAt(0).toUpperCase()+(p.severidade||'baixa').slice(1);
@@ -1798,6 +1804,36 @@ function Mapa({modoApresentacao=false}){
   const [f,setF]=useState('todos');
   const [catHeat,setCatHeat]=useState('todos');
   const [catApresent,setCatApresent]=useState('todas');
+  const [selDen,setSelDen]=useState(null);
+  const [apRoute,setApRoute]=useState(null);
+  const [apRouteBase,setApRouteBase]=useState(null);
+  const [apRouteIncident,setApRouteIncident]=useState(null);
+  const [apLoadingRoute,setApLoadingRoute]=useState(false);
+
+  async function handleTraceRouteApresent(item){
+    setApLoadingRoute(true);
+    let destLat=Number(item.latitude),destLng=Number(item.longitude);
+    if(!destLat||!destLng){
+      const endereco=item.endereco||item.bairro;
+      if(!endereco){alert('Sem endereço ou coordenadas.');setApLoadingRoute(false);return;}
+      try{
+        const geoRes=await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(endereco+', Maringá, Paraná, Brasil')}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
+        const geoData=await geoRes.json();
+        if(geoData.features?.length){destLng=geoData.features[0].center[0];destLat=geoData.features[0].center[1];}
+        else{alert('Não foi possível localizar o endereço.');setApLoadingRoute(false);return;}
+      }catch(e){setApLoadingRoute(false);return;}
+    }
+    const base=nearestBase(destLat,destLng,'pm');
+    if(!base){setApLoadingRoute(false);return;}
+    const r=await fetchRoute(base.lng,base.lat,destLng,destLat);
+    if(r){
+      setApRoute(r);
+      setApRouteBase(base);
+      setApRouteIncident({...item,lat:destLat,lng:destLng,titulo:item.mensagem?String(item.mensagem).slice(0,60):'Denúncia',severidade:'media'});
+      setSelDen(null);
+    }
+    setApLoadingRoute(false);
+  }
 
   const isHeat=modo==='heatmap';
 
@@ -1860,7 +1896,71 @@ function Mapa({modoApresentacao=false}){
           <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1.5px',marginTop:4,fontWeight:700}}>Denúncias</div>
           {catApresent!=='todas'&&<div style={{fontSize:11,color:isHeat?'#f87171':'#60a5fa',marginTop:6,fontWeight:600}}>{APRESENT_CATS.find(c=>c.id===catApresent)?.icon} {APRESENT_CATS.find(c=>c.id===catApresent)?.label}</div>}
         </div>
-        <MapboxMap items={isHeat?[]:denMapped} fullscreen={true} heatmapData={isHeat?heatPoints:null} heatmapMode={isHeat}/>
+        <MapboxMap
+          items={isHeat?[]:denMapped}
+          fullscreen={true}
+          heatmapData={isHeat?heatPoints:null}
+          heatmapMode={isHeat}
+          route={apRoute}
+          onItemClick={isHeat?null:(props)=>{
+            const den=DEN.find(d=>d.id===props.id);
+            if(den) setSelDen(den);
+          }}
+        />
+        {apRoute&&<RoutePanel route={apRoute} base={apRouteBase} incident={apRouteIncident} onClose={()=>{setApRoute(null);setApRouteBase(null);setApRouteIncident(null);}}/>}
+        {selDen&&(()=>{
+          const cat=DEN_CAT_LABEL[selDen.categoria]||selDen.categoria||'Denúncia';
+          const despachoText=`🚨 DESPACHO — DENÚNCIA\n📋 ${selDen.protocolo}\n📍 ${selDen.endereco||selDen.bairro||''}\n🏘️ ${selDen.bairro||''}\n📢 ${cat.toUpperCase()}\n💬 ${selDen.mensagem||''}\n🗺️ https://www.google.com/maps?q=${selDen.latitude},${selDen.longitude}`;
+          return(
+            <div className="modal-overlay" onClick={()=>setSelDen(null)} style={{zIndex:1100}}>
+              <div className="modal-box" onClick={e=>e.stopPropagation()} style={{maxWidth:560}}>
+                <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div>
+                    <div style={{fontSize:11,color:'var(--text-muted)',fontWeight:600,letterSpacing:.5}}>{selDen.protocolo}</div>
+                    <div style={{fontSize:16,fontWeight:700,color:'var(--text)',marginTop:2}}>{cat}</div>
+                  </div>
+                  <button onClick={()=>setSelDen(null)} style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',cursor:'pointer',borderRadius:8,border:'none',background:'none',fontSize:18}}>✕</button>
+                </div>
+                <div style={{padding:20,maxHeight:'70vh',overflowY:'auto'}}>
+                  {selDen.midia_urls?.length>0&&(
+                    <img src={selDen.midia_urls[0]} alt="evidência" style={{width:'100%',borderRadius:10,marginBottom:14,maxHeight:280,objectFit:'cover'}}/>
+                  )}
+                  <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:10,padding:14,marginBottom:14}}>
+                    <div style={{fontSize:11,color:'var(--text-muted)',fontWeight:700,textTransform:'uppercase',letterSpacing:.8,marginBottom:8}}>Mensagem</div>
+                    <div style={{fontSize:14,color:'var(--text)',lineHeight:1.5}}>{selDen.mensagem||'—'}</div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:14}}>
+                    <div style={{padding:'8px 12px',background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8}}>
+                      <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase'}}>Bairro</div>
+                      <div style={{fontSize:13,fontWeight:600,marginTop:2}}>{selDen.bairro||'—'}</div>
+                    </div>
+                    <div style={{padding:'8px 12px',background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8}}>
+                      <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase'}}>Endereço</div>
+                      <div style={{fontSize:13,fontWeight:600,marginTop:2}}>{selDen.endereco||'—'}</div>
+                    </div>
+                  </div>
+                  <div style={{background:'rgba(59,130,246,.06)',border:'1px solid rgba(59,130,246,.25)',borderRadius:10,padding:14,marginBottom:12}}>
+                    <div style={{fontSize:11,fontWeight:700,color:'#60a5fa',textTransform:'uppercase',letterSpacing:.8,marginBottom:10}}>📍 Rota & Despacho à Polícia</div>
+                    <button className="btn btn-primary" style={{width:'100%',justifyContent:'center',fontSize:13,padding:'12px 16px',marginBottom:8,background:'linear-gradient(135deg,#1d4ed8,#3b82f6)'}}
+                      onClick={()=>handleTraceRouteApresent(selDen)} disabled={apLoadingRoute}>
+                      {apLoadingRoute?'Calculando rota...':'🗺️ Traçar Rota da Base mais Próxima'}
+                    </button>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                      <a href={`https://www.google.com/maps/dir/?api=1&destination=${selDen.latitude},${selDen.longitude}&travelmode=driving`} target="_blank" rel="noopener"
+                        style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'10px',background:'rgba(16,185,129,.08)',border:'1px solid rgba(16,185,129,.2)',borderRadius:8,color:'#10b981',fontSize:12,fontWeight:600,textDecoration:'none'}}>🗺️ Google Maps</a>
+                      <a href={`https://www.waze.com/live-map/directions?to=ll.${selDen.latitude}%2C${selDen.longitude}`} target="_blank" rel="noopener"
+                        style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'10px',background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-secondary)',fontSize:12,fontWeight:600,textDecoration:'none'}}>🧭 Waze</a>
+                      <a href={`https://wa.me/?text=${encodeURIComponent(despachoText)}`} target="_blank" rel="noopener"
+                        style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'10px',background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-secondary)',fontSize:12,fontWeight:600,textDecoration:'none'}}>📲 WhatsApp Polícia</a>
+                      <button onClick={()=>{navigator.clipboard.writeText(despachoText);alert('Despacho copiado!')}}
+                        style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'10px',background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-secondary)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>📋 Copiar Despacho</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   }
