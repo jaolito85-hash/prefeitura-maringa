@@ -1793,12 +1793,57 @@ function Central({sos}){
 }
 
 /* ─── MAPA ─────────────────────────────────────────────────────── */
-function Mapa(){
+function Mapa({modoApresentacao=false}){
   const [modo,setModo]=useState('markers');
   const [f,setF]=useState('todos');
   const [catHeat,setCatHeat]=useState('todos');
+  const [catApresent,setCatApresent]=useState('todas');
 
   const isHeat=modo==='heatmap';
+
+  // ── MODO APRESENTAÇÃO ─────────────────────────────────────
+  // Mostra denúncias com 6 badges de filtro por categoria.
+  if(modoApresentacao){
+    const APRESENT_CATS=[
+      {id:'todas',             label:'TODAS',             icon:'🗂️', cor:'#3b82f6'},
+      {id:'pichacao',          label:'PICHAÇÃO',          icon:'🖊️', cor:'#ec4899'},
+      {id:'trafico_drogas',    label:'TRÁFICO DE DROGAS', icon:'💊', cor:'#dc2626'},
+      {id:'descarte_irregular',label:'DESCARTE DE LIXO',  icon:'🗑️', cor:'#6b7280'},
+      {id:'furto_fios',        label:'FURTO DE FIOS',     icon:'⚡', cor:'#eab308'},
+      {id:'depredacao',        label:'DEPREDAÇÃO',        icon:'🔨', cor:'#f97316'},
+    ];
+    const denFiltradas=DEN.filter(d=>d.latitude&&d.longitude&&(catApresent==='todas'||d.categoria===catApresent));
+    const denMapped=denFiltradas.map(d=>({
+      id:d.id,
+      lat:Number(d.latitude),lng:Number(d.longitude),
+      severidade:'media',
+      categoria:d.categoria,
+      titulo:d.mensagem?String(d.mensagem).slice(0,60):'Denúncia',
+      bairro:d.bairro||'—',
+      protocolo:d.protocolo||'',
+    }));
+    return(
+      <div style={{position:'relative',height:'100%'}}>
+        <div style={{position:'absolute',top:16,left:16,right:240,zIndex:10,display:'flex',flexWrap:'wrap',gap:6,background:'rgba(18,18,18,0.92)',backdropFilter:'blur(12px)',border:'1px solid var(--border)',borderRadius:12,padding:8}}>
+          {APRESENT_CATS.map(c=>(
+            <button key={c.id} onClick={()=>setCatApresent(c.id)} className="btn" style={{
+              background:catApresent===c.id?c.cor:'rgba(18,18,18,0.9)',
+              border:`2px solid ${catApresent===c.id?c.cor:'var(--border)'}`,
+              color:catApresent===c.id?'#fff':'var(--text-secondary)',
+              fontSize:12,padding:'8px 14px',fontWeight:700,letterSpacing:'.5px',whiteSpace:'nowrap',
+            }}>{c.icon} {c.label}</button>
+          ))}
+        </div>
+        <div style={{position:'absolute',top:16,right:16,zIndex:10,background:'rgba(18,18,18,0.95)',backdropFilter:'blur(12px)',border:'2px solid #3b82f6',borderRadius:12,padding:'14px 22px',textAlign:'center',boxShadow:'0 0 24px rgba(59,130,246,.4)',minWidth:200}}>
+          <div className="mono" style={{fontSize:38,fontWeight:800,color:'#60a5fa',lineHeight:1}}>{denFiltradas.length}</div>
+          <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1.5px',marginTop:4,fontWeight:700}}>Denúncias</div>
+          {catApresent!=='todas'&&<div style={{fontSize:11,color:'#60a5fa',marginTop:6,fontWeight:600}}>{APRESENT_CATS.find(c=>c.id===catApresent)?.icon} {APRESENT_CATS.find(c=>c.id===catApresent)?.label}</div>}
+        </div>
+        <MapboxMap items={denMapped} fullscreen={true}/>
+      </div>
+    );
+  }
+  // ──────────────────────────────────────────────────────────
 
   // Categorias disponíveis para heatmap
   const HEAT_CATS=[
@@ -5084,9 +5129,16 @@ function tocarBipe(freq=1000,dur=.12,vol=.25){
 
 function App(){
   useApiPolling();
-  const [aba,setAba]=useState('central');
+  const [modoApresentacao,setModoApresentacao]=useState(()=>localStorage.getItem('modoApresentacao')==='1');
+  const [aba,setAba]=useState(()=>localStorage.getItem('modoApresentacao')==='1'?'mapa':'central');
   const [hora,setHora]=useState(new Date());
   const [mutado,setMutado]=useState(false);
+  const alternarApresentacao=()=>{
+    const n=!modoApresentacao;
+    setModoApresentacao(n);
+    localStorage.setItem('modoApresentacao',n?'1':'0');
+    setAba(n?'mapa':'central');
+  };
   const sos=SOS.length;
   const prevSosRef=useRef(0);
   const sireneTimerRef=useRef(null);
@@ -5109,7 +5161,7 @@ function App(){
   /* ── Som ao navegar para aba SOS com alertas ativos ── */
   useEffect(()=>{if(aba==='sos'&&sos>0&&!mutado)tocarSirene();},[aba]);
 
-  const ABAS=[
+  const ABAS_FULL=[
     {id:'central',icon:<Ico.grid/>,label:'Painel'},
     {id:'mapa',icon:<Ico.map/>,label:'Mapa'},
     {id:'ocorrencias',icon:<Ico.alert/>,label:'Ocorrências'},
@@ -5120,6 +5172,9 @@ function App(){
     {id:'noticias',icon:<Ico.news/>,label:'Notícias'},
     {id:'arborizacao',icon:<Ico.tree/>,label:'Arborização'},
   ];
+  const ABAS=modoApresentacao
+    ?ABAS_FULL.filter(a=>['mapa','denuncias','recompensas'].includes(a.id))
+    :ABAS_FULL;
 
   return(
     <div className="app">
@@ -5137,11 +5192,12 @@ function App(){
             <div className="clock">{hora.toLocaleTimeString('pt-BR')}</div>
             <div className="clock-date">{hora.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div>
           </div>
+          <button className="hdr-btn" onClick={alternarApresentacao} title={modoApresentacao?'Sair do modo apresentação':'Modo apresentação'} style={{background:modoApresentacao?'#9333ea':undefined,color:modoApresentacao?'#fff':undefined,fontWeight:600,fontSize:13,padding:'0 12px'}}>🎬 {modoApresentacao?'ON':'Apresentação'}</button>
           <button className="hdr-btn" onClick={()=>setMutado(!mutado)}>{mutado?'🔇':'🔊'}</button>
         </div>
       </header>
 
-      {sos>0&&(
+      {!modoApresentacao&&sos>0&&(
         <div className="sos-banner" onClick={()=>setAba('sos')}>
           <span style={{fontSize:18}}>🚨</span>
           <div>
@@ -5175,7 +5231,7 @@ function App(){
         <main className="content">
           <PageTransition pageKey={aba}>
             {aba==='central'&&<Central sos={sos}/>}
-            {aba==='mapa'&&<Mapa/>}
+            {aba==='mapa'&&<Mapa modoApresentacao={modoApresentacao}/>}
             {aba==='ocorrencias'&&<Ocorrencias/>}
             {aba==='denuncias'&&<Denuncias/>}
             {aba==='feedbacks'&&<Feedbacks/>}
