@@ -39,5 +39,33 @@ logs/
 # Ferramentas de IA / agentes (não fazem parte do código do projeto)
 .agents/
 .claude/
+.skills/
 _bmad/
 _bmad-output/
+
+# Caches de modelos / virtualenvs externos (não fazem parte do projeto)
+.hf-cache/
+.external/
+.playwright-mcp/
+.tmp-pip/
+.venv-vibevoice/
+.venv-vibevoice-uv/
+.venv-wan22/
+.vibevoice-packages/
+
+# Artefatos de roteiro e cenas de vídeo
+presentation-scenes/
+scene-*.png
+roteiro-narracao-video.md
+prompt-claude-code-*.md
+
+# Lock de skills (artefato CLI)
+skills-lock.json
+
+# Screenshots soltos
+[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]_*.png
+ruim.png
+stitch-reference.png
+
+# Logs http temporários
+tmp-http.*.log
