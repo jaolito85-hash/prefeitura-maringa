@@ -1803,6 +1803,7 @@ function Mapa({modoApresentacao=false}){
 
   // ── MODO APRESENTAÇÃO ─────────────────────────────────────
   // Mostra denúncias com 6 badges de filtro por categoria.
+  // Toggle Markers / Heatmap igual ao mapa principal.
   if(modoApresentacao){
     const APRESENT_CATS=[
       {id:'todas',             label:'TODAS',             icon:'🗂️', cor:'#3b82f6'},
@@ -1822,24 +1823,44 @@ function Mapa({modoApresentacao=false}){
       bairro:d.bairro||'—',
       protocolo:d.protocolo||'',
     }));
+    const heatPoints=denFiltradas.map(d=>({
+      lat:Number(d.latitude),lng:Number(d.longitude),
+      categoria:d.categoria,weight:1.2,
+    }));
     return(
       <div style={{position:'relative',height:'100%'}}>
-        <div style={{position:'absolute',top:16,left:16,right:240,zIndex:10,display:'flex',flexWrap:'wrap',gap:6,background:'rgba(18,18,18,0.92)',backdropFilter:'blur(12px)',border:'1px solid var(--border)',borderRadius:12,padding:8}}>
-          {APRESENT_CATS.map(c=>(
-            <button key={c.id} onClick={()=>setCatApresent(c.id)} className="btn" style={{
-              background:catApresent===c.id?c.cor:'rgba(18,18,18,0.9)',
-              border:`2px solid ${catApresent===c.id?c.cor:'var(--border)'}`,
-              color:catApresent===c.id?'#fff':'var(--text-secondary)',
-              fontSize:12,padding:'8px 14px',fontWeight:700,letterSpacing:'.5px',whiteSpace:'nowrap',
-            }}>{c.icon} {c.label}</button>
-          ))}
+        {/* Barra superior: toggle modo + badges de categoria */}
+        <div style={{position:'absolute',top:16,left:16,right:240,zIndex:10,display:'flex',flexDirection:'column',gap:8}}>
+          {/* Toggle markers / heatmap */}
+          <div style={{display:'flex',gap:4,background:'rgba(18,18,18,0.92)',backdropFilter:'blur(12px)',border:'1px solid var(--border)',borderRadius:8,padding:4,alignSelf:'flex-start'}}>
+            <button onClick={()=>setModo('markers')} className="btn" style={{
+              background:!isHeat?'var(--accent)':'transparent',border:'none',
+              color:!isHeat?'#fff':'var(--text-secondary)',fontSize:12,padding:'6px 14px',fontWeight:700,
+            }}>📍 Markers</button>
+            <button onClick={()=>setModo('heatmap')} className="btn" style={{
+              background:isHeat?'#dc2626':'transparent',border:'none',
+              color:isHeat?'#fff':'var(--text-secondary)',fontSize:12,padding:'6px 14px',fontWeight:700,
+            }}>🔥 Heatmap</button>
+          </div>
+          {/* Badges de categoria */}
+          <div style={{display:'flex',flexWrap:'wrap',gap:6,background:'rgba(18,18,18,0.92)',backdropFilter:'blur(12px)',border:'1px solid var(--border)',borderRadius:12,padding:8}}>
+            {APRESENT_CATS.map(c=>(
+              <button key={c.id} onClick={()=>setCatApresent(c.id)} className="btn" style={{
+                background:catApresent===c.id?c.cor:'rgba(18,18,18,0.9)',
+                border:`2px solid ${catApresent===c.id?c.cor:'var(--border)'}`,
+                color:catApresent===c.id?'#fff':'var(--text-secondary)',
+                fontSize:12,padding:'8px 14px',fontWeight:700,letterSpacing:'.5px',whiteSpace:'nowrap',
+              }}>{c.icon} {c.label}</button>
+            ))}
+          </div>
         </div>
-        <div style={{position:'absolute',top:16,right:16,zIndex:10,background:'rgba(18,18,18,0.95)',backdropFilter:'blur(12px)',border:'2px solid #3b82f6',borderRadius:12,padding:'14px 22px',textAlign:'center',boxShadow:'0 0 24px rgba(59,130,246,.4)',minWidth:200}}>
-          <div className="mono" style={{fontSize:38,fontWeight:800,color:'#60a5fa',lineHeight:1}}>{denFiltradas.length}</div>
+        {/* Card de contagem */}
+        <div style={{position:'absolute',top:16,right:16,zIndex:10,background:'rgba(18,18,18,0.95)',backdropFilter:'blur(12px)',border:`2px solid ${isHeat?'#dc2626':'#3b82f6'}`,borderRadius:12,padding:'14px 22px',textAlign:'center',boxShadow:`0 0 24px ${isHeat?'rgba(220,38,38,.4)':'rgba(59,130,246,.4)'}`,minWidth:200}}>
+          <div className="mono" style={{fontSize:38,fontWeight:800,color:isHeat?'#f87171':'#60a5fa',lineHeight:1}}>{denFiltradas.length}</div>
           <div style={{fontSize:10,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'1.5px',marginTop:4,fontWeight:700}}>Denúncias</div>
-          {catApresent!=='todas'&&<div style={{fontSize:11,color:'#60a5fa',marginTop:6,fontWeight:600}}>{APRESENT_CATS.find(c=>c.id===catApresent)?.icon} {APRESENT_CATS.find(c=>c.id===catApresent)?.label}</div>}
+          {catApresent!=='todas'&&<div style={{fontSize:11,color:isHeat?'#f87171':'#60a5fa',marginTop:6,fontWeight:600}}>{APRESENT_CATS.find(c=>c.id===catApresent)?.icon} {APRESENT_CATS.find(c=>c.id===catApresent)?.label}</div>}
         </div>
-        <MapboxMap items={denMapped} fullscreen={true}/>
+        <MapboxMap items={isHeat?[]:denMapped} fullscreen={true} heatmapData={isHeat?heatPoints:null} heatmapMode={isHeat}/>
       </div>
     );
   }
