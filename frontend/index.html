@@ -2829,13 +2829,14 @@ function Denuncias(){
 /* Mostra os pontos de emergencia_pontos vinculados ao alerta SOS via
    token_rastreamento. Substitui o monitor-sos.html standalone. Realtime
    por subscription no Supabase (postgres_changes em emergencia_pontos). */
-function SOSTrailMap({alerta,routeData}){
+function SOSTrailMap({alerta,routeData,onLatestPoint}){
   const containerRef=useRef(null);
   const mapRef=useRef(null);
-  const markersRef=useRef([]);
+  const readyRef=useRef(false);
   const lineSourceIdRef=useRef('sos-trail-line');
   const dotsSourceIdRef=useRef('sos-trail-dots');
   const latestSourceIdRef=useRef('sos-trail-latest');
+  const routeActiveRef=useRef(false);
   const [sessaoId,setSessaoId]=useState(null);
   const [pontos,setPontos]=useState([]);
   const [erro,setErro]=useState(null);
@@ -2856,18 +2857,61 @@ function SOSTrailMap({alerta,routeData}){
     });
     map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
     map.on('load',()=>{
+      // Trilha GPS da vítima (linha rosa)
       map.addSource(lineSourceIdRef.current,{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
       map.addSource(dotsSourceIdRef.current,{type:'geojson',data:{type:'FeatureCollection',features:[]}});
       map.addSource(latestSourceIdRef.current,{type:'geojson',data:{type:'Feature',geometry:{type:'Point',coordinates:[centroLng,centroLat]}}});
+      // Rota da base PM (linha azul, padrão das outras abas)
+      map.addSource('route',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
+      map.addSource('route-base',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+
+      map.addLayer({id:'route-line-shadow',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#000','line-width':8,'line-opacity':0.3,'line-blur':4}});
+      map.addLayer({id:'route-line',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#3b82f6','line-width':4,'line-opacity':0.9}});
+      map.addLayer({id:'route-line-glow',type:'line',source:'route',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#3b82f6','line-width':10,'line-opacity':0.15,'line-blur':6}});
+      map.addLayer({id:'route-base-halo',type:'circle',source:'route-base',paint:{'circle-radius':14,'circle-color':'#a855f7','circle-opacity':0.18,'circle-blur':0.8}});
+      map.addLayer({id:'route-base-dot',type:'circle',source:'route-base',paint:{'circle-radius':7,'circle-color':'#a855f7','circle-opacity':1,'circle-stroke-width':2.5,'circle-stroke-color':'#fff'}});
+
+      // Trilha da vítima (por cima da rota)
       map.addLayer({id:'sos-line-glow',type:'line',source:lineSourceIdRef.current,paint:{'line-color':'#e03e6b','line-width':10,'line-opacity':.12,'line-blur':6}});
       map.addLayer({id:'sos-line-main',type:'line',source:lineSourceIdRef.current,layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#e03e6b','line-width':3,'line-opacity':.85}});
       map.addLayer({id:'sos-dots',type:'circle',source:dotsSourceIdRef.current,paint:{'circle-radius':4,'circle-color':'#e03e6b','circle-opacity':.7,'circle-stroke-width':1.5,'circle-stroke-color':'rgba(255,255,255,.4)'}});
       map.addLayer({id:'sos-latest-pulse',type:'circle',source:latestSourceIdRef.current,paint:{'circle-radius':22,'circle-color':'#e03e6b','circle-opacity':.18}});
       map.addLayer({id:'sos-latest-dot',type:'circle',source:latestSourceIdRef.current,paint:{'circle-radius':9,'circle-color':'#e03e6b','circle-opacity':.95,'circle-stroke-width':3,'circle-stroke-color':'#fff'}});
+
+      readyRef.current=true;
     });
     mapRef.current=map;
-    return()=>{map.remove();mapRef.current=null;};
+    return()=>{readyRef.current=false;map.remove();mapRef.current=null;};
   },[]);
+
+  // Atualiza rota da base PM (padrão das outras abas: linha azul + fitBounds)
+  useEffect(()=>{
+    const map=mapRef.current;if(!map) return;
+    const apply=()=>{
+      const src=map.getSource('route');if(!src) return;
+      const baseSrc=map.getSource('route-base');
+      if(routeData&&routeData.geometry){
+        src.setData({type:'Feature',geometry:routeData.geometry});
+        const coords=routeData.geometry.coordinates;
+        if(coords.length>0&&baseSrc){
+          baseSrc.setData({type:'FeatureCollection',features:[{type:'Feature',geometry:{type:'Point',coordinates:coords[0]}}]});
+        }
+        if(coords.length>1){
+          const bounds=coords.reduce((b,c)=>b.extend(c),new mapboxgl.LngLatBounds(coords[0],coords[0]));
+          // Inclui também o último ponto da trilha (vítima atual), se houver
+          const lastTrail=pontos[pontos.length-1];
+          if(lastTrail) bounds.extend([lastTrail.longitude,lastTrail.latitude]);
+          map.fitBounds(bounds,{padding:{top:80,bottom:140,left:60,right:60},duration:1200});
+        }
+        routeActiveRef.current=true;
+      }else{
+        src.setData({type:'Feature',geometry:{type:'LineString',coordinates:[]}});
+        if(baseSrc) baseSrc.setData({type:'FeatureCollection',features:[]});
+        routeActiveRef.current=false;
+      }
+    };
+    if(readyRef.current){apply();}else{map.once('load',apply);}
+  },[routeData]);
 
   // Carrega sessão GPS pelo token + pontos iniciais quando muda o alerta
   useEffect(()=>{
@@ -2921,7 +2965,11 @@ function SOSTrailMap({alerta,routeData}){
       if(coords.length>0){
         const last=coords[coords.length-1];
         map.getSource(latestSourceIdRef.current).setData({type:'Feature',geometry:{type:'Point',coordinates:last}});
-        map.easeTo({center:last,zoom:Math.max(map.getZoom(),15),duration:800});
+        if(onLatestPoint) onLatestPoint(last[1],last[0]);
+        // Não recentraliza enquanto rota PM está ativa — senão fitBounds da rota é sobrescrito
+        if(!routeActiveRef.current){
+          map.easeTo({center:last,zoom:Math.max(map.getZoom(),15),duration:800});
+        }
       }
     }
   },[pontos]);
@@ -2955,12 +3003,6 @@ function SOSTrailMap({alerta,routeData}){
           </>
         )}
       </div>
-      {/* Painel de rota — mantido se o operador acionou rota PM */}
-      {routeData&&(
-        <div style={{position:'absolute',bottom:12,left:12,right:12,background:'rgba(19,25,38,.92)',backdropFilter:'blur(10px)',border:'1px solid var(--border)',borderRadius:10,padding:'8px 12px',fontSize:12,color:'var(--text)',zIndex:5}}>
-          🚔 Rota PM ativa · {routeData.distance?Math.round(routeData.distance)+'m':''} {routeData.duration?'· '+Math.round(routeData.duration/60)+'min':''}
-        </div>
-      )}
     </div>
   );
 }
@@ -2972,6 +3014,7 @@ function SOSMulher(){
   const [routeBase,setRouteBase]=useState(null);
   const [routeIncident,setRouteIncident]=useState(null);
   const [loadingRoute,setLoadingRoute]=useState(false);
+  const [trailLatest,setTrailLatest]=useState(null); // {lat,lng} do último ponto GPS da vítima
   const [notas,setNotas]=useState('');
   const [salvandoNotas,setSalvandoNotas]=useState(false);
   const [histModal,setHistModal]=useState(null);
@@ -2983,7 +3026,7 @@ function SOSMulher(){
   const sosChatRef=useRef(null);
 
   // Atualiza notas quando muda a seleção
-  useEffect(()=>{setNotas(sel?.notas||'');},[sel?.id]);
+  useEffect(()=>{setNotas(sel?.notas||'');setTrailLatest(null);},[sel?.id]);
 
   // Reset handoff ao fechar modal
   useEffect(()=>{if(!chatModal){setSosHandoff(false);setSosMensagens([]);}},[chatModal]);
@@ -3034,10 +3077,14 @@ function SOSMulher(){
 
   async function handleTraceRoute(item){
     setLoadingRoute(true);
-    const base=nearestBase(item.lat,item.lng,'pm');
-    if(!base){setLoadingRoute(false);return;}
-    const r=await fetchRoute(base.lng,base.lat,item.lng,item.lat);
-    if(r){setRouteData(r);setRouteBase(base);setRouteIncident({...item,severidade:'critica',titulo:'SOS: '+(item.sos_cadastros?.nome||item.telefone)});}
+    // Prioriza posição GPS ao vivo (trilha) sobre coordenadas do disparo inicial
+    const destLat=trailLatest?.lat||item.lat||item.latitude;
+    const destLng=trailLatest?.lng||item.lng||item.longitude;
+    if(!destLat||!destLng){alert('Sem coordenadas da vítima para traçar rota.');setLoadingRoute(false);return;}
+    const base=nearestBase(destLat,destLng,'pm');
+    if(!base){alert('Nenhuma base PM próxima encontrada.');setLoadingRoute(false);return;}
+    const r=await fetchRoute(base.lng,base.lat,destLng,destLat);
+    if(r){setRouteData(r);setRouteBase(base);setRouteIncident({...item,lat:destLat,lng:destLng,severidade:'critica',titulo:'SOS: '+(item.sos_cadastros?.nome||item.telefone)});}
     setLoadingRoute(false);
   }
 
@@ -3441,7 +3488,7 @@ function SOSMulher(){
           <div style={{flex:1,display:'flex',overflow:'hidden',minHeight:0}}>
             <div style={{flex:1,position:'relative'}}>
               {sel.token_rastreamento?(
-                <SOSTrailMap alerta={sel} routeData={routeData}/>
+                <SOSTrailMap alerta={sel} routeData={routeData} onLatestPoint={(lat,lng)=>setTrailLatest({lat,lng})}/>
               ):(
                 <MapboxMap items={[{...sel,severidade:'critica',titulo:'SOS: '+(sel.sos_cadastros?.nome||sel.telefone)}]} showBases={true} route={routeData}/>
               )}
