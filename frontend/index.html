@@ -9,6 +9,7 @@
 <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js" crossorigin></script>
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -761,6 +762,10 @@ tr{transition:.12s}
 <script type="text/babel" data-presets="react">
 const {useState,useEffect,useRef,useCallback,useMemo}=React;
 const MAPBOX_TOKEN='pk.eyJ1Ijoibm9kZWRhdGEiLCJhIjoiY21tejgxMm1hMDVxajJ3cTU2Z3ZrNTBiZSJ9.t6vT60mOCmGpYrHfRSykrw';
+// Supabase — usado para Realtime do rastreamento GPS na aba SOS Mulher
+const SUPABASE_URL='https://kuhtndyhuddjpqimuijn.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1aHRuZHlodWRkanBxaW11aWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Mzg1MDgsImV4cCI6MjA4OTUxNDUwOH0.q5bLnE2D2zhDND_8NAkuZE4Rul0pGp8vnUStISBBLwM';
+const supa=window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
 
 /* ─── ANIMATED NUMBER (counts from 0 to target) ────────────── */
 function AnimatedNumber({value,duration=1200,prefix='',suffix='',style={},className=''}){
@@ -2820,6 +2825,146 @@ function Denuncias(){
   );
 }
 
+/* ─── SOS TRAIL MAP — trilha GPS ao vivo da vítima ─────────────── */
+/* Mostra os pontos de emergencia_pontos vinculados ao alerta SOS via
+   token_rastreamento. Substitui o monitor-sos.html standalone. Realtime
+   por subscription no Supabase (postgres_changes em emergencia_pontos). */
+function SOSTrailMap({alerta,routeData}){
+  const containerRef=useRef(null);
+  const mapRef=useRef(null);
+  const markersRef=useRef([]);
+  const lineSourceIdRef=useRef('sos-trail-line');
+  const dotsSourceIdRef=useRef('sos-trail-dots');
+  const latestSourceIdRef=useRef('sos-trail-latest');
+  const [sessaoId,setSessaoId]=useState(null);
+  const [pontos,setPontos]=useState([]);
+  const [erro,setErro]=useState(null);
+
+  // Inicializa Mapbox uma vez
+  useEffect(()=>{
+    if(mapRef.current||!containerRef.current) return;
+    mapboxgl.accessToken=MAPBOX_TOKEN;
+    const centroLng=alerta?.longitude||-51.9333;
+    const centroLat=alerta?.latitude||-23.4205;
+    const map=new mapboxgl.Map({
+      container:containerRef.current,
+      style:'mapbox://styles/mapbox/dark-v11',
+      center:[centroLng,centroLat],
+      zoom:14,
+      pitch:30,
+      attributionControl:false,
+    });
+    map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
+    map.on('load',()=>{
+      map.addSource(lineSourceIdRef.current,{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:[]}}});
+      map.addSource(dotsSourceIdRef.current,{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      map.addSource(latestSourceIdRef.current,{type:'geojson',data:{type:'Feature',geometry:{type:'Point',coordinates:[centroLng,centroLat]}}});
+      map.addLayer({id:'sos-line-glow',type:'line',source:lineSourceIdRef.current,paint:{'line-color':'#e03e6b','line-width':10,'line-opacity':.12,'line-blur':6}});
+      map.addLayer({id:'sos-line-main',type:'line',source:lineSourceIdRef.current,layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#e03e6b','line-width':3,'line-opacity':.85}});
+      map.addLayer({id:'sos-dots',type:'circle',source:dotsSourceIdRef.current,paint:{'circle-radius':4,'circle-color':'#e03e6b','circle-opacity':.7,'circle-stroke-width':1.5,'circle-stroke-color':'rgba(255,255,255,.4)'}});
+      map.addLayer({id:'sos-latest-pulse',type:'circle',source:latestSourceIdRef.current,paint:{'circle-radius':22,'circle-color':'#e03e6b','circle-opacity':.18}});
+      map.addLayer({id:'sos-latest-dot',type:'circle',source:latestSourceIdRef.current,paint:{'circle-radius':9,'circle-color':'#e03e6b','circle-opacity':.95,'circle-stroke-width':3,'circle-stroke-color':'#fff'}});
+    });
+    mapRef.current=map;
+    return()=>{map.remove();mapRef.current=null;};
+  },[]);
+
+  // Carrega sessão GPS pelo token + pontos iniciais quando muda o alerta
+  useEffect(()=>{
+    setPontos([]);
+    setSessaoId(null);
+    setErro(null);
+    if(!supa){setErro('Cliente Supabase não inicializado.');return;}
+    const token=alerta?.token_rastreamento;
+    if(!token){setErro('Alerta sem token de rastreamento.');return;}
+    let cancelado=false;
+    (async()=>{
+      const {data:sessoes,error:errSes}=await supa.from('emergencia_sessoes').select('id').eq('token',token).limit(1);
+      if(cancelado) return;
+      if(errSes||!sessoes||!sessoes.length){setErro('Sessão GPS não encontrada.');return;}
+      const sid=sessoes[0].id;
+      setSessaoId(sid);
+      const {data:pts,error:errPts}=await supa.from('emergencia_pontos').select('id,latitude,longitude,precisao_metros,created_at').eq('sessao_id',sid).order('created_at',{ascending:true});
+      if(cancelado) return;
+      if(errPts){setErro('Falha ao carregar pontos GPS.');return;}
+      setPontos(pts||[]);
+    })();
+    return()=>{cancelado=true;};
+  },[alerta?.token_rastreamento]);
+
+  // Subscribe Realtime nos novos pontos da sessão atual
+  useEffect(()=>{
+    if(!supa||!sessaoId) return;
+    const canal=supa.channel('sos-trail-'+sessaoId)
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'emergencia_pontos',filter:'sessao_id=eq.'+sessaoId},(payload)=>{
+        const novo=payload.new;
+        setPontos(atuais=>atuais.some(p=>p.id===novo.id)?atuais:[...atuais,novo]);
+      })
+      .subscribe();
+    return()=>{supa.removeChannel(canal);};
+  },[sessaoId]);
+
+  // Atualiza fontes do Mapbox quando pontos mudam
+  useEffect(()=>{
+    const map=mapRef.current;
+    if(!map||!map.isStyleLoaded()) {
+      // mapa ainda carregando — tenta de novo num tick
+      const iv=setInterval(()=>{if(mapRef.current&&mapRef.current.isStyleLoaded()){clearInterval(iv);renderPontos();}},120);
+      return()=>clearInterval(iv);
+    }
+    renderPontos();
+    function renderPontos(){
+      if(!map.getSource(lineSourceIdRef.current)) return;
+      const coords=pontos.map(p=>[p.longitude,p.latitude]);
+      map.getSource(lineSourceIdRef.current).setData({type:'Feature',geometry:{type:'LineString',coordinates:coords}});
+      map.getSource(dotsSourceIdRef.current).setData({type:'FeatureCollection',features:pontos.map((p,i)=>({type:'Feature',geometry:{type:'Point',coordinates:[p.longitude,p.latitude]},properties:{n:i+1}}))});
+      if(coords.length>0){
+        const last=coords[coords.length-1];
+        map.getSource(latestSourceIdRef.current).setData({type:'Feature',geometry:{type:'Point',coordinates:last}});
+        map.easeTo({center:last,zoom:Math.max(map.getZoom(),15),duration:800});
+      }
+    }
+  },[pontos]);
+
+  // Stats
+  const ultimo=pontos[pontos.length-1];
+  let dist=0;
+  for(let i=1;i<pontos.length;i++){
+    const lat1=pontos[i-1].latitude,lon1=pontos[i-1].longitude,lat2=pontos[i].latitude,lon2=pontos[i].longitude;
+    const R=6371000,d1=(lat2-lat1)*Math.PI/180,d2=(lon2-lon1)*Math.PI/180;
+    const a=Math.sin(d1/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(d2/2)**2;
+    dist+=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+
+  return(
+    <div style={{display:'flex',flexDirection:'column',height:'100%',position:'relative'}}>
+      <div ref={containerRef} style={{flex:1,minHeight:0,position:'relative'}}/>
+      {/* Overlay de status */}
+      <div style={{position:'absolute',top:12,left:12,background:'rgba(19,25,38,.92)',backdropFilter:'blur(10px)',border:'1px solid var(--border)',borderRadius:10,padding:'10px 14px',fontSize:11,color:'var(--text-secondary)',pointerEvents:'none',zIndex:5}}>
+        {erro?(
+          <span style={{color:'#f87171'}}>⚠ {erro}</span>
+        ):pontos.length===0?(
+          <span style={{color:'#fbbf24'}}>⏳ Aguardando GPS da vítima…</span>
+        ):(
+          <>
+            <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
+              <span style={{width:7,height:7,borderRadius:'50%',background:'#e03e6b',animation:'pulse 1s infinite'}}/>
+              <b style={{color:'#fff'}}>Rastreando ao vivo</b>
+            </span>
+            <span style={{marginLeft:10}}>{pontos.length} pts · {ultimo?.precisao_metros?Math.round(ultimo.precisao_metros)+'m':'—'} · {Math.round(dist)}m</span>
+          </>
+        )}
+      </div>
+      {/* Painel de rota — mantido se o operador acionou rota PM */}
+      {routeData&&(
+        <div style={{position:'absolute',bottom:12,left:12,right:12,background:'rgba(19,25,38,.92)',backdropFilter:'blur(10px)',border:'1px solid var(--border)',borderRadius:10,padding:'8px 12px',fontSize:12,color:'var(--text)',zIndex:5}}>
+          🚔 Rota PM ativa · {routeData.distance?Math.round(routeData.distance)+'m':''} {routeData.duration?'· '+Math.round(routeData.duration/60)+'min':''}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── SOS MULHER ───────────────────────────────────────────────── */
 function SOSMulher(){
   const [sel,setSel]=useState(SOS[0]);
@@ -3295,7 +3440,11 @@ function SOSMulher(){
           {/* Corpo: mapa + painel lateral */}
           <div style={{flex:1,display:'flex',overflow:'hidden',minHeight:0}}>
             <div style={{flex:1,position:'relative'}}>
-              <MapboxMap items={[{...sel,severidade:'critica',titulo:'SOS: '+(sel.sos_cadastros?.nome||sel.telefone)}]} showBases={true} route={routeData}/>
+              {sel.token_rastreamento?(
+                <SOSTrailMap alerta={sel} routeData={routeData}/>
+              ):(
+                <MapboxMap items={[{...sel,severidade:'critica',titulo:'SOS: '+(sel.sos_cadastros?.nome||sel.telefone)}]} showBases={true} route={routeData}/>
+              )}
               {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
             </div>
             <div style={{width:280,flexShrink:0,borderLeft:'1px solid var(--border)',overflowY:'auto',background:'var(--surface)',display:'flex',flexDirection:'column',gap:12,padding:14}}>
@@ -3308,7 +3457,7 @@ function SOSMulher(){
                     <a href={`https://wa.me/55${sel.sos_cadastros.contato_confianca_telefone.replace(/\D/g,'')}`} target="_blank" rel="noopener" className="btn btn-outline" style={{width:'100%',justifyContent:'center',fontSize:12,padding:'6px 10px',textDecoration:'none'}}>💬 WhatsApp Confiança</a>
                   )}
                   {sel.token_rastreamento&&(
-                    <a href={`/monitor-sos.html?t=${sel.token_rastreamento}`} target="_blank" rel="noopener" className="btn btn-primary" style={{width:'100%',justifyContent:'center',fontSize:14,padding:'12px 20px',textDecoration:'none',marginTop:8}}>📍 Ver Rastreamento ao Vivo no Mapa</a>
+                    <a href={`/monitor-sos.html?t=${sel.token_rastreamento}`} target="_blank" rel="noopener" className="btn btn-outline" style={{width:'100%',justifyContent:'center',fontSize:11,padding:'5px 8px',textDecoration:'none',marginTop:4}}>↗ Abrir trilha em nova janela</a>
                   )}
                 </div>
               </div>
