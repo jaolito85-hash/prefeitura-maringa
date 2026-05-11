@@ -3723,7 +3723,6 @@ def processar_arborizacao(event: dict, sb: Client) -> None:
         "classificacao_texto": classificacao,
     })
     enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
-    enviar_whatsapp(telefone, _com_aviso_truncagem(event, resposta))
 
 
 def _continuar_arborizacao(event: dict, sb: Client) -> None:
