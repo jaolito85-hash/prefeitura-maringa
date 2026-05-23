@@ -486,22 +486,31 @@ textarea{resize:vertical}
 .mapboxgl-popup-tip{display:none !important}
 
 /* ROUTE PANEL */
-.route-panel{position:absolute;bottom:16px;left:16px;right:16px;background:rgba(17,18,23,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:12px;padding:14px 18px;z-index:15;display:flex;gap:16px;align-items:flex-start;animation:fadeSlideUp .4s ease-out;box-shadow:0 8px 32px rgba(0,0,0,.5)}
-.route-panel-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:4px;line-height:1}
+.route-panel{position:absolute;bottom:10px;left:12px;right:12px;background:rgba(17,18,23,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:10px;padding:8px 12px;z-index:15;display:flex;gap:12px;align-items:center;animation:fadeSlideUp .4s ease-out;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.route-panel-close{position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:2px;line-height:1}
 .route-panel-close:hover{color:var(--text)}
 .route-info{flex:1;min-width:0}
-.route-info h3{font-size:14px;font-weight:600;color:#fff;margin-bottom:6px}
-.route-info p{font-size:12px;color:var(--text-secondary);margin-bottom:3px}
-.route-stats{display:flex;gap:16px;margin-top:12px}
-.route-stat{background:var(--card-hover);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center}
-.route-stat .val{font-family:'Public Sans',sans-serif;font-weight:700;font-size:16px;font-weight:600;color:#fff}
-.route-stat .lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
-.route-actions{display:flex;flex-direction:column;gap:8px;flex-shrink:0}
-.route-dispatch{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card-hover);color:var(--text);cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:all .15s;white-space:nowrap}
+.route-info h3{font-size:12px;font-weight:600;color:#fff;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.route-info p{font-size:11px;color:var(--text-secondary);margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.route-stats{display:flex;gap:8px;margin-top:6px}
+.route-stat{background:var(--card-hover);border:1px solid var(--border);border-radius:6px;padding:4px 8px;text-align:center;line-height:1.2}
+.route-stat .val{font-family:'Public Sans',sans-serif;font-weight:700;font-size:13px;color:#fff}
+.route-stat .lbl{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-top:1px}
+.route-actions{display:flex;flex-direction:row;gap:6px;flex-shrink:0;flex-wrap:wrap}
+.route-dispatch{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card-hover);color:var(--text);cursor:pointer;font-size:11px;font-weight:500;font-family:inherit;transition:all .15s;white-space:nowrap}
 .route-dispatch:hover{border-color:var(--border-light);background:var(--border)}
 .route-dispatch.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .route-dispatch.primary:hover{background:rgba(5,150,105,.85)}
-.route-dispatch .emoji{font-size:16px}
+.route-dispatch .emoji{font-size:13px}
+.map-fullscreen-btn{position:absolute;top:12px;right:12px;z-index:20;background:rgba(17,18,23,.92);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;font-family:inherit}
+.map-fullscreen-btn:hover{background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.4);color:#fff}
+.sos-fs-overlay{position:absolute;top:12px;left:12px;z-index:18;background:rgba(17,18,23,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(220,38,38,.3);border-radius:10px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.5);max-width:360px;animation:fadeSlideUp .3s ease-out}
+.sos-fs-overlay h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.sos-fs-overlay .pulse-dot{width:10px;height:10px;border-radius:50%;background:#dc2626;animation:pulse 1s infinite}
+.sos-fs-overlay .row{display:flex;gap:8px;font-size:12px;color:var(--text-secondary);margin-bottom:4px}
+.sos-fs-overlay .row b{color:var(--text)}
+.sos-fs-overlay .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.sos-fs-overlay .actions button,.sos-fs-overlay .actions a{padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);font-family:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
 
 /* (pulse handled by native Mapbox layers) */
 
@@ -3023,10 +3032,19 @@ function SOSMulher(){
   const [sosSending,setSosSending]=useState(false);
   const [sosHandoff,setSosHandoff]=useState(false);
   const [sosMensagens,setSosMensagens]=useState([]);
+  const [mapaFullscreen,setMapaFullscreen]=useState(false);
   const sosChatRef=useRef(null);
 
   // Atualiza notas quando muda a seleção
   useEffect(()=>{setNotas(sel?.notas||'');setTrailLatest(null);},[sel?.id]);
+
+  // ESC sai do fullscreen
+  useEffect(()=>{
+    if(!mapaFullscreen) return;
+    const onKey=(e)=>{if(e.key==='Escape')setMapaFullscreen(false);};
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[mapaFullscreen]);
 
   // Reset handoff ao fechar modal
   useEffect(()=>{if(!chatModal){setSosHandoff(false);setSosMensagens([]);}},[chatModal]);
@@ -3486,15 +3504,38 @@ function SOSMulher(){
           </div>
           {/* Corpo: mapa + painel lateral */}
           <div style={{flex:1,display:'flex',overflow:'hidden',minHeight:0}}>
-            <div style={{flex:1,position:'relative'}}>
+            <div style={mapaFullscreen
+              ?{position:'fixed',inset:0,zIndex:1000,background:'var(--bg)'}
+              :{flex:1,position:'relative'}}>
               {sel.token_rastreamento?(
                 <SOSTrailMap alerta={sel} routeData={routeData} onLatestPoint={(lat,lng)=>setTrailLatest({lat,lng})}/>
               ):(
                 <MapboxMap items={[{...sel,severidade:'critica',titulo:'SOS: '+(sel.sos_cadastros?.nome||sel.telefone)}]} showBases={true} route={routeData}/>
               )}
               {routeData&&<RoutePanel route={routeData} base={routeBase} incident={routeIncident} onClose={()=>{setRouteData(null);setRouteBase(null);setRouteIncident(null);}}/>}
+              {/* Botão Expandir / Sair fullscreen */}
+              <button className="map-fullscreen-btn" onClick={()=>setMapaFullscreen(v=>!v)}>
+                {mapaFullscreen?'✕ Sair (ESC)':'⛶ Expandir mapa'}
+              </button>
+              {/* Overlay flutuante com dados da vítima — só em fullscreen */}
+              {mapaFullscreen&&(
+                <div className="sos-fs-overlay">
+                  <h3><span className="pulse-dot"/>{sel.sos_cadastros?.nome||'Não identificada'}</h3>
+                  <div className="row"><b>Telefone:</b> {sel.telefone||'—'}</div>
+                  <div className="row"><b>Código:</b> {sel.codigo_usado||'—'}</div>
+                  {sel.sos_cadastros?.endereco&&<div className="row"><b>Endereço:</b> {sel.sos_cadastros.endereco}</div>}
+                  {sel.sos_cadastros?.agressor&&<div className="row"><b>Agressor:</b> {sel.sos_cadastros.agressor}</div>}
+                  <div className="actions">
+                    {!isAttending&&<button onClick={handleAceitar} style={{background:'#f59e0b',color:'#fff',borderColor:'#f59e0b'}}>🔔 Aceitar</button>}
+                    <a href={`tel:190`} style={{background:'#10b981',color:'#fff',borderColor:'#10b981'}}>📞 190</a>
+                    <button onClick={handleResolver} style={{background:'rgba(74,222,128,.15)',color:'#4ade80',borderColor:'rgba(74,222,128,.3)'}}>✓ Resolver</button>
+                    <button onClick={()=>handleTraceRoute(sel)} disabled={loadingRoute} style={{background:'rgba(96,165,250,.15)',color:'#60a5fa',borderColor:'rgba(96,165,250,.3)'}}>{loadingRoute?'...':'🗺️ Rota'}</button>
+                    <a href={`https://wa.me/${sel.telefone?.replace('+','').replace(/\D/g,'')}`} target="_blank" rel="noopener" style={{background:'rgba(34,197,94,.15)',color:'#22c55e',borderColor:'rgba(34,197,94,.3)'}}>💬 WhatsApp</a>
+                  </div>
+                </div>
+              )}
             </div>
-            <div style={{width:280,flexShrink:0,borderLeft:'1px solid var(--border)',overflowY:'auto',background:'var(--surface)',display:'flex',flexDirection:'column',gap:12,padding:14}}>
+            <div style={{width:mapaFullscreen?0:280,flexShrink:0,borderLeft:mapaFullscreen?'none':'1px solid var(--border)',overflowY:'auto',background:'var(--surface)',display:mapaFullscreen?'none':'flex',flexDirection:'column',gap:12,padding:mapaFullscreen?0:14}}>
               {/* Ações rápidas */}
               <div style={{background:'rgba(255,255,255,.02)',border:'1px solid var(--border)',borderRadius:8,padding:14}}>
                 <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:10}}>Ações Rápidas</div>
