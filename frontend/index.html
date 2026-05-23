@@ -511,6 +511,14 @@ textarea{resize:vertical}
 .sos-fs-overlay .row b{color:var(--text)}
 .sos-fs-overlay .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .sos-fs-overlay .actions button,.sos-fs-overlay .actions a{padding:6px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);font-family:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+body.sos-map-fullscreen{overflow:hidden}
+body.sos-map-fullscreen .hdr,
+body.sos-map-fullscreen .sos-banner,
+body.sos-map-fullscreen .sidebar{display:none !important}
+body.sos-map-fullscreen .app{height:100vh}
+body.sos-map-fullscreen .tab-content,
+body.sos-map-fullscreen .content,
+body.sos-map-fullscreen main{height:100vh !important;max-height:100vh !important}
 
 /* (pulse handled by native Mapbox layers) */
 
@@ -3038,12 +3046,23 @@ function SOSMulher(){
   // Atualiza notas quando muda a seleção
   useEffect(()=>{setNotas(sel?.notas||'');setTrailLatest(null);},[sel?.id]);
 
-  // ESC sai do fullscreen
+  // Aplica classe no body, ESC sai e força resize do Mapbox
   useEffect(()=>{
-    if(!mapaFullscreen) return;
-    const onKey=(e)=>{if(e.key==='Escape')setMapaFullscreen(false);};
+    if(mapaFullscreen){
+      document.body.classList.add('sos-map-fullscreen');
+    }else{
+      document.body.classList.remove('sos-map-fullscreen');
+    }
+    // Dispara resize após reflow pra Mapbox/Leaflet recalcular dimensões
+    const t1=setTimeout(()=>window.dispatchEvent(new Event('resize')),60);
+    const t2=setTimeout(()=>window.dispatchEvent(new Event('resize')),300);
+    const onKey=(e)=>{if(e.key==='Escape'&&mapaFullscreen)setMapaFullscreen(false);};
     window.addEventListener('keydown',onKey);
-    return()=>window.removeEventListener('keydown',onKey);
+    return()=>{
+      window.removeEventListener('keydown',onKey);
+      clearTimeout(t1);clearTimeout(t2);
+      document.body.classList.remove('sos-map-fullscreen');
+    };
   },[mapaFullscreen]);
 
   // Reset handoff ao fechar modal
