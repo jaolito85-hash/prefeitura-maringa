@@ -232,33 +232,27 @@ AES_KEY = os.environ.get("AES_KEY", "")
 
 
 def gerar_protocolo(sb: Client) -> str:
-    """Gera protocolo MGA-YYYY-XXXXX buscando MAX do banco + 1.
-    Simples e à prova de conflito com dados de seed."""
-    ano = date.today().year
-    try:
-        # Buscar o maior protocolo existente no banco
-        result = sb.table("denuncias").select("protocolo").like(
-            "protocolo", f"MGA-{ano}-%"
-        ).order("protocolo", desc=True).limit(1).execute()
+    """Gera protocolo MGA-YYYY-XXXXX via sequence atômica do Postgres (RPC proximo_protocolo).
 
-        if result.data and result.data[0].get("protocolo"):
-            ultimo = result.data[0]["protocolo"]  # ex: MGA-2026-00580
-            try:
-                max_num = int(ultimo.split("-")[-1])
-            except (ValueError, IndexError):
-                max_num = 0
-        else:
-            max_num = 0
+    Race-free e imune a 500 transitório do Supabase. NÃO usa mais "ler MAX + 1"
+    (que, em qualquer erro, gravava um UUID corrompido — ex: MGA-2026-FBFBD8A3 —
+    poluindo a numeração e travando o gerador). Em falha persistente, levanta
+    exceção: é melhor reprocessar a mensagem do que poluir a numeração."""
+    ultimo_erro = None
+    for tentativa in range(3):
+        try:
+            protocolo = sb.rpc("proximo_protocolo").execute().data
+            if protocolo:
+                logger.info(f"Protocolo gerado: {protocolo}")
+                return protocolo
+            ultimo_erro = "RPC proximo_protocolo retornou vazio"
+        except Exception as exc:
+            ultimo_erro = exc
+            logger.warning(f"Tentativa {tentativa + 1}/3 de gerar protocolo falhou: {exc}")
+            time.sleep(0.5 * (tentativa + 1))
 
-        novo = max_num + 1
-        protocolo = f"MGA-{ano}-{str(novo).zfill(5)}"
-        logger.info(f"Protocolo gerado: {protocolo} (max anterior: {max_num})")
-        return protocolo
-
-    except Exception as exc:
-        logger.error(f"Falha ao gerar protocolo: {exc}")
-        # Fallback com UUID — nunca colide
-        return f"MGA-{ano}-{secrets.token_hex(4).upper()}"
+    logger.error(f"Falha ao gerar protocolo após 3 tentativas: {ultimo_erro}")
+    raise RuntimeError(f"Não foi possível gerar protocolo: {ultimo_erro}")
 
 
 AVISO_TRUNCAGEM = (
