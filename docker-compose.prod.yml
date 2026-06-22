@@ -47,7 +47,10 @@ services:
   # Processam a fila de mensagens do WhatsApp em paralelo
   worker:
     build: ./backend
-    restart: unless-stopped
+    # ⚠️ "always" (e não "unless-stopped"): garante que o worker volte mesmo
+    # após um Stop manual ou reboot da VPS. Sem isso, o consumidor da fila
+    # pode ficar fora do ar silenciosamente (mensagens chegam mas ninguém responde).
+    restart: always
     env_file: ./backend/.env
     environment:
       - REDIS_URL=redis://redis:6379
