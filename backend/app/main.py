@@ -2,10 +2,11 @@
 main.py — Ponto de entrada do servidor FastAPI
 Para rodar: uvicorn app.main:app --reload --port 8000
 """
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.auth import get_current_user
 from app.api import denuncias, ocorrencias, sos, dashboard, feedbacks, recompensas, protocolo, noticias, arborizacao
 from app.webhooks import denuncias as wh_denuncias
 from app.webhooks import sos_mulher as wh_sos
@@ -28,16 +29,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---- Rotas REST (usadas pelo Dashboard) ----
-app.include_router(dashboard.router, prefix="/api", tags=["Dashboard"])
-app.include_router(denuncias.router, prefix="/api/denuncias", tags=["Denúncias"])
-app.include_router(ocorrencias.router, prefix="/api/ocorrencias", tags=["Ocorrências"])
-app.include_router(sos.router, prefix="/api/sos", tags=["SOS Mulher"])
-app.include_router(feedbacks.router, prefix="/api/feedbacks", tags=["Feedbacks"])
-app.include_router(recompensas.router, prefix="/api/recompensas", tags=["Recompensas"])
-app.include_router(protocolo.router, prefix="/api/protocolo", tags=["Protocolo"])
-app.include_router(noticias.router, prefix="/api/noticias", tags=["Radar de Notícias"])
-app.include_router(arborizacao.router, prefix="/api/arborizacao", tags=["Arborização"])
+# ---- Rotas REST (usadas pelo Dashboard) — TODAS protegidas por autenticação ----
+# Webhooks (/webhook/*) ficam de fora: são autenticados pela apikey da Evolution.
+_auth = [Depends(get_current_user)]
+app.include_router(dashboard.router, prefix="/api", tags=["Dashboard"], dependencies=_auth)
+app.include_router(denuncias.router, prefix="/api/denuncias", tags=["Denúncias"], dependencies=_auth)
+app.include_router(ocorrencias.router, prefix="/api/ocorrencias", tags=["Ocorrências"], dependencies=_auth)
+app.include_router(sos.router, prefix="/api/sos", tags=["SOS Mulher"], dependencies=_auth)
+app.include_router(feedbacks.router, prefix="/api/feedbacks", tags=["Feedbacks"], dependencies=_auth)
+app.include_router(recompensas.router, prefix="/api/recompensas", tags=["Recompensas"], dependencies=_auth)
+app.include_router(protocolo.router, prefix="/api/protocolo", tags=["Protocolo"], dependencies=_auth)
+app.include_router(noticias.router, prefix="/api/noticias", tags=["Radar de Notícias"], dependencies=_auth)
+app.include_router(arborizacao.router, prefix="/api/arborizacao", tags=["Arborização"], dependencies=_auth)
 
 # ---- Webhook UNIFICADO (demo com numero unico — IA classifica tudo) ----
 app.include_router(wh_unificado.router, prefix="/webhook", tags=["Webhook Unificado"])

@@ -11,11 +11,12 @@ Segurança:
 - Cada acesso a dados sensíveis é logado (LGPD)
 """
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from app.services.supabase_client import get_supabase
 from app.services.gerar_termo_pdf import gerar_termo_recompensa
 from app.services.crypto import decrypt as _decrypt_sensivel, mask_cpf
+from app.auth import require_role
 
 router = APIRouter()
 
@@ -141,7 +142,9 @@ async def get_recompensas_kpis():
 # ══════════════════════════════════════════════════════════════
 
 @router.get("/{recompensa_id}/dados-pagamento")
-async def get_dados_pagamento(recompensa_id: str, request: Request, operador: str = Query(...)):
+async def get_dados_pagamento(recompensa_id: str, request: Request,
+                              operador: str = Query(default=None),
+                              user: dict = Depends(require_role("financeiro"))):
     """
     Retorna CPF e chave PIX COMPLETOS para efetuar o pagamento.
 
@@ -175,7 +178,7 @@ async def get_dados_pagamento(recompensa_id: str, request: Request, operador: st
         tabela="recompensas",
         registro_id=recompensa_id,
         acao="view_sensitive",
-        operador=operador,
+        operador=user["nome"],
         request=request,
         dados_extra={"campos_acessados": ["cpf_encrypted", "chave_pix_encrypted"]},
     )

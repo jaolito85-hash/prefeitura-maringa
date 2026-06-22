@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     # Supabase
     supabase_url: str
     supabase_service_key: str
+    supabase_anon_key: str = ""   # valida tokens de login dos operadores (Supabase Auth)
 
     # Redis
     redis_url: str = "redis://localhost:6379"
@@ -31,6 +32,7 @@ class Settings(BaseSettings):
     # Seguranca
     webhook_secret: str = ""
     aes_key: str = ""
+    auth_enabled: bool = False   # liga a autenticacao por operador (Supabase Auth) nas rotas /api/*
 
     # App
     environment: str = "development"
