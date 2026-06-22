@@ -62,6 +62,15 @@ services:
       backend:
         condition: service_healthy
     command: python worker.py
+    # Healthcheck: lê o heartbeat que o worker grava no Redis a cada ciclo.
+    # Sem heartbeat válido (worker travado/morto) → container fica "unhealthy"
+    # e aparece como problema no Coolify, em vez de sumir silenciosamente.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,redis,sys; sys.exit(0 if redis.Redis.from_url(os.environ['REDIS_URL']).get('worker:heartbeat') else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
 
   # ── Frontend ──────────────────────────────────────────────
   # React buildado + Nginx servindo os arquivos e fazendo proxy para o backend

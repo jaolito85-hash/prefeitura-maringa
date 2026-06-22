@@ -3976,6 +3976,13 @@ def main():
     _sla_counter = 0
     while True:
         try:
+            # ── HEARTBEAT (prova de vida pro healthcheck do container) ──
+            # Renova a cada iteração (≤5s quando ocioso). Expira em 90s: se o
+            # worker travar ou morrer, a chave some e o healthcheck do
+            # Docker/Coolify marca o container como "unhealthy" — em vez de
+            # falhar calado (mensagens chegam mas ninguém responde).
+            r.set("worker:heartbeat", int(time.time()), ex=90)
+
             resultado = r.blpop(QUEUES, timeout=5)
             if resultado is None:
                 _sla_counter += 1
