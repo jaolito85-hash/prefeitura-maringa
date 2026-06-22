@@ -3249,25 +3249,25 @@ _ICONE_ARB = {
 
 
 def gerar_protocolo_arb(sb: Client) -> str:
-    """Gera protocolo ARB-YYYY-XXXXX."""
-    ano = date.today().year
-    try:
-        result = sb.table("arborizacao").select("protocolo").like(
-            "protocolo", f"ARB-{ano}-%"
-        ).order("protocolo", desc=True).limit(1).execute()
-        if result.data and result.data[0].get("protocolo"):
-            try:
-                max_num = int(result.data[0]["protocolo"].split("-")[-1])
-            except (ValueError, IndexError):
-                max_num = 0
-        else:
-            max_num = 0
-        protocolo = f"ARB-{ano}-{str(max_num + 1).zfill(5)}"
-        logger.info(f"Protocolo arborização gerado: {protocolo}")
-        return protocolo
-    except Exception as exc:
-        logger.error(f"Falha protocolo ARB: {exc}")
-        return f"ARB-{ano}-{secrets.token_hex(4).upper()}"
+    """Gera protocolo ARB-YYYY-XXXXX via sequence atômica (RPC proximo_protocolo_arb).
+
+    Mesmo conserto do MGA: race-free, imune a 500 transitório, sem fallback UUID.
+    Em falha persistente, levanta exceção (melhor reprocessar do que poluir)."""
+    ultimo_erro = None
+    for tentativa in range(3):
+        try:
+            protocolo = sb.rpc("proximo_protocolo_arb").execute().data
+            if protocolo:
+                logger.info(f"Protocolo arborização gerado: {protocolo}")
+                return protocolo
+            ultimo_erro = "RPC proximo_protocolo_arb retornou vazio"
+        except Exception as exc:
+            ultimo_erro = exc
+            logger.warning(f"Tentativa {tentativa + 1}/3 de gerar protocolo ARB falhou: {exc}")
+            time.sleep(0.5 * (tentativa + 1))
+
+    logger.error(f"Falha ao gerar protocolo ARB após 3 tentativas: {ultimo_erro}")
+    raise RuntimeError(f"Não foi possível gerar protocolo ARB: {ultimo_erro}")
 
 
 def _calcular_sla_arb(severidade: str) -> tuple[int, str]:
