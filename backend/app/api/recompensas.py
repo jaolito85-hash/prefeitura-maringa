@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 from app.services.supabase_client import get_supabase
 from app.services.gerar_termo_pdf import gerar_termo_recompensa
+from app.services.crypto import decrypt as _decrypt_sensivel, mask_cpf
 
 router = APIRouter()
 
@@ -24,18 +25,8 @@ router = APIRouter()
 # ══════════════════════════════════════════════════════════════
 
 def _mascarar_cpf(cpf_enc: str | None) -> str:
-    """
-    Mascara o CPF pra exibição segura.
-    Na demo, os dados são 'ENC_AES256_demo_cpf_carlos' — mostra como 'ENC...los'
-    Em produção com AES real, descriptografa e mascara: 123.456.789-00 → ***.456.***-00
-    """
-    if not cpf_enc:
-        return "—"
-    # Demo: mostra parcial do texto encriptado
-    if cpf_enc.startswith("ENC_"):
-        return f"{cpf_enc[:7]}...{cpf_enc[-4:]}"
-    # Produção: seria decrypt + mascara (implementar na Fase 2)
-    return "***.***.***-**"
+    """Decripta (AES-256-GCM) e mascara o CPF para exibição segura: ***.***.789-00."""
+    return mask_cpf(cpf_enc)
 
 
 def _registrar_audit(tabela: str, registro_id: str, acao: str,
@@ -189,22 +180,13 @@ async def get_dados_pagamento(recompensa_id: str, request: Request, operador: st
         dados_extra={"campos_acessados": ["cpf_encrypted", "chave_pix_encrypted"]},
     )
 
-    # Decriptar dados para o operador financeiro
-    import base64
-    def _decrypt(val):
-        if not val: return "—"
-        if val.startswith("ENC_") and not val.startswith("ENC_AES256_"):
-            try: return base64.b64decode(val[4:].encode('utf-8')).decode('utf-8')
-            except: pass
-        if val.startswith("ENC_AES256_"): return f"***{val[-4:]}"
-        return val
-
+    # Decriptar dados sensíveis para o operador financeiro (AES-256-GCM)
     return {
         "id": recompensa["id"],
         "protocolo": recompensa["protocolo"],
         "valor": recompensa["valor"],
-        "cpf": _decrypt(recompensa["cpf_encrypted"]),
-        "chave_pix": _decrypt(recompensa["chave_pix_encrypted"]),
+        "cpf": _decrypt_sensivel(recompensa["cpf_encrypted"]),
+        "chave_pix": _decrypt_sensivel(recompensa["chave_pix_encrypted"]),
         "tipo_chave_pix": recompensa["tipo_chave_pix"],
         "aviso": "⚠️ Acesso registrado no log de auditoria (LGPD)",
     }

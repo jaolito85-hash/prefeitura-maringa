@@ -525,37 +525,21 @@ def finalizar_sessao(sb: Client, telefone: str) -> None:
 # ══════════════════════════════════════════════════════════════
 
 def _encriptar_dado(valor: str) -> str:
-    """
-    Encripta dado sensível com AES-256.
-    Na demo: usa base64 reversível com prefixo ENC_.
-    Em produção: usa AES real com a AES_KEY do .env.
+    """Encripta dado sensível com AES-256-GCM (chave derivada de AES_KEY).
+
+    Delega para app.services.crypto. Levanta RuntimeError se AES_KEY não estiver
+    configurada — melhor falhar do que gravar dado sensível sem cifra.
     """
     if not valor:
         return ""
-    import base64
-    if AES_KEY:
-        # TODO Fase 2: implementar AES-256-GCM real
-        pass
-    # Demo: base64 reversível (permite ver dados no painel financeiro)
-    encoded = base64.b64encode(valor.encode('utf-8')).decode('utf-8')
-    return f"ENC_{encoded}"
+    from app.services.crypto import encrypt
+    return encrypt(valor)
 
 
 def _decriptar_dado(valor_enc: str) -> str:
-    """Decripta dado sensível. Demo: reverte base64."""
-    if not valor_enc:
-        return "—"
-    import base64
-    if valor_enc.startswith("ENC_"):
-        try:
-            encoded = valor_enc[4:]  # Remove prefixo "ENC_"
-            return base64.b64decode(encoded.encode('utf-8')).decode('utf-8')
-        except Exception:
-            pass
-    # Fallback para dados antigos (ENC_AES256_xxxx)
-    if valor_enc.startswith("ENC_AES256_"):
-        return f"***{valor_enc[-4:]}"
-    return valor_enc
+    """Decripta dado sensível (AES-256-GCM, compatível com formatos legados)."""
+    from app.services.crypto import decrypt
+    return decrypt(valor_enc)
 
 
 def _buscar_valor_recompensa(sb: Client, categoria_ia: str) -> float | None:
