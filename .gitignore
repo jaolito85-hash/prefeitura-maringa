@@ -40,6 +40,7 @@ logs/
 .agents/
 .claude/
 .skills/
+.worktrees/
 _bmad/
 _bmad-output/
 
