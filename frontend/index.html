@@ -5646,19 +5646,22 @@ function App(){
 }
 /* ─── LOGIN GATE — Supabase Auth (e-mail/senha por operador) ──── */
 function LoginScreen({onLogin}){
-  const [email,setEmail]=useState('');
-  const [senha,setSenha]=useState('');
+  // Inputs NÃO-controlados (lê do DOM no submit) — funciona com 1Password/autofill.
   const [erro,setErro]=useState('');
   const [busy,setBusy]=useState(false);
-  const inputRef=useRef(null);
-  useEffect(()=>{inputRef.current?.focus();},[]);
+  const emailRef=useRef(null);
+  const senhaRef=useRef(null);
+  useEffect(()=>{emailRef.current?.focus();},[]);
   const submit=async(e)=>{
     e.preventDefault();
     if(!supa){setErro('Serviço de login indisponível');return;}
+    const email=(emailRef.current?.value||'').trim();
+    const senha=senhaRef.current?.value||'';
+    if(!email||!senha){setErro('Preencha e-mail e senha');return;}
     setBusy(true);setErro('');
     try{
-      const {data,error}=await supa.auth.signInWithPassword({email:email.trim(),password:senha});
-      if(error){setErro('E-mail ou senha inválidos');setSenha('');setBusy(false);return;}
+      const {data,error}=await supa.auth.signInWithPassword({email,password:senha});
+      if(error){setErro('E-mail ou senha inválidos');setBusy(false);return;}
       __ACCESS_TOKEN__=(data&&data.session)?data.session.access_token:null;
       onLogin();
     }catch(_){setErro('Falha ao entrar. Tente novamente.');setBusy(false);}
@@ -5669,9 +5672,9 @@ function LoginScreen({onLogin}){
         <div className="login-logo">Node<span>Data</span></div>
         <div className="login-sub">Central de Segurança Pública · Maringá-PR</div>
         <label className="login-label">E-mail</label>
-        <input ref={inputRef} className="login-input" type="email" autoComplete="username" placeholder="seu.email@exemplo.gov.br" value={email} onChange={e=>{setEmail(e.target.value);setErro('');}}/>
+        <input ref={emailRef} className="login-input" type="email" name="email" autoComplete="username" placeholder="seu.email@exemplo.gov.br"/>
         <label className="login-label">Senha</label>
-        <input className="login-input" type="password" autoComplete="current-password" placeholder="Sua senha..." value={senha} onChange={e=>{setSenha(e.target.value);setErro('');}}/>
+        <input ref={senhaRef} className="login-input" type="password" name="password" autoComplete="current-password" placeholder="Sua senha..."/>
         <button className="login-btn" type="submit" disabled={busy}>{busy?'Entrando…':'Entrar'}</button>
         <div className="login-error">{erro}</div>
       </form>
@@ -5688,27 +5691,44 @@ function LogoutButton({nome,papel}){
 }
 /* ─── ROOT — detecta sozinho se o backend exige login (via /api/me) ── */
 function Root(){
-  const [estado,setEstado]=useState('loading'); // 'loading' | 'login' | 'app'
+  const [estado,setEstado]=useState('loading'); // 'loading' | 'login' | 'app' | 'erro'
   const [me,setMe]=useState(null);
+  const [erroMsg,setErroMsg]=useState('');
   async function checar(){
+    let token=null;
     try{
       if(supa&&supa.auth){
         const {data}=await supa.auth.getSession();
-        __ACCESS_TOKEN__=(data&&data.session)?data.session.access_token:null;
+        token=(data&&data.session)?data.session.access_token:null;
+        __ACCESS_TOKEN__=token;
       }
     }catch(_){}
     try{
       const r=await fetch(API_URL+'/api/me');
-      if(r.ok){const u=await r.json();setMe(u);setEstado('app');}
-      else if(r.status===401){setEstado('login');}
-      else{setEstado('app');}
-    }catch(_){setEstado('app');}
+      if(r.ok){const u=await r.json();setMe(u);setEstado('app');return;}
+      if(r.status===401){
+        // sem token → tela de login; com token → o backend recusou (config)
+        if(token){setErroMsg('Seu login foi aceito, mas o servidor recusou o acesso (token inválido no backend). Avise o suporte.');setEstado('erro');}
+        else{setEstado('login');}
+        return;
+      }
+      if(r.status===403){setErroMsg('Seu usuário ainda não tem acesso liberado no painel.');setEstado('erro');return;}
+      setErroMsg('Não foi possível conectar ao painel (erro '+r.status+').');setEstado('erro');
+    }catch(_){setErroMsg('Falha de conexão com o servidor.');setEstado('erro');}
   }
   useEffect(()=>{checar();},[]);
+  const sair=async()=>{try{if(supa&&supa.auth)await supa.auth.signOut();}catch(_){}__ACCESS_TOKEN__=null;location.reload();};
   if(estado==='loading')return(
     <div className="login-screen"><div className="login-box">
       <div className="login-logo">Node<span>Data</span></div>
       <div className="login-sub">Carregando…</div>
+    </div></div>
+  );
+  if(estado==='erro')return(
+    <div className="login-screen"><div className="login-box">
+      <div className="login-logo">Node<span>Data</span></div>
+      <div className="login-error" style={{marginTop:14,textAlign:'center'}}>{erroMsg}</div>
+      <button className="login-btn" style={{marginTop:16}} onClick={sair}>Voltar ao login</button>
     </div></div>
   );
   if(estado==='login')return <LoginScreen onLogin={()=>{setEstado('loading');checar();}}/>;

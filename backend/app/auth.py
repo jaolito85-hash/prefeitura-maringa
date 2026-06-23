@@ -37,8 +37,10 @@ def get_current_user(authorization: str | None = Header(default=None)) -> dict:
         )
     token = authorization.split(" ", 1)[1].strip()
 
-    # 1) Valida o token diretamente no Supabase Auth (robusto a qualquer algoritmo de assinatura)
-    apikey = settings.supabase_anon_key or settings.supabase_service_key
+    # 1) Valida o token diretamente no Supabase Auth (robusto a qualquer algoritmo de assinatura).
+    # Usa a SERVICE KEY como apikey (sempre presente/correta no backend) — não depende de
+    # SUPABASE_ANON_KEY estar setada certa. O usuário é determinado pelo Bearer token.
+    apikey = settings.supabase_service_key or settings.supabase_anon_key
     try:
         resp = httpx.get(
             f"{settings.supabase_url}/auth/v1/user",
