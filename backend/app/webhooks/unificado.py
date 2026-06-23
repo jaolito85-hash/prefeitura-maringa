@@ -25,7 +25,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import settings
-from app.services.classificador import classificar_mensagem, classificar_imagem, classificar_imagem_arborizacao, detectar_sos_rapido
+from app.services.classificador import detectar_sos_rapido
 from app.services.transcricao_audio import transcrever_audio, MAX_AUDIO_SECONDS
 from app.services.rate_limiter import (
     checar_limite_consulta_protocolo,
@@ -33,7 +33,7 @@ from app.services.rate_limiter import (
     truncar_mensagem,
 )
 from app.services.supabase_client import get_supabase
-from app.services.webhook_queue import enqueue_webhook, QueueUnavailableError
+from app.services.webhook_queue import enqueue_webhook, get_redis, QueueUnavailableError
 import redis as redis_lib
 
 # ── MODERAÇÃO DE LINGUAGEM ──────────────────────────────────────────
@@ -306,6 +306,21 @@ async def receber_webhook_unificado(
 
     if not dados["texto"] and not dados["tem_midia"] and not dados["tem_localizacao"]:
         return {"status": "ignored", "reason": "empty"}
+
+    # ── DEDUP POR message_id — evita reentrega da Evolution ser processada 2x ──
+    # A Evolution reenvia o mesmo messages.upsert quando o webhook demora a
+    # devolver o 202 (a classificacao IA sincrona segura a resposta). Sem essa
+    # trava, o reenvio cai como "continuacao" e consome o texto de gatilho como
+    # resposta (ex: o nome do cadastro vira "Cadastro mulher segura").
+    message_id = dados.get("message_id")
+    if message_id:
+        try:
+            # SET NX: 1a vez grava e segue; reentrega encontra a chave e e descartada.
+            if not get_redis().set(f"webhook:msg:{message_id}", "1", nx=True, ex=600):
+                logger.info(f"Mensagem duplicada ignorada (message_id={message_id})")
+                return {"status": "ignored", "reason": "duplicate"}
+        except Exception as exc:
+            logger.error(f"Erro no dedup (segue mesmo assim): {exc}")
 
     telefone = dados["telefone"]
     texto = dados["texto"]
@@ -673,59 +688,15 @@ async def receber_webhook_unificado(
         logger.info(f"🌳 INTERCEPTADOR: tree keyword sem clima → arborizacao/{_cat_arb}")
         _interceptado = True
 
-    # ── 6a. Se tem IMAGEM → classificar por visão (NOVO) ──
-    if not _interceptado and dados["tem_midia"] and dados["tipo_midia"] == "imagem" and dados.get("media_base64"):
-        # Montar data URI a partir do base64 do webhook
-        _mime = dados.get("mimetype", "image/jpeg") or "image/jpeg"
-        _b64 = dados["media_base64"]
-        if not _b64.startswith("data:"):
-            image_url = f"data:{_mime};base64,{_b64}"
-        else:
-            image_url = _b64
-
-        # Detectar palavras-chave de árvore no texto/caption
-        _PALAVRAS_ARVORE = {"arvore", "árvore", "poda", "galho", "tronco", "toco", "raiz", "raízes", "copa", "caiu árvore", "arvore caiu"}
-        _texto_lower = (texto or "").lower()
-        _e_arvore = any(p in _texto_lower for p in _PALAVRAS_ARVORE)
-
-        if _e_arvore:
-            classificacao = await classificar_imagem_arborizacao(
-                image_url=image_url,
-                texto_acompanhante=texto or "",
-                telefone=telefone,
-            )
-        else:
-            classificacao = await classificar_imagem(
-                image_url=image_url,
-                texto_acompanhante=texto or "",
-                telefone=telefone,
-            )
-
-        # Se moderação bloqueou a imagem
-        if classificacao.get("bloqueado"):
-            event = _montar_evento(dados, request, classificacao={
-                "canal": "saudacao",
-                "categoria": "imagem_bloqueada",
-                "resposta_whatsapp": (
-                    "Não consegui processar essa imagem. "
-                    "Por favor, envie uma foto da ocorrência que deseja reportar."
-                ),
-            }, is_continuacao=False)
-            return _enfileirar(event, "queue:saudacoes")
-
-        # Marca confiança baixa pra worker mostrar menu
-        if classificacao.get("confianca", 0) < 70:
-            classificacao["mostrar_menu"] = True
-
-    # ── 6b. Se NÃO tem imagem e NÃO foi interceptado → classificar por texto (FLUXO ATUAL) ──
-    elif not _interceptado:
-        classificacao = await classificar_mensagem(
-            texto=texto or "[Mídia sem legenda]",
-            telefone=telefone,
-            tem_midia=dados["tem_midia"],
-            tem_localizacao=dados["tem_localizacao"],
-            push_name=dados["push_name"],
-        )
+    # ── CLASSIFICAÇÃO ──
+    # Se NÃO foi interceptado por keyword determinística, a mensagem precisa da IA.
+    # Em vez de classificar aqui (síncrono — segura o request 1-3s e faz a Evolution
+    # reenviar o webhook por timeout, origem das mensagens duplicadas), enfileiramos
+    # cru em queue:entrada e devolvemos 202 na hora. O worker (processar_entrada)
+    # classifica com IA e despacha pro canal certo.
+    if not _interceptado:
+        event = _montar_evento(dados, request, classificacao={}, is_continuacao=False)
+        return _enfileirar(event, "queue:entrada")
 
     canal = classificacao.get("canal", "feedback")
 

@@ -47,7 +47,7 @@ MAX_FOTO_SIZE_BYTES = 5 * 1024 * 1024     # 5MB
 STORAGE_BUCKET = "evidencias"
 
 # SOS primeiro — prioridade maxima
-QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:arborizacao", "queue:feedbacks", "queue:consultas", "queue:saudacoes"]
+QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:arborizacao", "queue:entrada", "queue:feedbacks", "queue:consultas", "queue:saudacoes"]
 
 # ── Programa Cidadão Ativo — Decreto 291/2026 ──
 # APENAS as 5 categorias que a Prefeitura de Maringá paga recompensa.
@@ -1606,7 +1606,10 @@ def _continuar_cadastro_sos(event: dict, sb: Client, sessao: dict) -> None:
     registro_id = sessao.get("registro_id", "")
 
     if etapa == "cadastro_nome":
-        if len(texto) < 3:
+        # Defesa contra reentrega: o texto de gatilho do cadastro nao e um nome.
+        _gatilhos_cadastro = {"cadastro mulher segura", "mulher segura", "cadastro",
+                              "cadastrar", "cadastro mulher", "atualizar cadastro"}
+        if len(texto) < 3 or texto.lower().strip() in _gatilhos_cadastro:
             enviar_whatsapp(telefone, "Por favor, informe seu nome completo:")
             return
         contexto["nome"] = texto
@@ -3914,11 +3917,125 @@ def _verificar_sla_arborizacao(sb: Client) -> None:
         logger.error(f"Erro verificação SLA arborização: {exc}")
 
 
+def processar_entrada(event: dict, sb: Client) -> None:
+    """Mensagem NOVA sem sessão: classifica com IA e despacha pro canal.
+
+    A classificação foi movida do webhook pra cá para o webhook devolver 202
+    imediatamente. A IA síncrona no webhook segurava o request 1-3s e fazia a
+    Evolution reenviar o webhook por timeout — origem das mensagens duplicadas.
+    Ver backend/app/webhooks/unificado.py.
+    """
+    import asyncio
+    from app.services.classificador import (
+        classificar_mensagem, classificar_imagem, classificar_imagem_arborizacao,
+    )
+
+    telefone = event.get("telefone", "desconhecido")
+    texto = event.get("texto", "") or ""
+    tem_midia = event.get("tem_midia", False)
+    tipo_midia = event.get("tipo_midia")
+    media_base64 = event.get("media_base64", "") or ""
+    push_name = event.get("push_name", "")
+    tem_loc = event.get("tem_localizacao", False)
+
+    def _run(coro):
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+
+    # ── Classificar (imagem por visão, senão texto) ──
+    try:
+        if tem_midia and tipo_midia == "imagem" and media_base64:
+            _mime = event.get("mimetype", "image/jpeg") or "image/jpeg"
+            image_url = media_base64 if media_base64.startswith("data:") else f"data:{_mime};base64,{media_base64}"
+            _PALAVRAS_ARVORE = {"arvore", "árvore", "poda", "galho", "tronco", "toco", "raiz", "raízes", "copa", "caiu árvore", "arvore caiu"}
+            _e_arvore = any(p in texto.lower() for p in _PALAVRAS_ARVORE)
+            if _e_arvore:
+                classificacao = _run(classificar_imagem_arborizacao(image_url=image_url, texto_acompanhante=texto, telefone=telefone))
+            else:
+                classificacao = _run(classificar_imagem(image_url=image_url, texto_acompanhante=texto, telefone=telefone))
+            if classificacao.get("bloqueado"):
+                event["classificacao"] = {
+                    "canal": "saudacao", "categoria": "imagem_bloqueada",
+                    "resposta_whatsapp": ("Não consegui processar essa imagem. "
+                                          "Por favor, envie uma foto da ocorrência que deseja reportar."),
+                }
+                processar_saudacao(event, sb)
+                return
+            if classificacao.get("confianca", 0) < 70:
+                classificacao["mostrar_menu"] = True
+        else:
+            classificacao = _run(classificar_mensagem(
+                texto=texto or "[Mídia sem legenda]", telefone=telefone,
+                tem_midia=tem_midia, tem_localizacao=tem_loc, push_name=push_name,
+            ))
+    except Exception as exc:
+        logger.error(f"Erro ao classificar (queue:entrada) de {telefone}: {exc}")
+        # Fallback: trata como feedback pra NÃO perder a mensagem do cidadão.
+        classificacao = {"canal": "feedback", "categoria": "geral", "resposta_whatsapp": ""}
+
+    canal = classificacao.get("canal", "feedback")
+
+    # ── SAFETY NETS (movidas do webhook) ──
+    _WEATHER_WORDS = {"temporal", "chuva", "vendaval", "tempestade", "enchente", "alagamento", "inundação", "inundacao", "tormenta", "ciclone", "granizo"}
+    _SERVICE_WORDS = {"poda", "podar", "cortar", "cupim", "raiz", "raízes", "toco", "morta", "seca", "galho seco", "fiação", "fiacao", "iluminação", "calçada", "calcada"}
+    _texto_lower = texto.lower()
+    _categoria = classificacao.get("categoria", "")
+
+    # Weather keyword em qualquer canal → ocorrência (Defesa Civil)
+    if any(w in _texto_lower for w in _WEATHER_WORDS) and canal != "ocorrencia":
+        canal = "ocorrencia"
+        classificacao["canal"] = "ocorrencia"
+        if _categoria not in ("queda_arvore", "enchente_alagamento", "vendaval", "incendio", "outros_urbanos"):
+            classificacao["categoria"] = "outros_urbanos"
+
+    # Árvore: com clima → ocorrência; senão → arborização
+    _is_arvore = (_categoria in ("queda_arvore", "arvore_caida", "risco_queda", "poda_geral", "poda_complexa", "poda_desbarra", "remocao", "retirada_toco") or canal == "arborizacao")
+    if _is_arvore:
+        if any(w in _texto_lower for w in _WEATHER_WORDS):
+            canal = "ocorrencia"
+            classificacao["canal"] = "ocorrencia"
+            classificacao["categoria"] = "queda_arvore"
+        else:
+            canal = "arborizacao"
+            classificacao["canal"] = "arborizacao"
+            if _categoria not in ("poda_geral", "poda_complexa", "poda_desbarra", "remocao", "retirada_toco", "risco_queda", "arvore_caida"):
+                classificacao["categoria"] = "arvore_caida"
+
+    event["classificacao"] = classificacao
+    event["channel"] = canal
+    event["is_continuacao"] = False
+
+    # ── Saudação: responde sem criar protocolo ──
+    if canal == "saudacao":
+        processar_saudacao(event, sb)
+        return
+
+    # ── Despacha pro processador do canal ──
+    fila_map = {
+        "denuncia": "queue:denuncias",
+        "sos_mulher": "queue:sos",
+        "ocorrencia": "queue:ocorrencias",
+        "arborizacao": "queue:arborizacao",
+        "feedback": "queue:feedbacks",
+    }
+    fila = fila_map.get(canal, "queue:feedbacks")
+    proc = PROCESSADORES.get(fila)
+    if proc:
+        logger.info(f"queue:entrada → {canal} ({fila}) de {telefone}")
+        proc(event, sb)
+    else:
+        logger.warning(f"queue:entrada: sem processador pra canal={canal}")
+
+
 PROCESSADORES = {
     "queue:sos": processar_sos,
     "queue:denuncias": processar_denuncia,
     "queue:ocorrencias": processar_ocorrencia,
     "queue:arborizacao": processar_arborizacao,
+    "queue:entrada": processar_entrada,
     "queue:feedbacks": processar_feedback,
     "queue:consultas": processar_consulta_protocolo,
     "queue:saudacoes": processar_saudacao,
