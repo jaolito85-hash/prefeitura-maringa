@@ -784,6 +784,27 @@ const SUPABASE_URL='https://kuhtndyhuddjpqimuijn.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1aHRuZHlodWRkanBxaW11aWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Mzg1MDgsImV4cCI6MjA4OTUxNDUwOH0.q5bLnE2D2zhDND_8NAkuZE4Rul0pGp8vnUStISBBLwM';
 const supa=window.supabase&&window.supabase.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
 
+/* ─── AUTENTICAÇÃO: anexa o token Supabase nas chamadas à nossa API (/api/*) ─── */
+let __ACCESS_TOKEN__=null;
+(function(){
+  if(!window.fetch)return;
+  const _origFetch=window.fetch.bind(window);
+  window.fetch=function(input,init){
+    init=init||{};
+    const u=typeof input==='string'?input:((input&&input.url)||'');
+    const ehApi=u.indexOf('/api/')===0||u.indexOf(location.origin+'/api/')===0;
+    if(ehApi&&__ACCESS_TOKEN__){
+      const h=new Headers(init.headers||{});
+      if(!h.has('Authorization'))h.set('Authorization','Bearer '+__ACCESS_TOKEN__);
+      init=Object.assign({},init,{headers:h});
+    }
+    return _origFetch(input,init);
+  };
+})();
+if(supa&&supa.auth&&supa.auth.onAuthStateChange){
+  supa.auth.onAuthStateChange((_e,session)=>{__ACCESS_TOKEN__=session?session.access_token:null;});
+}
+
 /* ─── ANIMATED NUMBER (counts from 0 to target) ────────────── */
 function AnimatedNumber({value,duration=1200,prefix='',suffix='',style={},className=''}){
   const [display,setDisplay]=useState(0);
@@ -5623,34 +5644,78 @@ function App(){
     </div>
   );
 }
-/* ─── LOGIN GATE (provisório até Supabase Auth) ──────────────── */
-function LoginScreen({onAuth}){
+/* ─── LOGIN GATE — Supabase Auth (e-mail/senha por operador) ──── */
+function LoginScreen({onLogin}){
+  const [email,setEmail]=useState('');
   const [senha,setSenha]=useState('');
   const [erro,setErro]=useState('');
+  const [busy,setBusy]=useState(false);
   const inputRef=useRef(null);
   useEffect(()=>{inputRef.current?.focus();},[]);
-  const submit=(e)=>{
+  const submit=async(e)=>{
     e.preventDefault();
-    if(senha==='nodedata2026'){sessionStorage.setItem('nd_auth','1');onAuth();}
-    else{setErro('Senha incorreta');setSenha('');}
+    if(!supa){setErro('Serviço de login indisponível');return;}
+    setBusy(true);setErro('');
+    try{
+      const {data,error}=await supa.auth.signInWithPassword({email:email.trim(),password:senha});
+      if(error){setErro('E-mail ou senha inválidos');setSenha('');setBusy(false);return;}
+      __ACCESS_TOKEN__=(data&&data.session)?data.session.access_token:null;
+      onLogin();
+    }catch(_){setErro('Falha ao entrar. Tente novamente.');setBusy(false);}
   };
   return(
     <div className="login-screen">
       <form className="login-box" onSubmit={submit}>
         <div className="login-logo">Node<span>Data</span></div>
         <div className="login-sub">Central de Segurança Pública · Maringá-PR</div>
-        <label className="login-label">Senha de Acesso</label>
-        <input ref={inputRef} className="login-input" type="password" placeholder="Digite a senha..." value={senha} onChange={e=>{setSenha(e.target.value);setErro('');}}/>
-        <button className="login-btn" type="submit">Entrar</button>
+        <label className="login-label">E-mail</label>
+        <input ref={inputRef} className="login-input" type="email" autoComplete="username" placeholder="seu.email@exemplo.gov.br" value={email} onChange={e=>{setEmail(e.target.value);setErro('');}}/>
+        <label className="login-label">Senha</label>
+        <input className="login-input" type="password" autoComplete="current-password" placeholder="Sua senha..." value={senha} onChange={e=>{setSenha(e.target.value);setErro('');}}/>
+        <button className="login-btn" type="submit" disabled={busy}>{busy?'Entrando…':'Entrar'}</button>
         <div className="login-error">{erro}</div>
       </form>
     </div>
   );
 }
+function LogoutButton({nome,papel}){
+  const sair=async()=>{
+    try{if(supa&&supa.auth)await supa.auth.signOut();}catch(_){}
+    __ACCESS_TOKEN__=null;
+    location.reload();
+  };
+  return <button onClick={sair} title={(nome||'')+' · '+(papel||'')} style={{position:'fixed',bottom:14,right:14,zIndex:99999,background:'#10b98122',color:'#10b981',border:'1px solid #10b98155',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer'}}>Sair · {nome}</button>;
+}
+/* ─── ROOT — detecta sozinho se o backend exige login (via /api/me) ── */
 function Root(){
-  const [auth,setAuth]=useState(()=>sessionStorage.getItem('nd_auth')==='1');
-  if(!auth)return <LoginScreen onAuth={()=>setAuth(true)}/>;
-  return <App/>;
+  const [estado,setEstado]=useState('loading'); // 'loading' | 'login' | 'app'
+  const [me,setMe]=useState(null);
+  async function checar(){
+    try{
+      if(supa&&supa.auth){
+        const {data}=await supa.auth.getSession();
+        __ACCESS_TOKEN__=(data&&data.session)?data.session.access_token:null;
+      }
+    }catch(_){}
+    try{
+      const r=await fetch(API_URL+'/api/me');
+      if(r.ok){const u=await r.json();setMe(u);setEstado('app');}
+      else if(r.status===401){setEstado('login');}
+      else{setEstado('app');}
+    }catch(_){setEstado('app');}
+  }
+  useEffect(()=>{checar();},[]);
+  if(estado==='loading')return(
+    <div className="login-screen"><div className="login-box">
+      <div className="login-logo">Node<span>Data</span></div>
+      <div className="login-sub">Carregando…</div>
+    </div></div>
+  );
+  if(estado==='login')return <LoginScreen onLogin={()=>{setEstado('loading');checar();}}/>;
+  return(<React.Fragment>
+    <App/>
+    {me&&me.email&&<LogoutButton nome={me.nome} papel={me.papel}/>}
+  </React.Fragment>);
 }
 ReactDOM.createRoot(document.getElementById('root')).render(<Root/>);
 </script>

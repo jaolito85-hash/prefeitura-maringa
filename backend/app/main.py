@@ -55,3 +55,10 @@ app.include_router(wh_ocorrencias.router, prefix="/webhook", tags=["Webhooks"])
 async def health_check():
     """Verifica se o servidor está vivo. Usado pelo UptimeRobot."""
     return {"status": "ok", "service": "Node Data Maringá", "version": "2.0.0"}
+
+
+@app.get("/api/me", tags=["Auth"])
+async def me(user: dict = Depends(get_current_user)):
+    """Perfil do operador autenticado. Com AUTH_ENABLED=false retorna 'Sistema'/admin;
+    com auth ligada e sem token válido, retorna 401 (o frontend então mostra o login)."""
+    return {"nome": user["nome"], "email": user["email"], "papel": user["papel"]}
