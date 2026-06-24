@@ -4628,7 +4628,19 @@ function Recompensas(){
                   <button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} onClick={()=>{setEmpenho('');setDotacao('');setModalPagar(sel);}}>💳 Registrar Pagamento</button>
                 )}
                 {sel.status==='paga'&&(
-                  <a href={API_URL+'/api/recompensas/'+sel.id+'/termo'} target="_blank" className="btn btn-outline" style={{width:'100%',justifyContent:'center',textDecoration:'none'}}>📄 Gerar Termo PDF</a>
+                  <button className="btn btn-outline" style={{width:'100%',justifyContent:'center'}} onClick={async()=>{
+                    // Abre a aba no clique (evita bloqueio de popup) e busca o PDF via fetch
+                    // — assim o token Bearer é injetado pelo interceptor (navegação direta não enviaria).
+                    const win=window.open('','_blank');
+                    try{
+                      const r=await fetch(API_URL+'/api/recompensas/'+sel.id+'/termo');
+                      if(!r.ok){if(win)win.close();alert('Não foi possível gerar o termo (erro '+r.status+').');return;}
+                      const blob=await r.blob();
+                      const url=URL.createObjectURL(blob);
+                      if(win){win.location.href=url;}else{const a=document.createElement('a');a.href=url;a.download='Termo_'+(sel.protocolo||'recompensa')+'.pdf';a.click();}
+                      setTimeout(()=>URL.revokeObjectURL(url),60000);
+                    }catch(e){if(win)win.close();alert('Falha ao gerar o termo PDF.');}
+                  }}>📄 Gerar Termo PDF</button>
                 )}
               </div>
             </div>
