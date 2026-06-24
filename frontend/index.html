@@ -4713,7 +4713,7 @@ function Recompensas(){
 }
 
 /* ─── BUSCA POR PROTOCOLO ─────────────────────────────────────── */
-function SearchProtocolo({setAba}){
+function SearchProtocolo({setAba,modoApresentacao}){
   const [q,setQ]=useState('');
   const [res,setRes]=useState(null);
   const [err,setErr]=useState(null);
@@ -4796,10 +4796,12 @@ function SearchProtocolo({setAba}){
                         style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'9px',background:'rgba(255,255,255,.04)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text-secondary)',fontSize:12,fontWeight:600,textDecoration:'none'}}>🧭 Waze</a>
                     </div>
                   )}
+                  {(!modoApresentacao||['denuncias','recompensas'].includes(abaMap[res.canal]))&&(
                   <button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}}
-                    onClick={()=>{setAba(abaMap[res.canal]||'central');setShow(false);}}>
+                    onClick={()=>{const destino=abaMap[res.canal]||'central';if(!modoApresentacao||['denuncias','recompensas'].includes(destino))setAba(destino);setShow(false);}}>
                     Ver {canalLabel[res.canal]?.split(' ')[1]||'Detalhes'}
                   </button>
+                  )}
                 </div>
               )}
             </div>
@@ -5526,17 +5528,17 @@ function tocarBipe(freq=1000,dur=.12,vol=.25){
   }catch(e){}
 }
 
-function App(){
+function App({me}){
   useApiPolling();
   const [modoApresentacao,setModoApresentacao]=useState(()=>localStorage.getItem('modoApresentacao')==='1');
-  const [aba,setAba]=useState(()=>localStorage.getItem('modoApresentacao')==='1'?'mapa':'central');
+  const [aba,setAba]=useState(()=>me?.papel==='financeiro'?'recompensas':(localStorage.getItem('modoApresentacao')==='1'?'denuncias':'central'));
   const [hora,setHora]=useState(new Date());
   const [mutado,setMutado]=useState(false);
   const alternarApresentacao=()=>{
     const n=!modoApresentacao;
     setModoApresentacao(n);
     localStorage.setItem('modoApresentacao',n?'1':'0');
-    setAba(n?'mapa':'central');
+    setAba(n?'denuncias':'central');
   };
   const sos=SOS.length;
   const prevSosRef=useRef(0);
@@ -5545,7 +5547,7 @@ function App(){
 
   /* ── SOS AUDIO: sirene quando novo alerta chega ── */
   useEffect(()=>{
-    if(mutado){clearInterval(sireneTimerRef.current);prevSosRef.current=sos;return;}
+    if(mutado||modoApresentacao){clearInterval(sireneTimerRef.current);prevSosRef.current=sos;return;}
     if(sos>prevSosRef.current){
       /* Novo alerta SOS — toca sirene e repete a cada 15s */
       tocarSirene();
@@ -5555,10 +5557,10 @@ function App(){
     if(sos===0){clearInterval(sireneTimerRef.current);}
     prevSosRef.current=sos;
     return()=>clearInterval(sireneTimerRef.current);
-  },[sos,mutado]);
+  },[sos,mutado,modoApresentacao]);
 
   /* ── Som ao navegar para aba SOS com alertas ativos ── */
-  useEffect(()=>{if(aba==='sos'&&sos>0&&!mutado)tocarSirene();},[aba]);
+  useEffect(()=>{if(aba==='sos'&&sos>0&&!mutado&&!modoApresentacao)tocarSirene();},[aba]);
 
   const ABAS_FULL=[
     {id:'central',icon:<Ico.grid/>,label:'Painel'},
@@ -5571,9 +5573,12 @@ function App(){
     {id:'noticias',icon:<Ico.news/>,label:'Notícias'},
     {id:'arborizacao',icon:<Ico.tree/>,label:'Arborização'},
   ];
+  // Abas permitidas por papel do operador (papéis fora do mapa veem tudo).
+  const ABAS_POR_PAPEL={financeiro:['recompensas']};
+  const _abasPermitidas=ABAS_POR_PAPEL[me?.papel]?ABAS_FULL.filter(a=>ABAS_POR_PAPEL[me.papel].includes(a.id)):ABAS_FULL;
   const ABAS=modoApresentacao
-    ?ABAS_FULL.filter(a=>['mapa','denuncias','recompensas'].includes(a.id))
-    :ABAS_FULL;
+    ?_abasPermitidas.filter(a=>['denuncias','recompensas'].includes(a.id))
+    :_abasPermitidas;
 
   return(
     <div className="app">
@@ -5585,13 +5590,13 @@ function App(){
           <span className="logo-sub">Central de Segurança Pública · Maringá‑PR</span>
         </div>
         <div className="hdr-right">
-          <SearchProtocolo setAba={setAba}/>
+          <SearchProtocolo setAba={setAba} modoApresentacao={modoApresentacao}/>
           <div className="status-badge"><div className="status-dot"/>Online</div>
           <div className="clock-area">
             <div className="clock">{hora.toLocaleTimeString('pt-BR')}</div>
             <div className="clock-date">{hora.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div>
           </div>
-          <button className="hdr-btn" onClick={alternarApresentacao} title={modoApresentacao?'Sair do modo apresentação':'Modo apresentação'} style={{background:modoApresentacao?'#9333ea':undefined,color:modoApresentacao?'#fff':undefined,fontWeight:600,fontSize:13,padding:'0 12px'}}>🎬 {modoApresentacao?'ON':'Apresentação'}</button>
+          {me?.papel!=='financeiro'&&<button className="hdr-btn" onClick={alternarApresentacao} title={modoApresentacao?'Sair do modo apresentação':'Modo apresentação'} style={{background:modoApresentacao?'#9333ea':undefined,color:modoApresentacao?'#fff':undefined,fontWeight:600,fontSize:13,padding:'0 12px'}}>🎬 {modoApresentacao?'ON':'Apresentação'}</button>}
           <button className="hdr-btn" onClick={()=>setMutado(!mutado)}>{mutado?'🔇':'🔊'}</button>
         </div>
       </header>
@@ -5619,13 +5624,13 @@ function App(){
               {a.badge!=null&&<span className="nav-badge">{a.badge}</span>}
             </button>
           ))}
-          <div style={{marginTop:'auto'}}>
+          {me?.papel!=='financeiro'&&<div style={{marginTop:'auto'}}>
             <div className="nav-divider"/>
             <div className="sidebar-section">WhatsApp</div>
-            {['Denúncias','SOS','Ocorrências'].map(n=>(
+            {(modoApresentacao?['Denúncias']:['Denúncias','SOS','Ocorrências']).map(n=>(
               <div key={n} className="ws-row"><div className="ws-dot"/>{n}</div>
             ))}
-          </div>
+          </div>}
         </nav>
         <main className="content">
           <PageTransition pageKey={aba}>
@@ -5733,7 +5738,7 @@ function Root(){
   );
   if(estado==='login')return <LoginScreen onLogin={()=>{setEstado('loading');checar();}}/>;
   return(<React.Fragment>
-    <App/>
+    <App me={me}/>
     {me&&me.email&&<LogoutButton nome={me.nome} papel={me.papel}/>}
   </React.Fragment>);
 }
