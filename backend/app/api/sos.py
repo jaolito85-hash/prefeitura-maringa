@@ -22,7 +22,7 @@ async def listar_alertas_sos():
     """Retorna todos os alertas SOS com dados da vítima (quando cadastrada)."""
     sb = get_supabase()
     result = sb.table("sos_alertas").select(
-        "*, sos_cadastros(nome, endereco, referencia, agressor, agressor_foto_url, contato_confianca_nome, contato_confianca_telefone)"
+        "*, sos_cadastros(nome, endereco, referencia, agressor, agressor_foto_url, contato_confianca_nome, contato_confianca_telefone, medida_protetiva)"
     ).order("created_at", desc=True).limit(50).execute()
     return result.data or []
 
@@ -32,7 +32,7 @@ async def alertas_sos_ativos():
     """Retorna apenas os alertas SOS com status 'active' ou 'attending' — para o painel."""
     sb = get_supabase()
     result = sb.table("sos_alertas").select(
-        "*, sos_cadastros(nome, endereco, referencia, agressor, agressor_foto_url, contato_confianca_nome, contato_confianca_telefone)"
+        "*, sos_cadastros(nome, endereco, referencia, agressor, agressor_foto_url, contato_confianca_nome, contato_confianca_telefone, medida_protetiva)"
     ).in_("status", ["active", "attending"]).order("created_at", desc=True).execute()
     return result.data or []
 
@@ -42,7 +42,7 @@ async def historico_sos():
     """Retorna alertas resolvidos — para o histórico na sidebar."""
     sb = get_supabase()
     result = sb.table("sos_alertas").select(
-        "*, sos_cadastros(nome, endereco, referencia, agressor, agressor_foto_url, contato_confianca_nome, contato_confianca_telefone, telefone)"
+        "*, sos_cadastros(nome, endereco, referencia, agressor, agressor_foto_url, contato_confianca_nome, contato_confianca_telefone, telefone, medida_protetiva)"
     ).eq("status", "resolved").order("resolvido_em", desc=True).limit(20).execute()
     return result.data or []
 

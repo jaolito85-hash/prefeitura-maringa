@@ -1718,6 +1718,26 @@ def _continuar_cadastro_sos(event: dict, sb: Client, sessao: dict) -> None:
             contexto["contato_nome"] = nome_contato
             contexto["contato_tel"] = tel_contato
 
+        # Antes de finalizar, pergunta sobre medida protetiva
+        atualizar_sessao(sb, telefone, "cadastro_medida_protetiva", contexto)
+        enviar_whatsapp(telefone,
+            "⚖️ *Você possui medida protetiva contra o agressor?*\n"
+            "Essa informação é muito importante para a equipe de atendimento.\n\n"
+            "Responda *SIM* ou *NÃO*.")
+        return
+
+    if etapa == "cadastro_medida_protetiva":
+        resp = texto.lower().strip()
+        if resp in ("sim", "s", "tenho", "possuo", "yes", "y", "ja tenho", "já tenho"):
+            contexto["medida_protetiva"] = True
+        elif resp in ("nao", "não", "n", "no", "nunca", "ainda nao", "ainda não"):
+            contexto["medida_protetiva"] = False
+        else:
+            enviar_whatsapp(telefone,
+                "Por favor, responda apenas *SIM* ou *NÃO*.\n"
+                "⚖️ Você possui medida protetiva contra o agressor?")
+            return
+
         # ── SALVAR CADASTRO ──
         try:
             # Normaliza telefone (remove + se tiver)
@@ -1730,6 +1750,7 @@ def _continuar_cadastro_sos(event: dict, sb: Client, sessao: dict) -> None:
                 "agressor_foto_url": contexto.get("agressor_foto_url"),
                 "contato_confianca_nome": contexto.get("contato_nome"),
                 "contato_confianca_telefone": contexto.get("contato_tel"),
+                "medida_protetiva": contexto.get("medida_protetiva", False),
                 "ativo": True,
             }
             res = sb.table("sos_cadastros").insert(dados_cadastro).execute()

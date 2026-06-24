@@ -3299,12 +3299,25 @@ function SOSMulher(){
                         </div>
                       ))}
                     </div>
-                    {cad.agressor_foto_url&&(
-                      <div style={{marginTop:10,display:'flex',alignItems:'center',gap:12,background:'rgba(248,113,113,.06)',border:'1px solid rgba(248,113,113,.15)',borderRadius:8,padding:12}}>
-                        <img src={cad.agressor_foto_url} alt="Foto do agressor" style={{width:80,height:80,borderRadius:8,border:'2px solid rgba(248,113,113,.3)',objectFit:'cover'}} />
-                        <div>
-                          <div style={{fontSize:10,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:4}}>Foto do Agressor</div>
-                          <div style={{fontSize:12,color:'var(--text-muted)'}}>Enviada no cadastro</div>
+                    {(cad.agressor_foto_url||cad.medida_protetiva!=null)&&(
+                      <div style={{marginTop:10,display:'flex',alignItems:'flex-start',gap:12,background:'rgba(248,113,113,.06)',border:'1px solid rgba(248,113,113,.15)',borderRadius:8,padding:12}}>
+                        {cad.agressor_foto_url&&(
+                          <img src={cad.agressor_foto_url} alt="Foto do agressor" style={{width:80,height:80,borderRadius:8,border:'2px solid rgba(248,113,113,.3)',objectFit:'cover',flexShrink:0}} />
+                        )}
+                        <div style={{flex:1,minWidth:0}}>
+                          {cad.agressor_foto_url&&(<>
+                            <div style={{fontSize:10,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:4}}>Foto do Agressor</div>
+                            <div style={{fontSize:12,color:'var(--text-muted)'}}>Enviada no cadastro</div>
+                          </>)}
+                          <div style={{marginTop:cad.agressor_foto_url?10:0,display:'inline-flex',alignItems:'center',gap:9,background:cad.medida_protetiva?'rgba(248,113,113,.15)':'rgba(255,255,255,.04)',border:`1px solid ${cad.medida_protetiva?'rgba(248,113,113,.45)':'rgba(255,255,255,.1)'}`,borderRadius:8,padding:'7px 13px'}}>
+                            <span style={{fontSize:15}}>⚖️</span>
+                            <div>
+                              <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px'}}>Medida Protetiva</div>
+                              <div style={{fontSize:12,fontWeight:700,color:cad.medida_protetiva?'#f87171':'var(--text)'}}>
+                                {cad.medida_protetiva==null?'Não informado':cad.medida_protetiva?'SIM — possui':'Não possui'}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -3384,12 +3397,25 @@ function SOSMulher(){
                         </div>
                       ))}
                     </div>
-                    {cad.agressor_foto_url&&(
-                      <div style={{marginTop:10,display:'flex',alignItems:'center',gap:12,background:'rgba(248,113,113,.06)',border:'1px solid rgba(248,113,113,.15)',borderRadius:8,padding:12}}>
-                        <img src={cad.agressor_foto_url} alt="Foto do agressor" style={{width:80,height:80,borderRadius:8,border:'2px solid rgba(248,113,113,.3)',objectFit:'cover'}} />
-                        <div>
-                          <div style={{fontSize:10,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:4}}>Foto do Agressor</div>
-                          <div style={{fontSize:12,color:'var(--text-muted)'}}>Enviada no cadastro</div>
+                    {(cad.agressor_foto_url||cad.medida_protetiva!=null)&&(
+                      <div style={{marginTop:10,display:'flex',alignItems:'flex-start',gap:12,background:'rgba(248,113,113,.06)',border:'1px solid rgba(248,113,113,.15)',borderRadius:8,padding:12}}>
+                        {cad.agressor_foto_url&&(
+                          <img src={cad.agressor_foto_url} alt="Foto do agressor" style={{width:80,height:80,borderRadius:8,border:'2px solid rgba(248,113,113,.3)',objectFit:'cover',flexShrink:0}} />
+                        )}
+                        <div style={{flex:1,minWidth:0}}>
+                          {cad.agressor_foto_url&&(<>
+                            <div style={{fontSize:10,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:4}}>Foto do Agressor</div>
+                            <div style={{fontSize:12,color:'var(--text-muted)'}}>Enviada no cadastro</div>
+                          </>)}
+                          <div style={{marginTop:cad.agressor_foto_url?10:0,display:'inline-flex',alignItems:'center',gap:9,background:cad.medida_protetiva?'rgba(248,113,113,.15)':'rgba(255,255,255,.04)',border:`1px solid ${cad.medida_protetiva?'rgba(248,113,113,.45)':'rgba(255,255,255,.1)'}`,borderRadius:8,padding:'7px 13px'}}>
+                            <span style={{fontSize:15}}>⚖️</span>
+                            <div>
+                              <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px'}}>Medida Protetiva</div>
+                              <div style={{fontSize:12,fontWeight:700,color:cad.medida_protetiva?'#f87171':'var(--text)'}}>
+                                {cad.medida_protetiva==null?'Não informado':cad.medida_protetiva?'SIM — possui':'Não possui'}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -3530,13 +3556,26 @@ function SOSMulher(){
                   </div>
                 ))}
               </div>
-              {sel.sos_cadastros?.agressor_foto_url&&(
-                <div style={{marginTop:12,display:'flex',alignItems:'center',gap:14,background:'rgba(248,113,113,.06)',border:'1px solid rgba(248,113,113,.2)',borderRadius:10,padding:14}}>
-                  <img src={sel.sos_cadastros.agressor_foto_url} alt="Foto do agressor" style={{width:90,height:90,borderRadius:10,border:'2px solid rgba(248,113,113,.3)',objectFit:'cover',flexShrink:0}} />
-                  <div>
-                    <div style={{fontSize:11,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:4}}>Foto do Agressor</div>
+              {(sel.sos_cadastros?.agressor_foto_url||sel.sos_cadastros?.medida_protetiva!=null)&&(
+                <div style={{marginTop:12,display:'flex',alignItems:'flex-start',gap:14,background:'rgba(248,113,113,.06)',border:'1px solid rgba(248,113,113,.2)',borderRadius:10,padding:14}}>
+                  {sel.sos_cadastros?.agressor_foto_url&&(
+                    <img src={sel.sos_cadastros.agressor_foto_url} alt="Foto do agressor" style={{width:90,height:90,borderRadius:10,border:'2px solid rgba(248,113,113,.3)',objectFit:'cover',flexShrink:0}} />
+                  )}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:11,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'.8px',marginBottom:4}}>{sel.sos_cadastros?.agressor_foto_url?'Foto do Agressor':'Agressor'}</div>
                     <div style={{fontSize:13,color:'var(--text)',fontWeight:500}}>{sel.sos_cadastros?.agressor||'Nome não informado'}</div>
-                    <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>Enviada pela vítima no cadastro</div>
+                    {sel.sos_cadastros?.agressor_foto_url&&(
+                      <div style={{fontSize:11,color:'var(--text-muted)',marginTop:2}}>Enviada pela vítima no cadastro</div>
+                    )}
+                    <div style={{marginTop:10,display:'inline-flex',alignItems:'center',gap:9,background:sel.sos_cadastros?.medida_protetiva?'rgba(248,113,113,.15)':'rgba(255,255,255,.04)',border:`1px solid ${sel.sos_cadastros?.medida_protetiva?'rgba(248,113,113,.45)':'rgba(255,255,255,.1)'}`,borderRadius:8,padding:'7px 13px'}}>
+                      <span style={{fontSize:16}}>⚖️</span>
+                      <div>
+                        <div style={{fontSize:10,fontWeight:600,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.5px'}}>Medida Protetiva</div>
+                        <div style={{fontSize:13,fontWeight:700,color:sel.sos_cadastros?.medida_protetiva?'#f87171':'var(--text)'}}>
+                          {sel.sos_cadastros?.medida_protetiva==null?'Não informado':sel.sos_cadastros.medida_protetiva?'SIM — possui medida protetiva':'Não possui'}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
