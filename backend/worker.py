@@ -1441,7 +1441,7 @@ def processar_sos(event: dict, sb: Client) -> None:
         criar_sessao(sb, telefone, "sos_mulher", "cadastro_aceite", placeholder_id,
                      {"tipo": "cadastro", "push_name": event.get("push_name", "")})
         enviar_whatsapp(telefone,
-            "🛡️ *Bem-vinda ao Cadastro Mulher Segura da Prefeitura*\n\n"
+            "🛡️ *Bem-vinda ao Cadastro Mulher Segura da Prefeitura de Maringá*\n\n"
             "Este canal faz parte do *SOS Mulher* e deve ser usado para proteção de mulheres em situação de risco.\n\n"
             "Ao continuar, você declara que as informações fornecidas são verdadeiras e autoriza o uso dos dados necessários para fins de atendimento, segurança, proteção e acionamento da rede pública responsável.\n\n"
             "⚠️ *Atenção:* o uso indevido do serviço, trotes, informações falsas ou acionamentos maliciosos podem ser registrados e encaminhados às autoridades competentes para apuração, conforme a legislação brasileira.\n\n"
