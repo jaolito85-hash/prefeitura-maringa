@@ -46,6 +46,9 @@ MAX_VIDEO_SIZE_BYTES = 16 * 1024 * 1024   # 16MB
 MAX_FOTO_SIZE_BYTES = 5 * 1024 * 1024     # 5MB
 STORAGE_BUCKET = "evidencias"
 
+# Versão do termo de aceite LGPD do Cadastro Mulher Segura (rastreabilidade)
+TERMO_ACEITE_VERSAO = "v1-2026-06"
+
 # SOS primeiro — prioridade maxima
 QUEUES = ["queue:sos", "queue:denuncias", "queue:ocorrencias", "queue:arborizacao", "queue:entrada", "queue:feedbacks", "queue:consultas", "queue:saudacoes"]
 
@@ -1435,12 +1438,15 @@ def processar_sos(event: dict, sb: Client) -> None:
                 "Se precisar atualizar seus dados, envie *atualizar cadastro*.")
             return
         placeholder_id = str(uuid.uuid4())
-        criar_sessao(sb, telefone, "sos_mulher", "cadastro_nome", placeholder_id,
+        criar_sessao(sb, telefone, "sos_mulher", "cadastro_aceite", placeholder_id,
                      {"tipo": "cadastro", "push_name": event.get("push_name", "")})
         enviar_whatsapp(telefone,
-            "🛡️ *Programa Mulher Segura — Prefeitura de Maringá*\n\n"
-            "Vamos fazer seu cadastro sigiloso. Seus dados ficam protegidos e só são acessados em caso de emergência.\n\n"
-            "📝 *Qual é o seu nome completo?*")
+            "🛡️ *Bem-vinda ao Cadastro Mulher Segura da Prefeitura*\n\n"
+            "Este canal faz parte do *SOS Mulher* e deve ser usado para proteção de mulheres em situação de risco.\n\n"
+            "Ao continuar, você declara que as informações fornecidas são verdadeiras e autoriza o uso dos dados necessários para fins de atendimento, segurança, proteção e acionamento da rede pública responsável.\n\n"
+            "⚠️ *Atenção:* o uso indevido do serviço, trotes, informações falsas ou acionamentos maliciosos podem ser registrados e encaminhados às autoridades competentes para apuração, conforme a legislação brasileira.\n\n"
+            "Se você estiver em risco real, continue o cadastro com tranquilidade. Este serviço foi criado para proteger você. 💜\n\n"
+            "Digite *SIM* para continuar.")
         return
 
     # ── CONTINUAÇÃO de cadastro ──
@@ -1605,6 +1611,21 @@ def _continuar_cadastro_sos(event: dict, sb: Client, sessao: dict) -> None:
     contexto = sessao.get("contexto") or {}
     registro_id = sessao.get("registro_id", "")
 
+    if etapa == "cadastro_aceite":
+        if texto.lower().strip() in ("sim", "s", "aceito", "concordo", "sim aceito", "sim, aceito"):
+            contexto["aceite_termos"] = True
+            contexto["aceite_termos_em"] = datetime.now(timezone.utc).isoformat()
+            contexto["aceite_termos_versao"] = TERMO_ACEITE_VERSAO
+            atualizar_sessao(sb, telefone, "cadastro_nome", contexto)
+            enviar_whatsapp(telefone,
+                "✅ *Aceite confirmado!*\n\n"
+                "📝 *Qual é o seu nome completo?*")
+        else:
+            enviar_whatsapp(telefone,
+                "Para sua segurança, precisamos do seu aceite para continuar.\n\n"
+                "Digite *SIM* para iniciar o cadastro. 💜")
+        return
+
     if etapa == "cadastro_nome":
         # Defesa contra reentrega: o texto de gatilho do cadastro nao e um nome.
         _gatilhos_cadastro = {"cadastro mulher segura", "mulher segura", "cadastro",
@@ -1751,6 +1772,9 @@ def _continuar_cadastro_sos(event: dict, sb: Client, sessao: dict) -> None:
                 "contato_confianca_nome": contexto.get("contato_nome"),
                 "contato_confianca_telefone": contexto.get("contato_tel"),
                 "medida_protetiva": contexto.get("medida_protetiva", False),
+                "aceite_termos": contexto.get("aceite_termos", True),
+                "aceite_termos_em": contexto.get("aceite_termos_em"),
+                "aceite_termos_versao": contexto.get("aceite_termos_versao"),
                 "ativo": True,
             }
             res = sb.table("sos_cadastros").insert(dados_cadastro).execute()
