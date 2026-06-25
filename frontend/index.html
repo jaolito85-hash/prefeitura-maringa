@@ -5312,7 +5312,7 @@ function Arborizacao(){
   const slaInfo=(d)=>{const horas=SLA_HORAS[d.severidade]||72;const ini=new Date(d.created_at).getTime();const prazoMs=ini+horas*3600000;const restMs=prazoMs-Date.now();const pct=Math.max(4,Math.min(100,(Date.now()-ini)/(horas*3600000)*100));const done=['concluido','fiscalizado'].includes(d.status);return{prazo:new Date(prazoMs),restMs,pct,done};};
   const fmtRest=(ms)=>{if(ms<=0)return'Prazo expirado';const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);if(h>=24)return`${Math.floor(h/24)}d ${h%24}h restantes`;if(h>0)return`${h}h ${m}m restantes`;return`${m}m restantes`;};
   const RATING_Q=['Ótimo atendimento! Muito rápido.','Equipe muito atenciosa e eficiente.','Resolveram com agilidade, recomendo.','Serviço bem feito e local deixado limpo.'];
-  const ratingDe=(d)=>d.status!=='fiscalizado'?null:{nota:[5,4.5,5,4][d.id%4],texto:RATING_Q[d.id%RATING_Q.length]};
+  const ratingDe=(d)=>{if(d.status!=='fiscalizado')return null;const s=String(d.id);let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return{nota:[5,4.5,5,4][h%4],texto:RATING_Q[h%RATING_Q.length]};};
 
   return(
     <div className="arb-wrap">
