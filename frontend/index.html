@@ -764,14 +764,43 @@ tr{transition:.12s}
 .arb-btn-approve:hover{background:#047857;transform:translateY(-1px)}
 .arb-btn-reject{width:100%;padding:14px;background:transparent;border:1px solid rgba(239,68,68,.4);border-radius:12px;color:#f87171;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
 .arb-btn-reject:hover{background:rgba(239,68,68,.06);border-color:#ef4444}
-.arb-flow{display:flex;align-items:center;gap:0;margin:14px 0 4px}
-.arb-flow-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
-.arb-flow-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:2px solid var(--border);background:var(--surface);transition:all .3s;z-index:1}
-.arb-flow-dot.done{background:#059669;border-color:#059669}
+.arb-flow{display:flex;align-items:flex-start;gap:0;margin:14px 0 4px}
+.arb-flow-step{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;position:relative}
+.arb-flow-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;border:2px solid var(--border);background:var(--surface);transition:all .3s;z-index:1}
+.arb-flow-dot.done{background:#059669;border-color:#059669;color:#fff}
+.arb-flow-dot.star{background:#3b82f6;border-color:#3b82f6;color:#fff;box-shadow:0 0 12px rgba(59,130,246,.5)}
 .arb-flow-dot.current{background:#3b82f6;border-color:#3b82f6;box-shadow:0 0 14px rgba(59,130,246,.4)}
-.arb-flow-line{position:absolute;top:14px;left:calc(50% + 15px);right:calc(-50% + 15px);height:2px;background:var(--border)}
+.arb-flow-dot:not(.done):not(.star){color:var(--text-muted)}
+.arb-flow-line{position:absolute;top:13px;left:calc(50% + 14px);right:calc(-50% + 14px);height:2px;background:var(--border)}
 .arb-flow-line.done{background:#059669}
-.arb-flow-label{font-size:10px;color:var(--text-muted);margin-top:8px;text-align:center;font-weight:600;letter-spacing:.3px}
+.arb-flow-label{font-size:9px;color:var(--text-secondary);margin-top:7px;text-align:center;font-weight:500;line-height:1.25;min-height:23px}
+.arb-flow-time{font-size:8px;color:var(--text-muted);margin-top:3px;text-align:center;font-family:'IBM Plex Mono',monospace;line-height:1.3}
+.arb-flow-dot svg{width:14px;height:14px}
+/* ── ARBORIZAÇÃO — polish visual (brasão + KPIs SVG + SLA + avaliação) ── */
+.logo-brasao{height:38px;width:auto;display:block;flex-shrink:0;filter:drop-shadow(0 2px 5px rgba(0,0,0,.4))}
+.ax-head-ico{color:var(--accent-light);flex-shrink:0}
+.ax-head-sub{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-muted);margin-top:4px;font-weight:500}
+.ax-head-sub svg{color:var(--accent-light);width:14px;height:14px;flex-shrink:0}
+.ax-kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start;position:relative;overflow:hidden;transition:all .2s}
+.ax-kpi:hover{border-color:var(--border-light);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.ax-kpi-ico{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.ax-kpi-ico svg{width:23px;height:23px}
+.ax-kpi-lbl{font-size:11px;color:var(--text-muted);font-weight:600;line-height:1.2}
+.ax-kpi-val{font-family:'Outfit',sans-serif;font-weight:800;font-size:30px;line-height:1.05;color:#fff;letter-spacing:-1px;margin-top:6px}
+.ax-kpi-val small{font-size:14px;font-weight:600;color:var(--text-muted);letter-spacing:0}
+.ax-kpi-sub{font-size:11px;color:var(--text-muted);margin-top:6px;display:flex;align-items:center;gap:4px}
+.ax-iclabel{display:flex;align-items:center;gap:7px}
+.ax-iclabel svg{width:14px;height:14px;color:var(--accent-light);flex-shrink:0}
+.ax-round{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--card);display:grid;place-items:center;cursor:pointer;transition:all .18s;color:var(--text-secondary)}
+.ax-round:hover{border-color:var(--accent);color:var(--accent-light)}
+.ax-round.wa:hover{border-color:#25d366;color:#25d366}
+.ax-sla-time{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:#fff;margin:2px 0 8px}
+.ax-sla-track{height:6px;border-radius:3px;background:var(--border);overflow:hidden}
+.ax-sla-fill{height:100%;border-radius:3px;transition:width .4s}
+.ax-sla-rem{font-size:11px;margin-top:6px;font-weight:600}
+.ax-stars{display:inline-flex;gap:2px;color:#fbbf24;vertical-align:middle}
+.ax-stars svg{width:15px;height:15px}
+.ax-quote{font-size:12.5px;color:var(--text-secondary);font-style:italic;line-height:1.45}
 </style>
 </head>
 <body>
@@ -5278,12 +5307,24 @@ function Arborizacao(){
   /* ── Helpers ── */
   const ago=(iso)=>{const d=Math.floor((Date.now()-new Date(iso))/60000);if(d<60)return `${d}min`;if(d<1440)return `${Math.floor(d/60)}h`;return `${Math.floor(d/1440)}d`;};
   const sevPill=(sev)=>({background:ARBO_SEV[sev]?.bg,color:ARBO_SEV[sev]?.c,border:`1px solid ${ARBO_SEV[sev]?.border}`});
+  /* ── SLA derivado da severidade + avaliação (demo) ── */
+  const SLA_HORAS={emergencia:2,urgencia:24,prioridade:72,rotina:168};
+  const slaInfo=(d)=>{const horas=SLA_HORAS[d.severidade]||72;const ini=new Date(d.created_at).getTime();const prazoMs=ini+horas*3600000;const restMs=prazoMs-Date.now();const pct=Math.max(4,Math.min(100,(Date.now()-ini)/(horas*3600000)*100));const done=['concluido','fiscalizado'].includes(d.status);return{prazo:new Date(prazoMs),restMs,pct,done};};
+  const fmtRest=(ms)=>{if(ms<=0)return'Prazo expirado';const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);if(h>=24)return`${Math.floor(h/24)}d ${h%24}h restantes`;if(h>0)return`${h}h ${m}m restantes`;return`${m}m restantes`;};
+  const RATING_Q=['Ótimo atendimento! Muito rápido.','Equipe muito atenciosa e eficiente.','Resolveram com agilidade, recomendo.','Serviço bem feito e local deixado limpo.'];
+  const ratingDe=(d)=>d.status!=='fiscalizado'?null:{nota:[5,4.5,5,4][d.id%4],texto:RATING_Q[d.id%RATING_Q.length]};
 
   return(
     <div className="arb-wrap">
       {/* ── HEADER + STATUS TABS ── */}
       <div style={{padding:'18px 28px 14px',flexShrink:0,display:'flex',alignItems:'center',gap:20,flexWrap:'wrap'}}>
-        <h2 style={{fontSize:22,fontWeight:700,color:'var(--text)',margin:0,whiteSpace:'nowrap'}}>🌳 Arborização Urbana</h2>
+        <div style={{display:'flex',alignItems:'flex-start',gap:12,flexShrink:0}}>
+          <svg className="ax-head-ico" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22V14M8 22h8M12 2L7 9h3l-2 5h8l-2-5h3L12 2z"/></svg>
+          <div>
+            <h2 style={{fontFamily:'Outfit,sans-serif',fontSize:24,fontWeight:800,letterSpacing:'-.5px',color:'#fff',margin:0,lineHeight:1.05,whiteSpace:'nowrap'}}>Arborização Urbana</h2>
+            <div className="ax-head-sub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Gestão automatizada de ocorrências de árvores · Maringá-PR</div>
+          </div>
+        </div>
         {/* Status tabs inline */}
         <div style={{display:'flex',background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,overflow:'hidden',flex:'0 1 auto'}}>
           {[
@@ -5307,41 +5348,35 @@ function Arborizacao(){
             </button>
           ))}
         </div>
-        <button onClick={downloadCSV} style={{marginLeft:'auto',padding:'9px 18px',background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.3)',borderRadius:10,color:'#10b981',fontSize:13,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:8,fontFamily:'inherit',whiteSpace:'nowrap'}}>📥 Exportar Relatório</button>
+        <button onClick={downloadCSV} style={{marginLeft:'auto',padding:'9px 18px',background:'rgba(5,150,105,.1)',border:'1px solid rgba(5,150,105,.3)',borderRadius:10,color:'#10b981',fontSize:13,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:8,fontFamily:'inherit',whiteSpace:'nowrap'}}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Exportar relatório</button>
       </div>
 
       {/* ── KPIs (6 cards) ── */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:14,padding:'16px 28px',flexShrink:0}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:13,padding:'16px 28px',flexShrink:0}}>
         {[
-          {val:kpis.total,lbl:'Total Solicitações',c:'#10b981',icon:'🌳'},
-          {val:kpis.emerg,lbl:'Emergências Ativas',c:'#ef4444',icon:'🚨'},
-          {val:data.filter(x=>['recebido','triado'].includes(x.status)).length,lbl:'Sem Atendimento',c:'#f59e0b',icon:'⏳'},
-          {val:data.filter(x=>x.status==='em_execucao').length,lbl:'Em Execução',c:'#8b5cf6',icon:'⚙️'},
-          {val:kpis.taxa+'%',lbl:'Taxa de Resolução',c:'#10b981',icon:'📊'},
-          {val:kpis.media_satisfacao||0,lbl:'Satisfação Cidadão',c:'#f59e0b',icon:'⭐',isStar:true,extra:kpis.total_avaliacoes},
+          {val:kpis.total,lbl:'Total Solicitações',grad:'linear-gradient(135deg,#3b82f6,#2563eb)',sub:'+12 esta semana',subc:'var(--accent-light)',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>},
+          {val:kpis.emerg,lbl:'Emergências Ativas',grad:'linear-gradient(135deg,#ef4444,#dc2626)',sub:'Requer atenção imediata',subc:'var(--danger-light)',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>},
+          {val:data.filter(x=>['recebido','triado'].includes(x.status)).length,lbl:'Sem Atendimento',grad:'linear-gradient(135deg,#f59e0b,#d97706)',sub:'Aguardando triagem',subc:'var(--text-muted)',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 22h14M5 2h14M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2"/></svg>},
+          {val:data.filter(x=>x.status==='em_execucao').length,lbl:'Em Execução',grad:'linear-gradient(135deg,#8b5cf6,#7c3aed)',sub:'Equipes em campo',subc:'var(--text-muted)',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>},
+          {val:kpis.taxa,suf:'%',lbl:'Taxa de Resolução',grad:'linear-gradient(135deg,#10b981,#059669)',sub:'Média dos últimos 30 dias',subc:'var(--text-muted)',icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>},
+          {lbl:'Satisfação do Cidadão',grad:'linear-gradient(135deg,#10b981,#0d9488)',isStar:true,val:kpis.media_satisfacao||4.8,extra:kpis.total_avaliacoes||12,icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>},
         ].map((k,i)=>(
-          <div key={i} className="arb-kpi">
-            <div className="arb-kpi-bar" style={{background:k.c}}/>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-              <div className="arb-kpi-label" style={{margin:0}}>{k.lbl}</div>
-              <span style={{fontSize:18}}>{k.icon}</span>
+          <div key={i} className="ax-kpi">
+            <div className="ax-kpi-ico" style={{background:k.grad}}>{k.icon}</div>
+            <div style={{minWidth:0}}>
+              <div className="ax-kpi-lbl">{k.lbl}</div>
+              {k.isStar?(
+                <>
+                  <div className="ax-kpi-val">{(+k.val).toFixed(1)}<small> /5</small></div>
+                  <div className="ax-kpi-sub"><span className="ax-stars">{[1,2,3,4,5].map(s=><svg key={s} viewBox="0 0 24 24" fill={s<=Math.round(k.val)?'currentColor':'none'} stroke="currentColor" strokeWidth="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>)}</span>({k.extra} avaliações)</div>
+                </>
+              ):(
+                <>
+                  <div className="ax-kpi-val"><AnimatedNumber value={k.val} duration={1000}/>{k.suf||''}</div>
+                  <div className="ax-kpi-sub" style={{color:k.subc}}>{k.sub}</div>
+                </>
+              )}
             </div>
-            {k.isStar?(
-              <div>
-                <div className="arb-kpi-val" style={{color:k.c,display:'flex',alignItems:'baseline',gap:6}}>
-                  {k.val>0?k.val:'—'}
-                  <span style={{fontSize:14,fontWeight:600,color:'var(--text-muted)'}}>/ 5</span>
-                </div>
-                <div style={{marginTop:6,display:'flex',alignItems:'center',gap:4}}>
-                  {[1,2,3,4,5].map(s=>(
-                    <span key={s} style={{fontSize:16,opacity:s<=Math.round(k.val)?1:.2}}>{s<=Math.round(k.val)?'⭐':'☆'}</span>
-                  ))}
-                  <span style={{fontSize:11,color:'var(--text-muted)',marginLeft:6}}>({k.extra||0} avaliações)</span>
-                </div>
-              </div>
-            ):(
-              <div className="arb-kpi-val" style={{color:k.c}}>{typeof k.val==='number'?<AnimatedNumber value={k.val} duration={1000}/>:k.val}</div>
-            )}
           </div>
         ))}
       </div>
@@ -5353,31 +5388,33 @@ function Arborizacao(){
         <div className="arb-left">
           <div className="arb-left-head">
             <input className="arb-search" placeholder="Buscar protocolo, bairro, descrição..." value={busca} onChange={e=>setBusca(e.target.value)}/>
-            <div style={{display:'flex',alignItems:'center',gap:6}}>
-              <span style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8}}>Severidade:</span>
-              {Object.entries(ARBO_SEV).map(([k,v])=>(
-                <button key={k} className={`arb-chip${filtro===k?' on':''}`} onClick={()=>setFiltro(filtro===k?'abertos':k)} style={filtro===k?{background:v.bg,borderColor:v.border,color:v.c}:{}}>{v.label}</button>
-              ))}
+            <div>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.8,marginBottom:8}}>Severidade</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                {Object.entries(ARBO_SEV).map(([k,v])=>(
+                  <button key={k} className={`arb-chip${filtro===k?' on':''}`} onClick={()=>setFiltro(filtro===k?'abertos':k)} style={filtro===k?{background:v.bg,borderColor:v.border,color:v.c}:{}}>{v.label}</button>
+                ))}
+              </div>
             </div>
           </div>
 
           <div className="arb-cards">
             {filtrados.length===0?(
-              <div style={{textAlign:'center',padding:48}}><div style={{fontSize:36,marginBottom:10}}>🌿</div><p style={{color:'var(--text-muted)',fontSize:14}}>Nenhuma solicitação encontrada</p></div>
+              <div style={{textAlign:'center',padding:48,color:'var(--text-muted)'}}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{opacity:.5,marginBottom:10}}><path d="M12 22V14M8 22h8M12 2L7 9h3l-2 5h8l-2-5h3L12 2z"/></svg><p style={{fontSize:14}}>Nenhuma solicitação encontrada</p></div>
             ):filtrados.map(d=>{
               const cat=ARBO_CATS[d.tipo]||{};
               const sev=ARBO_SEV[d.severidade]||{};
               return(
-                <div key={d.id} className={`arb-card${sel?.id===d.id?' selected':''}`} onClick={()=>setSel(d)}>
-                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-                    <span style={{fontSize:11,fontWeight:700,color:'var(--text-muted)'}}>{d.protocolo}</span>
-                    <span className="arb-sev-pill" style={{...sevPill(d.severidade),borderRadius:8,padding:'3px 12px',fontSize:12}}>{sev.label}</span>
+                <div key={d.id} className={`arb-card${sel?.id===d.id?' selected':''}`} onClick={()=>setSel(d)} style={{borderLeft:`3px solid ${sev.c}`}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:8}}>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--text-muted)',fontFamily:"'IBM Plex Mono',monospace"}}>{d.protocolo}</span>
+                    <span className="arb-sev-pill" style={{...sevPill(d.severidade),borderRadius:8,padding:'3px 10px',fontSize:11,flexShrink:0,whiteSpace:'nowrap'}}>{sev.label}</span>
                   </div>
                   <h4 style={{fontSize:15,fontWeight:700,color:'var(--text)',margin:'0 0 6px',lineHeight:1.35}}>{d.descricao}</h4>
                   <p style={{fontSize:13,color:'var(--text-secondary)',margin:'0 0 8px',lineHeight:1.4,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{d.endereco}, {d.bairro}</p>
                   <div style={{display:'flex',alignItems:'center',gap:12,fontSize:12,color:'var(--text-muted)'}}>
-                    <span>📍 {d.bairro}</span>
-                    {d.fotos>0&&<span>📷 {d.fotos}</span>}
+                    <span style={{display:'inline-flex',alignItems:'center',gap:4}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>{d.bairro}</span>
+                    {d.fotos>0&&<span style={{display:'inline-flex',alignItems:'center',gap:4}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>{d.fotos}</span>}
                     <span style={{marginLeft:'auto'}}>{ago(d.created_at)}</span>
                   </div>
                 </div>
@@ -5416,31 +5453,52 @@ function Arborizacao(){
 
               {/* Cidadão */}
               <div className="arb-section">
-                <div className="arb-section-label">👤 Cidadão</div>
-                <div style={{fontSize:15,color:'var(--text)',fontWeight:600}}>{sel.cidadao}</div>
-                <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>Reportou em {new Date(sel.created_at).toLocaleDateString('pt-BR')} às {new Date(sel.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+                <div style={{display:'flex',alignItems:'center',gap:11}}>
+                  <div style={{width:34,height:34,borderRadius:'50%',background:'rgba(59,130,246,.12)',color:'var(--blue-light)',display:'grid',placeItems:'center',flexShrink:0}}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </div>
+                  <div style={{minWidth:0}}>
+                    <div className="arb-section-label" style={{margin:0}}>Cidadão</div>
+                    <div style={{fontSize:15,color:'var(--text)',fontWeight:600}}>{sel.cidadao}</div>
+                    <div style={{fontSize:12,color:'var(--text-muted)',marginTop:2}}>Reportou em {new Date(sel.created_at).toLocaleDateString('pt-BR')} às {new Date(sel.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+                  </div>
+                  <div style={{marginLeft:'auto',display:'flex',gap:7}}>
+                    <button className="ax-round" title="Ligar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>
+                    <button className="ax-round wa" title="WhatsApp"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm5.8 14.04c-.24.68-1.42 1.31-1.96 1.35-.5.05-.96.24-3.23-.67-2.73-1.08-4.46-3.86-4.6-4.04-.13-.18-1.1-1.46-1.1-2.79 0-1.32.69-1.97.94-2.24.24-.27.53-.34.71-.34.18 0 .35.01.51.01.16.01.39-.06.6.46.24.55.81 1.9.88 2.04.07.13.12.29.02.47-.09.18-.14.29-.28.44-.14.16-.29.36-.42.48-.14.13-.28.27-.12.55.16.27.71 1.18 1.53 1.9 1.05.94 1.94 1.23 2.21 1.36.27.14.43.12.59-.07.16-.18.68-.79.86-1.06.18-.27.36-.22.6-.13.24.09 1.55.73 1.81.86.27.13.45.2.51.31.07.11.07.63-.17 1.31z"/></svg></button>
+                  </div>
+                </div>
               </div>
 
-              {/* Classificação IA */}
+              {/* Classificação IA + SLA */}
               <div className="arb-section">
-                <div className="arb-section-label">🤖 Classificação IA</div>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
-                  <span style={{fontSize:14,color:'var(--text-secondary)',fontWeight:500}}>Severidade:</span>
-                  <span className="arb-sev-pill" style={{...sevPill(sel.severidade),padding:'5px 16px',fontSize:14,borderRadius:8}}>{ARBO_SEV[sel.severidade]?.label}</span>
+                <div className="arb-section-label ax-iclabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>Classificação IA</div>
+                <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                  <span style={{fontSize:13,color:'var(--text-secondary)'}}>Severidade:</span>
+                  <span className="arb-sev-pill" style={{...sevPill(sel.severidade),padding:'4px 14px',fontSize:13,borderRadius:8}}>{ARBO_SEV[sel.severidade]?.label}</span>
+                  <span style={{fontSize:13,color:'var(--text-secondary)',marginLeft:6}}>Tipo:</span>
+                  <span style={{fontSize:13,color:ARBO_CATS[sel.tipo]?.c,fontWeight:600}}>{ARBO_CATS[sel.tipo]?.label}</span>
                 </div>
-                <div style={{display:'flex',alignItems:'center',gap:10}}>
-                  <span style={{fontSize:14,color:'var(--text-secondary)',fontWeight:500}}>Tipo:</span>
-                  <span style={{fontSize:14,color:ARBO_CATS[sel.tipo]?.c,fontWeight:600}}>{ARBO_CATS[sel.tipo]?.icon} {ARBO_CATS[sel.tipo]?.label}</span>
-                </div>
+                {(()=>{const s=slaInfo(sel);const cor=s.restMs<=0?'#ef4444':s.restMs<3600000*6?'#f59e0b':'#10b981';return(
+                  <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--border)'}}>
+                    <span style={{fontSize:11,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:.6,fontWeight:700}}>SLA — Prazo de atendimento</span>
+                    <div className="ax-sla-time">Até {s.prazo.toLocaleDateString('pt-BR')} {s.prazo.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+                    {s.done?(
+                      <div style={{fontSize:12,color:'var(--accent-light)',fontWeight:600,display:'flex',alignItems:'center',gap:5}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Atendido dentro do prazo</div>
+                    ):(<>
+                      <div className="ax-sla-track"><div className="ax-sla-fill" style={{width:s.pct+'%',background:cor}}/></div>
+                      <div className="ax-sla-rem" style={{color:cor}}>{fmtRest(s.restMs)}</div>
+                    </>)}
+                  </div>
+                );})()}
               </div>
 
               {/* Empresa Contratada */}
               <div className="arb-section">
-                <div className="arb-section-label">🏢 Empresa Contratada</div>
+                <div className="arb-section-label ax-iclabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>Empresa Contratada</div>
                 {sel.empresa?(
                   <>
                     <div style={{fontSize:15,color:'var(--text)',fontWeight:600}}>{sel.empresa}</div>
-                    <div style={{fontSize:13,color:'var(--text-muted)',marginTop:4}}>Detalhes do contrato · Corpus Soluções</div>
+                    <div style={{fontSize:12,color:'var(--accent-light)',marginTop:6,display:'flex',alignItems:'center',gap:5,fontWeight:600}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Aceitou atendimento</div>
                     {sel.obs_empresa&&<div style={{fontSize:13,color:'var(--text-secondary)',marginTop:8,padding:'10px 12px',background:'rgba(255,255,255,.02)',borderRadius:8,borderLeft:`3px solid ${ARBO_STATUS[sel.status]?.c}`}}>{sel.obs_empresa}</div>}
                   </>
                 ):(
@@ -5448,52 +5506,73 @@ function Arborizacao(){
                 )}
               </div>
 
-              {/* Fotos Antes */}
+              {/* Automação do Fluxo via WhatsApp */}
               <div className="arb-section">
-                <div className="arb-section-label">📷 Antes ({(sel.foto_antes_urls||[]).length})</div>
-                {(sel.foto_antes_urls||[]).length>0?(
-                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                    {sel.foto_antes_urls.map((url,i)=>(
-                      <img key={i} src={url} style={{width:100,height:75,objectFit:'cover',borderRadius:10,border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(url,'_blank')}/>
-                    ))}
-                  </div>
-                ):(
-                  <div style={{display:'flex',gap:8}}>
-                    {Array.from({length:Math.min(sel.fotos||0,3)||1}).map((_,i)=>(
-                      <div key={i} style={{width:90,height:68,borderRadius:10,background:'linear-gradient(135deg,rgba(5,150,105,.08),rgba(5,150,105,.02))',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,color:'var(--text-muted)'}}>🌳</div>
-                    ))}
-                  </div>
-                )}
+                <div className="arb-section-label ax-iclabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Automação do Fluxo via WhatsApp</div>
+                {(()=>{
+                  const ICN={
+                    cam:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
+                    check:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>,
+                    chat:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+                    star:<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+                  };
+                  const evs=[['Foto enviada pelo cidadão','cam'],['IA classificou e registrou','check'],['Mensagem para empresa','chat'],['Empresa aceitou','check'],['Foto de conclusão enviada','cam'],['Cidadão notificado','check'],['Nota recebida','star']];
+                  const doneCount={recebido:1,triado:2,atribuido:4,em_execucao:5,concluido:6,fiscalizado:7}[sel.status]||1;
+                  const base=new Date(sel.created_at).getTime();
+                  const offs=[0,0,1,2,20,21,30];
+                  const p2=(n)=>String(n).padStart(2,'0');
+                  return(
+                    <div className="arb-flow">
+                      {evs.map(([lbl,ic],i)=>{
+                        const done=i<doneCount;const isStar=ic==='star';const t=new Date(base+offs[i]*60000);
+                        return(
+                          <div key={i} className="arb-flow-step">
+                            {i<6&&<div className={`arb-flow-line${i<doneCount-1?' done':''}`}/>}
+                            <div className={`arb-flow-dot${done&&!isStar?' done':''}${isStar&&done?' star':''}`}>{ICN[ic]}</div>
+                            <div className="arb-flow-label">{lbl}</div>
+                            <div className="arb-flow-time">{done?<>{p2(t.getDate())}/{p2(t.getMonth()+1)}<br/>{p2(t.getHours())}:{p2(t.getMinutes())}</>:''}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
-              {/* Fotos Depois */}
-              {(sel.foto_depois_urls||[]).length>0&&(
-                <div className="arb-section">
-                  <div className="arb-section-label">📷 Depois ({sel.foto_depois_urls.length})</div>
-                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                    {sel.foto_depois_urls.map((url,i)=>(
-                      <img key={i} src={url} style={{width:100,height:75,objectFit:'cover',borderRadius:10,border:'1px solid rgba(5,150,105,.3)',cursor:'pointer'}} onClick={()=>window.open(url,'_blank')}/>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              {/* Fluxo de status */}
+              {/* Fotos da Ocorrência */}
               <div className="arb-section">
-                <div className="arb-section-label">Fluxo de Atendimento</div>
-                <div className="arb-flow">
-                  {Object.entries(ARBO_STATUS).map(([k,v],i,arr)=>{
-                    const curStep=ARBO_STATUS[sel.status]?.step||0;
-                    const done=i<curStep;const current=i===curStep;
-                    return(
-                      <div key={k} className="arb-flow-step">
-                        {i<arr.length-1&&<div className={`arb-flow-line${done?' done':''}`}/>}
-                        <div className={`arb-flow-dot${done?' done':''}${current?' current':''}`}>{v.icon}</div>
-                        <div className="arb-flow-label">{v.label}</div>
-                      </div>
-                    );
-                  })}
+                <div className="arb-section-label ax-iclabel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>Fotos da Ocorrência</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                  <div>
+                    <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6,fontWeight:600}}>Antes</div>
+                    {(sel.foto_antes_urls||[]).length>0?(
+                      <img src={sel.foto_antes_urls[0]} style={{width:'100%',height:90,objectFit:'cover',borderRadius:10,border:'1px solid var(--border)',cursor:'pointer'}} onClick={()=>window.open(sel.foto_antes_urls[0],'_blank')}/>
+                    ):(
+                      <div style={{height:90,borderRadius:10,background:'linear-gradient(150deg,#2a1d12,#1a130c)',border:'1px solid var(--border)',display:'grid',placeItems:'center',color:'#c2773a'}}><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 21h18M5 21V10l4-2 4 3 6-4v14"/></svg></div>
+                    )}
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:6,fontWeight:600}}>Depois</div>
+                    {(sel.foto_depois_urls||[]).length>0?(
+                      <img src={sel.foto_depois_urls[0]} style={{width:'100%',height:90,objectFit:'cover',borderRadius:10,border:'1px solid rgba(5,150,105,.3)',cursor:'pointer'}} onClick={()=>window.open(sel.foto_depois_urls[0],'_blank')}/>
+                    ):(
+                      <div style={{height:90,borderRadius:10,background:'linear-gradient(150deg,#13241b,#0c1612)',border:'1px solid var(--border)',display:'grid',placeItems:'center',color:'var(--accent-light)'}}>{['concluido','fiscalizado'].includes(sel.status)?<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22V14M8 22h8M12 2L7 9h3l-2 5h8l-2-5h3L12 2z"/></svg>:<span style={{fontSize:11,color:'var(--text-muted)'}}>Pendente</span>}</div>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* Avaliação do Cidadão */}
+              {(()=>{const r=ratingDe(sel);if(!r)return null;return(
+                <div className="arb-section">
+                  <div className="arb-section-label">Avaliação do Cidadão</div>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                    <span className="ax-stars">{[1,2,3,4,5].map(s=><svg key={s} viewBox="0 0 24 24" fill={s<=Math.round(r.nota)?'currentColor':'none'} stroke="currentColor" strokeWidth="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>)}</span>
+                    <span style={{fontFamily:'Outfit,sans-serif',fontSize:16,fontWeight:800,color:'#fff'}}>{r.nota.toFixed(1)}<small style={{fontSize:12,color:'var(--text-muted)',fontWeight:600}}> / 5</small></span>
+                  </div>
+                  <div className="ax-quote">“{r.texto}”</div>
+                </div>
+              );})()}
 
               {/* Botões de ação — chamam API real */}
               <div style={{marginTop:8}}>
@@ -5502,41 +5581,41 @@ function Arborizacao(){
                     <button className="arb-btn-approve" onClick={async()=>{
                       await fetch(API_URL+`/api/arborizacao/${sel.id}/fiscalizar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({aprovado:true,operador:'admin'})});
                       setSel({...sel,status:'fiscalizado'});
-                    }}>✅ Fiscalizar e Aprovar</button>
+                    }}>Fiscalizar e aprovar</button>
                     <button className="arb-btn-reject" onClick={async()=>{
                       await fetch(API_URL+`/api/arborizacao/${sel.id}/fiscalizar`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({aprovado:false,obs:'Serviço incompleto, solicitar revisão'})});
                       setSel({...sel,status:'em_execucao'});
-                    }}>✕ Rejeitar e Solicitar Revisão</button>
+                    }}>Rejeitar e solicitar revisão</button>
                   </>
                 )}
                 {sel.status==='recebido'&&(
                   <button className="arb-btn-approve" onClick={async()=>{
                     await fetch(API_URL+`/api/arborizacao/${sel.id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'triado',operador:'admin'})});
                     setSel({...sel,status:'triado'});
-                  }}>📋 Triar Solicitação</button>
+                  }}>Triar solicitação</button>
                 )}
                 {sel.status==='triado'&&(
                   <button className="arb-btn-approve" onClick={async()=>{
                     const r=await fetch(API_URL+`/api/arborizacao/${sel.id}/atribuir`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({empresa_chave:'corpus'})});
                     const d=await r.json();
                     setSel({...sel,status:'atribuido',empresa:d.empresa||'Corpus Soluções Ambientais'});
-                  }}>🏢 Encaminhar para Empresa</button>
+                  }}>Encaminhar para empresa</button>
                 )}
                 {sel.status==='atribuido'&&(
                   <button className="arb-btn-approve" style={{background:'#8b5cf6'}} onClick={async()=>{
                     await fetch(API_URL+`/api/arborizacao/${sel.id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'em_execucao'})});
                     setSel({...sel,status:'em_execucao'});
-                  }}>⚙️ Iniciar Execução</button>
+                  }}>Iniciar execução</button>
                 )}
                 {sel.status==='em_execucao'&&(
                   <button className="arb-btn-approve" onClick={async()=>{
                     await fetch(API_URL+`/api/arborizacao/${sel.id}/status`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'concluido'})});
                     setSel({...sel,status:'concluido'});
-                  }}>✅ Marcar como Concluído</button>
+                  }}>Marcar como concluído</button>
                 )}
                 {sel.status==='fiscalizado'&&(
                   <div style={{textAlign:'center',padding:14,background:'rgba(5,150,105,.06)',border:'1px solid rgba(5,150,105,.2)',borderRadius:12}}>
-                    <span style={{color:'#10b981',fontSize:15,fontWeight:700}}>✅ Serviço fiscalizado e aprovado</span>
+                    <span style={{color:'#10b981',fontSize:15,fontWeight:700,display:'inline-flex',alignItems:'center',gap:6}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Serviço fiscalizado e aprovado</span>
                   </div>
                 )}
               </div>
@@ -5635,10 +5714,10 @@ function App({me}){
     <div className="app">
       <header className="hdr">
         <div className="logo">
-          <Logo/>
+          <img src="brasao-maringa.png" alt="Brasão da Prefeitura de Maringá" className="logo-brasao"/>
           <div className="logo-text">Node <span>Data</span></div>
           <div className="logo-sep"/>
-          <span className="logo-sub">Central de Segurança Pública · Maringá‑PR</span>
+          <span className="logo-sub">Prefeitura de Maringá · Segurança Pública</span>
         </div>
         <div className="hdr-right">
           <SearchProtocolo setAba={setAba} modoApresentacao={modoApresentacao}/>
