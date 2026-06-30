@@ -2645,7 +2645,7 @@ function DenEvBadge({type,active}){
 
 function Denuncias(){
   const [sel,setSel]=useState(null);
-  const [period,setPeriod]=useState('month');
+  const [period,setPeriod]=useState('all');
   const [offset,setOffset]=useState(0);
   const [statusFilter,setStatusFilter]=useState('todos');
   const [catFilter,setCatFilter]=useState('');
@@ -4444,7 +4444,7 @@ const S_RECOMP={
 };
 
 function Recompensas(){
-  const [periodType,setPeriodType]=useState('month');
+  const [periodType,setPeriodType]=useState('all');
   const [periodOffset,setPeriodOffset]=useState(0);
   const [statusFilter,setStatusFilter]=useState('todos');
   const [searchQuery,setSearchQuery]=useState('');
@@ -5690,7 +5690,7 @@ function App({me}){
   },[sos,mutado,modoApresentacao]);
 
   /* ── Som ao navegar para aba SOS com alertas ativos ── */
-  useEffect(()=>{if(aba==='sos'&&sos>0&&!mutado&&!modoApresentacao)tocarSirene();},[aba]);
+  useEffect(()=>{if(aba==='sos'&&sos>0&&!mutado)tocarSirene();},[aba]);
 
   const ABAS_FULL=[
     {id:'central',icon:<Ico.grid/>,label:'Painel'},
@@ -5707,7 +5707,7 @@ function App({me}){
   const ABAS_POR_PAPEL={financeiro:['recompensas']};
   const _abasPermitidas=ABAS_POR_PAPEL[me?.papel]?ABAS_FULL.filter(a=>ABAS_POR_PAPEL[me.papel].includes(a.id)):ABAS_FULL;
   const ABAS=modoApresentacao
-    ?_abasPermitidas.filter(a=>['denuncias','recompensas'].includes(a.id))
+    ?_abasPermitidas.filter(a=>['denuncias','recompensas','sos'].includes(a.id))
     :_abasPermitidas;
 
   return(
