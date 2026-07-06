@@ -1,7 +1,7 @@
 """
 noticias.py — Radar de Notícias de Maringá
 Busca notícias via Google News RSS (gratuito, sem API key).
-Oferece resumo executivo gerado por IA (OpenAI GPT-4o-mini).
+Oferece resumo executivo gerado por IA (OpenAI GPT-5.4-mini).
 
 Endpoints:
   GET  /api/noticias/          → lista de notícias (busca por termo)
@@ -203,7 +203,7 @@ async def listar_noticias(
 @router.post("/resumo", response_model=ResumoResponse)
 async def gerar_resumo(payload: ResumoRequest):
     """
-    Gera um resumo executivo das notícias usando IA (GPT-4o-mini).
+    Gera um resumo executivo das notícias usando IA (GPT-5.4-mini).
 
     O gestor seleciona as notícias que quer resumir (ou manda todas do dia),
     e a IA gera um relatório conciso com os principais destaques.
@@ -243,13 +243,13 @@ Seja objetivo e direto. Use linguagem formal mas acessível. Foque no que impact
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": "gpt-4o-mini",
+                    "model": "gpt-5.4-mini",
                     "messages": [
                         {"role": "system", "content": "Você é um analista de inteligência municipal especializado em Maringá-PR."},
                         {"role": "user", "content": prompt},
                     ],
-                    "temperature": 0.4,
-                    "max_tokens": 1500,
+                    "reasoning_effort": "low",
+                    "max_completion_tokens": 2500,
                 },
             )
             resp.raise_for_status()

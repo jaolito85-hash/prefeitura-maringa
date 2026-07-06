@@ -22,7 +22,7 @@ logger = logging.getLogger("classificador")
 
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 OPENAI_MODERATION_URL = "https://api.openai.com/v1/moderations"
-OPENAI_MODEL = "gpt-4o-mini"
+OPENAI_MODEL = "gpt-5.4-mini"
 
 
 # ── O PROMPT DO SISTEMA ────────────────────────────────────────────────────
@@ -370,7 +370,7 @@ async def classificar_imagem(
     """
     Classifica imagem recebida via WhatsApp.
     1. Modera (grátis via /v1/moderations)
-    2. Classifica (GPT-4o-mini com vision)
+    2. Classifica (GPT-5.4-mini com vision)
 
     Retorna mesmo formato que classificar_mensagem() + campos extras:
     - confianca: int (0-100)
@@ -395,15 +395,15 @@ async def classificar_imagem(
             "confianca": 0,
         }
 
-    # ── Etapa 2: Classificação visual (GPT-4o-mini com vision) ──
+    # ── Etapa 2: Classificação visual (GPT-5.4-mini com vision) ──
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {settings.openai_api_key}",
     }
     payload = {
         "model": OPENAI_MODEL,
-        "max_tokens": 500,
-        "temperature": 0.1,
+        "max_completion_tokens": 1000,
+        "reasoning_effort": "low",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT_IMAGEM},
             {"role": "user", "content": [
@@ -519,7 +519,7 @@ async def classificar_imagem_arborizacao(
     texto_acompanhante: str = "",
     telefone: str = "",
 ) -> dict[str, Any]:
-    """Classifica imagem de arborização com GPT-4o-mini Vision."""
+    """Classifica imagem de arborização com GPT-5.4-mini Vision."""
     # Moderação primeiro
     moderacao = await _moderar_imagem(image_url)
     if moderacao["flagged"]:
@@ -538,8 +538,8 @@ async def classificar_imagem_arborizacao(
     }
     payload = {
         "model": OPENAI_MODEL,
-        "max_tokens": 500,
-        "temperature": 0.1,
+        "max_completion_tokens": 1000,
+        "reasoning_effort": "low",
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT_ARBORIZACAO},
             {"role": "user", "content": [
@@ -574,7 +574,7 @@ async def comparar_antes_depois(
     foto_depois_url: str,
     categoria: str,
 ) -> dict[str, Any]:
-    """Compara fotos antes/depois de serviço de arborização com GPT-4o-mini Vision."""
+    """Compara fotos antes/depois de serviço de arborização com GPT-5.4-mini Vision."""
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {settings.openai_api_key}",
@@ -582,8 +582,8 @@ async def comparar_antes_depois(
     prompt_fiscal = SYSTEM_PROMPT_FISCAL.replace("{categoria}", categoria.replace("_", " ").title())
     payload = {
         "model": OPENAI_MODEL,
-        "max_tokens": 300,
-        "temperature": 0.1,
+        "max_completion_tokens": 800,
+        "reasoning_effort": "low",
         "messages": [
             {"role": "system", "content": prompt_fiscal},
             {"role": "user", "content": [
@@ -635,7 +635,7 @@ async def _chamar_ia(
     mensagem: str,
     telefone: str,
 ) -> dict[str, Any]:
-    """Faz a chamada pra API da OpenAI (GPT-4o-mini). Timeout de 15s."""
+    """Faz a chamada pra API da OpenAI (GPT-5.4-mini). Timeout de 15s."""
 
     headers = {
         "Content-Type": "application/json",
@@ -644,8 +644,8 @@ async def _chamar_ia(
 
     payload = {
         "model": OPENAI_MODEL,
-        "max_tokens": 500,
-        "temperature": 0.1,
+        "max_completion_tokens": 1000,
+        "reasoning_effort": "low",
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": mensagem},

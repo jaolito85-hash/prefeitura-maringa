@@ -78,7 +78,7 @@ backend/
       ocorrencias.py     # Webhook producao — canal ocorrencias
       common.py          # Validacao API key, rate limit, dedup
     services/
-      classificador.py   # OpenAI GPT-4o-mini — classifica em: denuncia, sos_mulher, ocorrencia, feedback, saudacao
+      classificador.py   # OpenAI GPT-5.4-mini — classifica em: denuncia, sos_mulher, ocorrencia, feedback, saudacao
       supabase_client.py # Singleton Supabase client (service_key)
       webhook_queue.py   # Enfileirar no Redis por canal
       rate_limiter.py    # 30 msgs/dia, 3 consultas protocolo/hora
@@ -156,13 +156,13 @@ Formato `MGA-2026-XXXXX` via `protocolo_seq` (PostgreSQL sequence).
 2. Detecta SOS (resposta < 2s) → fila prioritaria
 3. Verifica sessao ativa pra esse telefone
 4. Se tem sessao → CONTINUACAO (mesmo protocolo, nao classifica de novo)
-5. Se nao tem → classifica com IA (GPT-4o-mini) → abre protocolo
+5. Se nao tem → classifica com IA (GPT-5.4-mini) → abre protocolo
 6. Enfileira no Redis (fila por canal)
 7. Worker processa: `queue:sos` > `queue:denuncias` > `queue:ocorrencias` > `queue:feedbacks` > `queue:consultas` > `queue:saudacoes`
 8. Salva no Supabase + responde via Evolution API
 
 ### Classificador IA
-- Modelo: OpenAI GPT-4o-mini (NAO usa Claude/Anthropic apesar da var no config)
+- Modelo: OpenAI GPT-5.4-mini com reasoning_effort=low (NAO usa Claude/Anthropic apesar da var no config). Modelos GPT-5.x exigem max_completion_tokens (max_tokens foi descontinuado) e nao aceitam temperature customizada.
 - Canais: `denuncia`, `sos_mulher`, `ocorrencia`, `feedback`, `saudacao`
 - Extrai: categoria, sentimento, urgencia (1-5), resumo, resposta_whatsapp
 - Dois prompts: SYSTEM_PROMPT (msg nova) e SYSTEM_PROMPT_SESSAO (continuacao)
