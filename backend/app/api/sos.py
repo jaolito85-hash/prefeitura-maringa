@@ -136,7 +136,7 @@ async def sos_handoff_toggle(alerta_id: str, body: dict):
         else:
             msg = "O atendimento voltou ao nosso assistente virtual."
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
                 await client.post(
                     f"{EVOLUTION_API_URL}/message/sendText/{WA_INSTANCE_NAME}",
                     headers={"apikey": EVOLUTION_API_KEY},
@@ -174,7 +174,7 @@ async def send_sos_message(alerta_id: str, body: dict):
     if EVOLUTION_API_URL and EVOLUTION_API_KEY:
         numero = telefone.lstrip("+")
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
                 await client.post(
                     f"{EVOLUTION_API_URL}/message/sendText/{WA_INSTANCE_NAME}",
                     headers={"apikey": EVOLUTION_API_KEY},

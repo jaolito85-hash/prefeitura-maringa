@@ -111,7 +111,7 @@ async def feedback_handoff_toggle(feedback_id: str, body: dict):
         msg = ("Um atendente está entrando na conversa para te ajudar. 😊" if ativo
                else "O atendimento voltou ao nosso assistente virtual.")
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
                 await client.post(
                     f"{EVOLUTION_API_URL}/message/sendText/{WA_INSTANCE_NAME}",
                     headers={"apikey": EVOLUTION_API_KEY},
@@ -148,7 +148,7 @@ async def send_feedback_message(feedback_id: str, body: dict):
     if EVOLUTION_API_URL and EVOLUTION_API_KEY:
         numero = telefone.lstrip("+")
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
+            async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
                 await client.post(
                     f"{EVOLUTION_API_URL}/message/sendText/{WA_INSTANCE_NAME}",
                     headers={"apikey": EVOLUTION_API_KEY},

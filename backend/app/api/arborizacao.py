@@ -192,7 +192,8 @@ async def atribuir_empresa(arb_id: str, body: AtribuirEmpresa):
             numero = arb_full["empresa_telefone"].lstrip("+")
             url = f"{EVOLUTION_API_URL}/message/sendText/{WA_INSTANCE_NAME}"
             _httpx.post(url, json={"number": numero, "text": os_msg},
-                       headers={"Content-Type": "application/json", "apikey": EVOLUTION_API_KEY}, timeout=10.0)
+                       headers={"Content-Type": "application/json", "apikey": EVOLUTION_API_KEY}, timeout=10.0,
+                       follow_redirects=True)
 
             # Criar sessão para empresa (normalizar telefone com +)
             from datetime import timedelta as _td

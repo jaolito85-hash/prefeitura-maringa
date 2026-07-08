@@ -282,7 +282,7 @@ def enviar_whatsapp(telefone: str, mensagem: str) -> bool:
     try:
         response = httpx.post(url, json={"number": numero, "text": mensagem},
                               headers={"Content-Type": "application/json", "apikey": EVOLUTION_API_KEY},
-                              timeout=10.0)
+                              timeout=10.0, follow_redirects=True)
         if response.status_code in (200, 201):
             logger.info(f"WhatsApp enviado para {telefone}")
             return True
@@ -306,7 +306,7 @@ def enviar_whatsapp_imagem(telefone: str, image_url: str, caption: str = "") -> 
             "mediatype": "image",
             "media": image_url,
             "caption": caption,
-        }, headers={"Content-Type": "application/json", "apikey": EVOLUTION_API_KEY}, timeout=15.0)
+        }, headers={"Content-Type": "application/json", "apikey": EVOLUTION_API_KEY}, timeout=15.0, follow_redirects=True)
         if response.status_code in (200, 201):
             logger.info(f"WhatsApp imagem enviada para {telefone}")
             return True
@@ -350,6 +350,7 @@ def download_media(message_id: str, media_base64: str = "") -> bytes | None:
             json={"message": {"key": {"id": message_id}}, "convertToMp4": True},
             headers={"Content-Type": "application/json", "apikey": EVOLUTION_API_KEY},
             timeout=120.0,
+            follow_redirects=True,
         )
         if response.status_code in (200, 201):
             data = response.json()
