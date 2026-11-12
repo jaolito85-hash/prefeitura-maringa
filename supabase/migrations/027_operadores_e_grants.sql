@@ -32,6 +32,8 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO service_
 -- anon key direto no REST: lê a sessão pelo token e grava/lê pontos GPS.
 GRANT SELECT, INSERT, UPDATE ON emergencia_sessoes TO anon;
 GRANT SELECT, INSERT         ON emergencia_pontos  TO anon;
+-- O painel (index.html) lê a trilha GPS e assina o Realtime com o operador logado
+GRANT SELECT ON emergencia_sessoes, emergencia_pontos TO authenticated;
 
 -- Colunas que o código usa e que também só existiam no banco antigo
 -- (sem elas o cadastro Mulher Segura e o painel SOS dão erro 42703)
