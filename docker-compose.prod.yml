@@ -83,5 +83,29 @@ services:
       backend:
         condition: service_healthy
 
+  # ── MediaMTX ───────────────────────────────────────────────
+  # Servidor de mídia das câmeras do SOS Mulher: puxa o RTSP das câmeras
+  # AUTORIZADAS e entrega ao painel por WebRTC (< 1 s) ou HLS (reserva).
+  # Sinalização WebRTC e HLS passam pelo nginx do frontend (/cam/...), sem
+  # domínio próprio. Só a mídia WebRTC usa a porta 8189 direto na VPS; se
+  # ela estiver fechada no firewall, o painel cai sozinho para HLS (2 a 4 s
+  # de atraso), sem quebrar. O nginx resolve "mediamtx" sob demanda: se este
+  # serviço não subir, o painel continua de pé (só as câmeras somem).
+  mediamtx:
+    build: ./infra/mediamtx
+    restart: unless-stopped
+    environment:
+      # IP público ou DNS da VPS, anunciado ao navegador no WebRTC
+      - MTX_WEBRTCADDITIONALHOSTS=${MEDIAMTX_PUBLIC_HOST:-maringa.nodedata.com.br}
+      # Vídeo só para operador logado: o MediaMTX pergunta ao backend
+      - MTX_AUTHMETHOD=http
+      - MTX_AUTHHTTPADDRESS=http://backend:8000/internal/mediamtx/auth
+    ports:
+      - "8189:8189/udp"
+      - "8189:8189/tcp"
+    depends_on:
+      backend:
+        condition: service_healthy
+
 volumes:
   redis_data:
