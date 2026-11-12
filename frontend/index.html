@@ -3223,7 +3223,7 @@ function SOSMulher(){
           {SOS.map(s=>{
             const isAtt=s.status==='attending';
             return(
-              <div key={s.id} onClick={()=>{setSel(s);setChatModal(s);setSosChatHandoff(false);setSosMsg('');}} style={{margin:'0 10px 6px',padding:'14px 16px',borderRadius:8,background:sel?.id===s.id?'rgba(220,38,38,.08)':isAtt?'rgba(251,191,36,.05)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':isAtt?'rgba(251,191,36,.2)':'rgba(220,38,38,.12)'}`,cursor:'pointer'}}>
+              <div key={s.id} onClick={()=>{setSel(s);setChatModal(s);setSosHandoff(false);setSosMsg('');}} style={{margin:'0 10px 6px',padding:'14px 16px',borderRadius:8,background:sel?.id===s.id?'rgba(220,38,38,.08)':isAtt?'rgba(251,191,36,.05)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':isAtt?'rgba(251,191,36,.2)':'rgba(220,38,38,.12)'}`,cursor:'pointer'}}>
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
                   <span style={{fontWeight:600,fontSize:14,color:'#fff'}}>{s.sos_cadastros?.nome||s.telefone}</span>
                   <span style={{fontSize:12,color:isAtt?'#fbbf24':'#f87171'}}>{ago(s.created_at)}</span>
