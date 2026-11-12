@@ -10,6 +10,8 @@
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- hls.js: reserva para tocar câmeras por HLS quando o WebRTC não conecta -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -2896,7 +2898,7 @@ function Denuncias(){
 /* Mostra os pontos de emergencia_pontos vinculados ao alerta SOS via
    token_rastreamento. Substitui o monitor-sos.html standalone. Realtime
    por subscription no Supabase (postgres_changes em emergencia_pontos). */
-function SOSTrailMap({alerta,routeData,onLatestPoint}){
+function SOSTrailMap({alerta,routeData,onLatestPoint,onTrail,cameras=[],principalCamId=null,simPoint=null}){
   const containerRef=useRef(null);
   const mapRef=useRef(null);
   const readyRef=useRef(false);
@@ -2904,6 +2906,8 @@ function SOSTrailMap({alerta,routeData,onLatestPoint}){
   const dotsSourceIdRef=useRef('sos-trail-dots');
   const latestSourceIdRef=useRef('sos-trail-latest');
   const routeActiveRef=useRef(false);
+  const simAtivoRef=useRef(false);
+  simAtivoRef.current=!!simPoint;
   const [sessaoId,setSessaoId]=useState(null);
   const [pontos,setPontos]=useState([]);
   const [erro,setErro]=useState(null);
@@ -2938,12 +2942,24 @@ function SOSTrailMap({alerta,routeData,onLatestPoint}){
       map.addLayer({id:'route-base-halo',type:'circle',source:'route-base',paint:{'circle-radius':14,'circle-color':'#a855f7','circle-opacity':0.18,'circle-blur':0.8}});
       map.addLayer({id:'route-base-dot',type:'circle',source:'route-base',paint:{'circle-radius':7,'circle-color':'#a855f7','circle-opacity':1,'circle-stroke-width':2.5,'circle-stroke-color':'#fff'}});
 
+      // Câmeras próximas: cone de visão + ponto + rótulo (abaixo da trilha)
+      map.addSource('sos-cams-fov',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      map.addSource('sos-cams',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      map.addSource('sos-sim',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      map.addLayer({id:'sos-cams-fov-fill',type:'fill',source:'sos-cams-fov',paint:{'fill-color':['case',['get','principal'],'#22d3ee','#64748b'],'fill-opacity':['case',['get','principal'],0.28,0.12]}});
+      map.addLayer({id:'sos-cams-fov-line',type:'line',source:'sos-cams-fov',paint:{'line-color':['case',['get','principal'],'#22d3ee','#64748b'],'line-width':1,'line-opacity':0.6}});
+      map.addLayer({id:'sos-cams-dot',type:'circle',source:'sos-cams',paint:{'circle-radius':['case',['get','principal'],7,5],'circle-color':['case',['get','principal'],'#22d3ee','#94a3b8'],'circle-stroke-width':2,'circle-stroke-color':'#03040a'}});
+      map.addLayer({id:'sos-cams-label',type:'symbol',source:'sos-cams',layout:{'text-field':['get','rotulo'],'text-size':10,'text-offset':[0,1.3],'text-anchor':'top','text-allow-overlap':true},paint:{'text-color':['case',['get','principal'],'#67e8f9','#cbd5e1'],'text-halo-color':'#03040a','text-halo-width':1.5}});
+
       // Trilha da vítima (por cima da rota)
       map.addLayer({id:'sos-line-glow',type:'line',source:lineSourceIdRef.current,paint:{'line-color':'#e03e6b','line-width':10,'line-opacity':.12,'line-blur':6}});
       map.addLayer({id:'sos-line-main',type:'line',source:lineSourceIdRef.current,layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#e03e6b','line-width':3,'line-opacity':.85}});
       map.addLayer({id:'sos-dots',type:'circle',source:dotsSourceIdRef.current,paint:{'circle-radius':4,'circle-color':'#e03e6b','circle-opacity':.7,'circle-stroke-width':1.5,'circle-stroke-color':'rgba(255,255,255,.4)'}});
       map.addLayer({id:'sos-latest-pulse',type:'circle',source:latestSourceIdRef.current,paint:{'circle-radius':22,'circle-color':'#e03e6b','circle-opacity':.18}});
       map.addLayer({id:'sos-latest-dot',type:'circle',source:latestSourceIdRef.current,paint:{'circle-radius':9,'circle-color':'#e03e6b','circle-opacity':.95,'circle-stroke-width':3,'circle-stroke-color':'#fff'}});
+      // Posição simulada (botão de demonstração do painel de câmeras)
+      map.addLayer({id:'sos-sim-halo',type:'circle',source:'sos-sim',paint:{'circle-radius':18,'circle-color':'#fbbf24','circle-opacity':.2}});
+      map.addLayer({id:'sos-sim-dot',type:'circle',source:'sos-sim',paint:{'circle-radius':7,'circle-color':'#fbbf24','circle-stroke-width':2.5,'circle-stroke-color':'#fff'}});
 
       readyRef.current=true;
     });
@@ -3034,12 +3050,29 @@ function SOSTrailMap({alerta,routeData,onLatestPoint}){
         map.getSource(latestSourceIdRef.current).setData({type:'Feature',geometry:{type:'Point',coordinates:last}});
         if(onLatestPoint) onLatestPoint(last[1],last[0]);
         // Não recentraliza enquanto rota PM está ativa — senão fitBounds da rota é sobrescrito
-        if(!routeActiveRef.current){
+        if(!routeActiveRef.current&&!simAtivoRef.current){
           map.easeTo({center:last,zoom:Math.max(map.getZoom(),15),duration:800});
         }
       }
     }
   },[pontos]);
+
+  // Repassa a trilha para o painel de câmeras (usada pela simulação)
+  useEffect(()=>{if(onTrail) onTrail(pontos);},[pontos]);
+
+  // Câmeras próximas e posição simulada no mapa
+  useEffect(()=>{
+    const map=mapRef.current;if(!map) return;
+    const apply=()=>{
+      const sCams=map.getSource('sos-cams'),sFov=map.getSource('sos-cams-fov'),sSim=map.getSource('sos-sim');
+      if(!sCams||!sFov||!sSim) return;
+      sCams.setData({type:'FeatureCollection',features:cameras.map(c=>({type:'Feature',geometry:{type:'Point',coordinates:[c.lng,c.lat]},properties:{principal:c.id===principalCamId,rotulo:(c.nome||'').split('·')[0].trim()}}))});
+      sFov.setData({type:'FeatureCollection',features:cameras.map(c=>({type:'Feature',geometry:{type:'Polygon',coordinates:[conePoligono(c)]},properties:{principal:c.id===principalCamId}}))});
+      sSim.setData({type:'FeatureCollection',features:simPoint?[{type:'Feature',geometry:{type:'Point',coordinates:[simPoint.lng,simPoint.lat]}}]:[]});
+      if(simPoint&&!routeActiveRef.current) map.easeTo({center:[simPoint.lng,simPoint.lat],zoom:Math.max(map.getZoom(),17),duration:900});
+    };
+    if(readyRef.current) apply(); else map.once('load',apply);
+  },[cameras,principalCamId,simPoint]);
 
   // Stats
   const ultimo=pontos[pontos.length-1];
@@ -3074,6 +3107,259 @@ function SOSTrailMap({alerta,routeData,onLatestPoint}){
   );
 }
 
+/* ─── CÂMERAS PRÓXIMAS (SOS) ───────────────────────────────────── */
+/* Mostra ao vivo as câmeras AUTORIZADAS mais próximas do último ponto GPS
+   da vítima. Vídeo: WebRTC/WHEP via MediaMTX (< 1 s), com HLS de reserva.
+   Cada abertura de vídeo vai para o audit_log (quem viu, qual câmera, qual
+   alerta). A busca refaz quando a vítima anda 20 m ou a cada 10 s. */
+function distanciaM(lat1,lng1,lat2,lng2){
+  const R=6371000,d1=(lat2-lat1)*Math.PI/180,d2=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(d1/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(d2/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function deslocarPonto(lat,lng,rumoGraus,metros){
+  const r=rumoGraus*Math.PI/180;
+  return [lng+(metros*Math.sin(r))/(111320*Math.cos(lat*Math.PI/180)),lat+(metros*Math.cos(r))/111320];
+}
+// Polígono do campo de visão (cone). PTZ ou sem direção: círculo do alcance.
+function conePoligono(c){
+  const alc=c.alcance_m||60;
+  const temCone=c.direcao_graus!=null&&c.campo_visao_graus;
+  const ini=temCone?c.direcao_graus-c.campo_visao_graus/2:0;
+  const fim=temCone?c.direcao_graus+c.campo_visao_graus/2:360;
+  const pts=temCone?[[c.lng,c.lat]]:[];
+  for(let a=ini;a<=fim;a+=(fim-ini)/16) pts.push(deslocarPonto(c.lat,c.lng,a,alc));
+  pts.push(pts[0]);
+  return pts;
+}
+function RelogioAoVivo(){
+  const [t,setT]=useState(new Date());
+  useEffect(()=>{const iv=setInterval(()=>setT(new Date()),1000);return()=>clearInterval(iv);},[]);
+  return <span>{t.toLocaleTimeString('pt-BR')}</span>;
+}
+
+function CameraPlayer({cam,principal,alertaId}){
+  const videoRef=useRef(null);
+  const [modo,setModo]=useState('conectando'); // conectando | webrtc | hls | erro
+  const [tentativa,setTentativa]=useState(0);
+  const path=cam?.stream?.path;
+
+  useEffect(()=>{
+    if(!path) {setModo('erro');return;}
+    let pc=null,hls=null,encerrado=false,timer=null,auditou=false;
+    const video=videoRef.current;
+    setModo('conectando');
+    const auth=()=>__ACCESS_TOKEN__?{Authorization:'Bearer '+__ACCESS_TOKEN__}:{};
+    const auditar=(evento)=>{
+      fetch(API_URL+'/api/cameras/visualizacoes',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({camera_id:cam.id,alerta_id:alertaId||null,evento,distancia_m:cam.distancia_m,lat:cam.lat,lng:cam.lng})}).catch(()=>{});
+    };
+    const aoTocar=()=>{if(!auditou){auditou=true;auditar('inicio');}};
+    video.addEventListener('playing',aoTocar);
+
+    function tocarHLS(){
+      if(encerrado||hls) return;
+      if(pc){try{pc.close();}catch(_){}pc=null;}
+      video.srcObject=null;
+      const url=cam.stream.hls;
+      if(window.Hls&&window.Hls.isSupported()){
+        hls=new window.Hls({lowLatencyMode:true,liveSyncDurationCount:2,xhrSetup:(xhr)=>{const h=auth();if(h.Authorization)xhr.setRequestHeader('Authorization',h.Authorization);}});
+        hls.on(window.Hls.Events.ERROR,(_e,d)=>{if(d.fatal&&!encerrado){setModo('erro');hls.destroy();hls=null;timer=setTimeout(()=>setTentativa(n=>n+1),5000);}});
+        hls.loadSource(url);hls.attachMedia(video);
+        video.play().catch(()=>{});
+        setModo('hls');
+      }else if(video.canPlayType('application/vnd.apple.mpegurl')){
+        video.src=url;video.play().catch(()=>{});setModo('hls');
+      }else{setModo('erro');}
+    }
+
+    async function tocarWebRTC(){
+      if(!window.RTCPeerConnection) return tocarHLS();
+      try{
+        pc=new RTCPeerConnection({bundlePolicy:'max-bundle'});
+        pc.addTransceiver('video',{direction:'recvonly'});
+        pc.ontrack=(ev)=>{if(!encerrado){video.srcObject=ev.streams[0];video.play().catch(()=>{});}};
+        pc.onconnectionstatechange=()=>{if(pc&&(pc.connectionState==='failed'||pc.connectionState==='disconnected')) tocarHLS();};
+        const offer=await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        // Espera a coleta de candidatos ICE (sem trickle: mais simples e robusto)
+        await new Promise(res=>{if(pc.iceGatheringState==='complete')return res();const t=setTimeout(res,1500);pc.addEventListener('icegatheringstatechange',()=>{if(pc&&pc.iceGatheringState==='complete'){clearTimeout(t);res();}});});
+        if(encerrado) return;
+        const r=await fetch(cam.stream.webrtc,{method:'POST',headers:{'Content-Type':'application/sdp',...auth()},body:pc.localDescription.sdp});
+        if(r.status!==201) throw new Error('WHEP '+r.status);
+        const sdp=await r.text();
+        if(encerrado) return;
+        await pc.setRemoteDescription({type:'answer',sdp});
+        setModo('webrtc');
+        // Se em 6 s nenhum quadro chegou (UDP bloqueado, por exemplo), cai para HLS
+        timer=setTimeout(()=>{if(!encerrado&&video.readyState<2) tocarHLS();},6000);
+      }catch(e){tocarHLS();}
+    }
+    tocarWebRTC();
+    return()=>{
+      encerrado=true;clearTimeout(timer);
+      video.removeEventListener('playing',aoTocar);
+      if(pc){try{pc.close();}catch(_){}}
+      if(hls){try{hls.destroy();}catch(_){}}
+      video.srcObject=null;video.removeAttribute('src');
+      if(auditou) auditar('fim');
+    };
+  },[path,tentativa]);
+
+  const cor=principal?'#22d3ee':'var(--border)';
+  return(
+    <div style={{position:'relative',flex:principal?1.7:1,minWidth:0,background:'#000',border:`${principal?2:1}px solid ${cor}`,borderRadius:8,overflow:'hidden',boxShadow:principal?'0 0 0 3px rgba(34,211,238,.12)':'none',transition:'flex .4s ease, border-color .3s'}}>
+      <video ref={videoRef} muted autoPlay playsInline style={{width:'100%',height:'100%',objectFit:'cover',display:'block',background:'#000'}}/>
+      {/* Topo: nome + selos */}
+      <div style={{position:'absolute',top:0,left:0,right:0,padding:'6px 8px',background:'linear-gradient(180deg,rgba(0,0,0,.75),transparent)',display:'flex',alignItems:'center',gap:6,fontSize:10,color:'#fff'}}>
+        <span style={{width:6,height:6,borderRadius:'50%',background:modo==='erro'?'#64748b':'#ef4444',animation:modo==='erro'?'none':'pulse 1.2s infinite',flexShrink:0}}/>
+        <b style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',fontSize:11}}>{cam.nome}</b>
+        {principal&&<span style={{marginLeft:'auto',background:'#22d3ee',color:'#03040a',borderRadius:4,padding:'1px 5px',fontWeight:700,fontSize:9,whiteSpace:'nowrap'}}>MAIS PRÓXIMA</span>}
+      </div>
+      {/* Base: distância, campo de visão, protocolo, relógio */}
+      <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'6px 8px',background:'linear-gradient(0deg,rgba(0,0,0,.8),transparent)',display:'flex',alignItems:'center',gap:6,fontSize:10,color:'#cbd5e1',flexWrap:'wrap'}}>
+        <span style={{fontFamily:'var(--font-mono)',color:'#fff',fontWeight:600}}>{Math.round(cam.distancia_m)} m</span>
+        {cam.no_campo_visao===true&&<span style={{color:'#4ade80'}}>● vítima no campo de visão</span>}
+        {cam.no_campo_visao===false&&<span style={{color:'#fbbf24'}}>● apontada para outro lado</span>}
+        {cam.no_campo_visao==null&&<span style={{color:'#94a3b8'}}>{cam.tipo==='ptz'?'PTZ':'direção não cadastrada'}</span>}
+        {cam.demo&&<span style={{background:'rgba(251,191,36,.18)',color:'#fbbf24',borderRadius:3,padding:'0 4px',fontWeight:700}}>DEMO</span>}
+        <span style={{marginLeft:'auto',fontFamily:'var(--font-mono)'}}>
+          {modo==='webrtc'?'WebRTC':modo==='hls'?'HLS':modo==='conectando'?'conectando…':'sem sinal'} · <RelogioAoVivo/>
+        </span>
+      </div>
+      {modo==='erro'&&(
+        <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:'#94a3b8',textAlign:'center',padding:10}}>
+          Sem sinal da câmera. Tentando de novo…
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CamerasProximas({alerta,ponto,simAtivo,onToggleSim,onCameras}){
+  const [cams,setCams]=useState([]);
+  const [principalId,setPrincipalId]=useState(null);
+  const [info,setInfo]=useState(null); // {fonte,total,fora}
+  const [raio,setRaio]=useState(300);
+  const [eventos,setEventos]=useState([]);
+  const [erro,setErro]=useState(null);
+  const ultimaRef=useRef(null); // {lat,lng,t,raio}
+  const principalRef=useRef(null);
+  const [tick,setTick]=useState(0); // força nova busca a cada 15 s mesmo parada
+  useEffect(()=>{const iv=setInterval(()=>setTick(n=>n+1),15000);return()=>clearInterval(iv);},[]);
+
+  const seqRef=useRef(0);
+  const alertaRef=useRef(alerta?.id);
+  alertaRef.current=alerta?.id;
+  // Troca de alerta: zera tudo
+  useEffect(()=>{setCams([]);setPrincipalId(null);setEventos([]);setInfo(null);ultimaRef.current=null;principalRef.current=null;},[alerta?.id]);
+
+  useEffect(()=>{
+    if(!ponto||ponto.lat==null||ponto.lng==null) return;
+    const u=ultimaRef.current;
+    const agora=Date.now();
+    if(u&&u.raio===raio&&distanciaM(u.lat,u.lng,ponto.lat,ponto.lng)<20&&agora-u.t<10000) return;
+    ultimaRef.current={lat:ponto.lat,lng:ponto.lng,t:agora,raio};
+    // Só a resposta da busca mais recente vale (evita resposta velha por cima)
+    const seq=++seqRef.current;
+    const alertaDaBusca=alerta?.id;
+    const valida=()=>seq===seqRef.current&&alertaRef.current===alertaDaBusca;
+    fetch(API_URL+`/api/cameras/proximas?lat=${ponto.lat}&lng=${ponto.lng}&raio=${raio}&limite=4&alerta_id=${encodeURIComponent(alerta?.id||'')}`)
+      .then(r=>r.ok?r.json():Promise.reject(new Error('HTTP '+r.status)))
+      .then(d=>{
+        if(!valida()) return;
+        setErro(null);
+        const novas=d.cameras||[];
+        // Mantém os vídeos que continuam no ranking na mesma posição
+        // (não reinicia o player) e acrescenta as novas no fim.
+        setCams(prev=>{
+          const porId=Object.fromEntries(novas.map(c=>[c.id,c]));
+          const mantidas=prev.filter(c=>porId[c.id]).map(c=>porId[c.id]);
+          const ids=new Set(mantidas.map(c=>c.id));
+          return [...mantidas,...novas.filter(c=>!ids.has(c.id))];
+        });
+        const p=novas[0]?.id||null;
+        if(p!==principalRef.current){
+          principalRef.current=p;
+          setPrincipalId(p);
+          if(novas[0]){
+            const hora=new Date().toLocaleTimeString('pt-BR');
+            setEventos(ev=>[{hora,texto:`${novas[0].nome.split('·')[0].trim()} assumiu (${Math.round(novas[0].distancia_m)} m)`},...ev].slice(0,4));
+          }
+        }
+        setInfo({fonte:d.fonte,total:d.total_no_raio,fora:d.mais_proxima_fora_do_raio});
+      })
+      .catch(e=>{if(valida())setErro('Falha ao buscar câmeras ('+e.message+')');});
+  },[ponto?.lat,ponto?.lng,raio,tick]);
+
+  useEffect(()=>{if(onCameras) onCameras(cams,principalId);},[cams,principalId]);
+
+  const temDemo=cams.some(c=>c.demo)||info?.fonte==='demo_local';
+  return(
+    <div style={{flexShrink:0,height:250,borderTop:'1px solid var(--border)',background:'var(--surface)',display:'flex',flexDirection:'column',padding:'10px 12px',gap:8}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+        <span style={{width:7,height:7,borderRadius:'50%',background:'#22d3ee',animation:'pulse 1.4s infinite'}}/>
+        <span style={{fontSize:11,fontWeight:700,color:'#fff',textTransform:'uppercase',letterSpacing:'.8px'}}>Câmeras próximas</span>
+        <span style={{fontSize:11,color:'var(--text-muted)'}}>
+          {ponto?`${info?.total??'…'} no raio de ${raio} m do último ponto GPS`:'aguardando localização'}
+        </span>
+        <select value={raio} onChange={e=>setRaio(Number(e.target.value))} style={{marginLeft:'auto',background:'rgba(0,0,0,.3)',color:'var(--text)',border:'1px solid var(--border)',borderRadius:6,fontSize:11,padding:'3px 6px'}}>
+          {[150,300,600,1000].map(r=><option key={r} value={r}>{r} m</option>)}
+        </select>
+        {temDemo&&onToggleSim&&(
+          <button onClick={onToggleSim} className="btn btn-outline" style={{fontSize:11,padding:'3px 10px',borderColor:simAtivo?'#fbbf24':undefined,color:simAtivo?'#fbbf24':undefined}}>
+            {simAtivo?'■ Parar simulação':'▶ Simular deslocamento (demo)'}
+          </button>
+        )}
+      </div>
+      <div style={{flex:1,minHeight:0,display:'flex',gap:8}}>
+        {cams.length>0?cams.map(c=>(
+          <CameraPlayer key={c.id} cam={c} principal={c.id===principalId} alertaId={alerta?.id}/>
+        )):(
+          <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:6,border:'1px dashed var(--border)',borderRadius:8,color:'var(--text-muted)',fontSize:12,textAlign:'center',padding:12}}>
+            {erro?<span style={{color:'#f87171'}}>{erro}</span>:!ponto?'Sem localização da vítima ainda.':info?.fora?(
+              <>Nenhuma câmera autorizada em {raio} m. A mais próxima é <b style={{color:'var(--text)'}}>{info.fora.nome}</b>, a {Math.round(info.fora.distancia_m)} m.</>
+            ):info?'Nenhuma câmera autorizada cadastrada nesta região.':'Buscando câmeras…'}
+          </div>
+        )}
+        {eventos.length>0&&(
+          <div style={{width:170,flexShrink:0,fontSize:10,color:'var(--text-secondary)',display:'flex',flexDirection:'column',gap:4,overflow:'hidden'}}>
+            <div style={{fontWeight:700,color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:'.6px'}}>Troca de câmera</div>
+            {eventos.map((e,i)=>(
+              <div key={i} style={{opacity:1-i*0.2,lineHeight:1.35}}><span style={{fontFamily:'var(--font-mono)',color:'#22d3ee'}}>{e.hora}</span><br/>{e.texto}</div>
+            ))}
+            <div style={{marginTop:'auto',color:'var(--text-muted)',lineHeight:1.35}}>Acesso registrado em auditoria (LGPD).</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Caminho da simulação: a trilha GPS real e depois mais ~250 m no mesmo rumo.
+function caminhoSimulado(pontos,alerta){
+  const base=(pontos||[]).map(p=>[p.longitude,p.latitude]);
+  if(base.length===0){
+    const lat=alerta?.latitude||alerta?.lat,lng=alerta?.longitude||alerta?.lng;
+    if(lat==null||lng==null) return [];
+    base.push(deslocarPonto(lat,lng,215,150),[lng,lat]);
+  }
+  if(base.length===1) base.unshift(deslocarPonto(base[0][1],base[0][0],215,120));
+  const [a,b]=[base[base.length-2],base[base.length-1]];
+  const rumo=(Math.atan2((b[0]-a[0])*Math.cos(b[1]*Math.PI/180),b[1]-a[1])*180/Math.PI+360)%360;
+  const out=[];
+  // Interpola a cada ~12 m para o movimento ficar contínuo
+  const todos=[...base,deslocarPonto(b[1],b[0],rumo,250)];
+  for(let i=1;i<todos.length;i++){
+    const [p,q]=[todos[i-1],todos[i]];
+    const d=distanciaM(p[1],p[0],q[1],q[0]);
+    const n=Math.max(1,Math.round(d/12));
+    for(let k=0;k<n;k++) out.push({lng:p[0]+(q[0]-p[0])*k/n,lat:p[1]+(q[1]-p[1])*k/n});
+  }
+  out.push({lng:todos[todos.length-1][0],lat:todos[todos.length-1][1]});
+  return out;
+}
+
 /* ─── SOS MULHER ───────────────────────────────────────────────── */
 function SOSMulher(){
   const [sel,setSel]=useState(SOS[0]);
@@ -3092,9 +3378,33 @@ function SOSMulher(){
   const [sosMensagens,setSosMensagens]=useState([]);
   const [mapaFullscreen,setMapaFullscreen]=useState(false);
   const sosChatRef=useRef(null);
+  // Câmeras próximas
+  const [trailPontos,setTrailPontos]=useState([]);
+  const [simAtivo,setSimAtivo]=useState(false);
+  const [simPonto,setSimPonto]=useState(null);
+  const [camsMapa,setCamsMapa]=useState({lista:[],principal:null});
 
   // Atualiza notas quando muda a seleção
-  useEffect(()=>{setNotas(sel?.notas||'');setTrailLatest(null);},[sel?.id]);
+  useEffect(()=>{setNotas(sel?.notas||'');setTrailLatest(null);setTrailPontos([]);setSimAtivo(false);setSimPonto(null);setCamsMapa({lista:[],principal:null});},[sel?.id]);
+
+  // Simulação de deslocamento (só demonstração: não grava nada no banco).
+  // Percorre a trilha GPS e segue mais ~250 m, um passo de ~12 m por segundo.
+  useEffect(()=>{
+    if(!simAtivo){setSimPonto(null);return;}
+    const caminho=caminhoSimulado(trailPontos,sel);
+    if(caminho.length===0){setSimAtivo(false);return;}
+    let i=0;
+    setSimPonto(caminho[0]);
+    const iv=setInterval(()=>{
+      i++;
+      if(i>=caminho.length){clearInterval(iv);setSimAtivo(false);return;}
+      setSimPonto(caminho[i]);
+    },1000);
+    return()=>clearInterval(iv);
+  },[simAtivo]);
+
+  // Ponto usado para buscar câmeras: simulado > último GPS da trilha > disparo inicial
+  const pontoCameras=simPonto||trailLatest||(sel&&(sel.latitude??sel.lat)!=null?{lat:Number(sel.latitude??sel.lat),lng:Number(sel.longitude??sel.lng)}:null);
 
   // Aplica classe no body, ESC sai e força resize do Mapbox
   useEffect(()=>{
@@ -3223,7 +3533,7 @@ function SOSMulher(){
           {SOS.map(s=>{
             const isAtt=s.status==='attending';
             return(
-              <div key={s.id} onClick={()=>{setSel(s);setChatModal(s);setSosChatHandoff(false);setSosMsg('');}} style={{margin:'0 10px 6px',padding:'14px 16px',borderRadius:8,background:sel?.id===s.id?'rgba(220,38,38,.08)':isAtt?'rgba(251,191,36,.05)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':isAtt?'rgba(251,191,36,.2)':'rgba(220,38,38,.12)'}`,cursor:'pointer'}}>
+              <div key={s.id} onClick={()=>{setSel(s);setChatModal(s);setSosHandoff(false);setSosMsg('');}} style={{margin:'0 10px 6px',padding:'14px 16px',borderRadius:8,background:sel?.id===s.id?'rgba(220,38,38,.08)':isAtt?'rgba(251,191,36,.05)':'rgba(220,38,38,.03)',border:`1px solid ${sel?.id===s.id?'rgba(220,38,38,.3)':isAtt?'rgba(251,191,36,.2)':'rgba(220,38,38,.12)'}`,cursor:'pointer'}}>
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
                   <span style={{fontWeight:600,fontSize:14,color:'#fff'}}>{s.sos_cadastros?.nome||s.telefone}</span>
                   <span style={{fontSize:12,color:isAtt?'#fbbf24':'#f87171'}}>{ago(s.created_at)}</span>
@@ -3613,10 +3923,12 @@ function SOSMulher(){
           {/* Corpo: mapa + painel lateral */}
           <div style={{flex:1,display:'flex',overflow:'hidden',minHeight:0}}>
             <div style={mapaFullscreen
-              ?{position:'fixed',inset:0,zIndex:1000,background:'var(--bg)'}
-              :{flex:1,position:'relative'}}>
+              ?{position:'fixed',inset:0,zIndex:1000,background:'var(--bg)',display:'flex',flexDirection:'column'}
+              :{flex:1,position:'relative',display:'flex',flexDirection:'column',minWidth:0}}>
+            <div style={{flex:1,position:'relative',minHeight:0}}>
               {sel.token_rastreamento?(
-                <SOSTrailMap alerta={sel} routeData={routeData} onLatestPoint={(lat,lng)=>setTrailLatest({lat,lng})}/>
+                <SOSTrailMap alerta={sel} routeData={routeData} onLatestPoint={(lat,lng)=>setTrailLatest({lat,lng})}
+                  onTrail={setTrailPontos} cameras={camsMapa.lista} principalCamId={camsMapa.principal} simPoint={simPonto}/>
               ):(
                 <MapboxMap items={[{...sel,severidade:'critica',titulo:'SOS: '+(sel.sos_cadastros?.nome||sel.telefone)}]} showBases={true} route={routeData}/>
               )}
@@ -3642,6 +3954,11 @@ function SOSMulher(){
                   </div>
                 </div>
               )}
+            </div>
+              {/* Câmeras autorizadas mais próximas do último ponto GPS (ao vivo) */}
+              <CamerasProximas alerta={sel} ponto={pontoCameras} simAtivo={simAtivo}
+                onToggleSim={()=>setSimAtivo(v=>!v)}
+                onCameras={(lista,principal)=>setCamsMapa({lista,principal})}/>
             </div>
             <div style={{width:mapaFullscreen?0:280,flexShrink:0,borderLeft:mapaFullscreen?'none':'1px solid var(--border)',overflowY:'auto',background:'var(--surface)',display:mapaFullscreen?'none':'flex',flexDirection:'column',gap:12,padding:mapaFullscreen?0:14}}>
               {/* Ações rápidas */}

@@ -1,0 +1,129 @@
+# ============================================================
+# NODE DATA MARINGÁ · MediaMTX (servidor de mídia das câmeras)
+#
+# Papel: recebe o vídeo das câmeras AUTORIZADAS (RTSP/ONVIF) e entrega
+# ao navegador do operador por WebRTC (latência < 1 s) ou, como reserva,
+# por HLS de baixa latência (2 a 4 s) através do nginx do frontend.
+#
+# Chaves omitidas usam o padrão do MediaMTX 1.x. Qualquer chave pode ser
+# sobrescrita por variável de ambiente MTX_<CHAVE> (ver docker-compose).
+#
+# IMPORTANTE: as câmeras "cam-demo-*" abaixo NÃO existem. São sinais de
+# teste sintéticos gerados pelo ffmpeg (filtros lavfi), só rodam quando
+# alguém assiste (runOnDemand) e param 10 s depois.
+# ============================================================
+
+logLevel: info
+
+# Só os protocolos que usamos. RTMP/SRT/MoQ desligados (menos portas abertas).
+rtmp: false
+srt: false
+moq: false
+
+# RTSP interno (câmeras e ffmpeg publicam aqui). TCP evita problemas de
+# UDP atrás do NAT do Docker.
+rtsp: true
+rtspTransports: [tcp]
+
+# HLS: reserva universal, passa por qualquer proxy HTTP (nginx/Traefik).
+hls: true
+hlsAddress: :8888
+hlsVariant: lowLatency
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+hlsAllowOrigins: ["*"]
+
+# WebRTC: caminho principal, sub-segundo. A sinalização (WHEP) passa pelo
+# nginx; a mídia vai direto para a porta 8189 (UDP, com TCP de reserva).
+# Em produção, MTX_WEBRTCADDITIONALHOSTS deve ter o IP público/DNS da VPS.
+webrtc: true
+webrtcAddress: :8889
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: :8189
+webrtcAllowOrigins: ["*"]
+
+# API de controle (cadastrar caminho de câmera nova sem reiniciar).
+# Fica só na rede interna do Docker, nunca publicada.
+api: true
+apiAddress: :9997
+
+# ── Autenticação ────────────────────────────────────────────
+# Padrão (desenvolvimento): leitura aberta. Em produção o compose troca
+# para HTTP: cada leitura pergunta ao backend se o token do operador é
+# válido (POST http://backend:8000/internal/mediamtx/auth), e a imagem
+# só sai para operador logado. Ver app/api/cameras.py.
+authMethod: internal
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: read
+      - action: publish
+        path: ~^cam-demo-
+  - user: any
+    pass:
+    ips: ["127.0.0.1", "::1"]
+    permissions:
+      - action: publish
+      - action: api
+      - action: metrics
+# authHTTPExclude: chamadas internas que não precisam ir ao backend.
+authHTTPExclude:
+  - action: api
+  - action: metrics
+  - action: pprof
+
+pathDefaults:
+  # Desliga o encoder demo 10 s depois do último espectador sair.
+  runOnDemandCloseAfter: 10s
+  runOnDemandStartTimeout: 15s
+  runOnDemandRestart: true
+  # Câmera real: o RTSP é puxado por TCP. `sourceOnDemand: true` vai em
+  # cada caminho de câmera real (só puxa enquanto alguém assiste).
+  sourceOnDemandStartTimeout: 15s
+  sourceOnDemandCloseAfter: 10s
+  rtspTransport: tcp
+
+paths:
+  # ── DEMONSTRAÇÃO: sinais de teste sintéticos (lavfi) ──────
+  # H.264 baseline sem B-frames: requisito do WebRTC no navegador.
+  cam-demo-01:
+    runOnDemand: >-
+      ffmpeg -hide_banner -loglevel error -re -f lavfi -i testsrc2=size=640x360:rate=15
+      -c:v libx264 -preset ultrafast -tune zerolatency -profile:v baseline -pix_fmt yuv420p
+      -g 30 -b:v 600k -f rtsp -rtsp_transport tcp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+  cam-demo-02:
+    runOnDemand: >-
+      ffmpeg -hide_banner -loglevel error -re -f lavfi -i smptehdbars=size=640x360:rate=15
+      -c:v libx264 -preset ultrafast -tune zerolatency -profile:v baseline -pix_fmt yuv420p
+      -g 30 -b:v 600k -f rtsp -rtsp_transport tcp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+  cam-demo-03:
+    runOnDemand: >-
+      ffmpeg -hide_banner -loglevel error -re -f lavfi -i cellauto=size=640x360:rate=15:rule=110
+      -vf format=yuv420p
+      -c:v libx264 -preset ultrafast -tune zerolatency -profile:v baseline -pix_fmt yuv420p
+      -g 30 -b:v 600k -f rtsp -rtsp_transport tcp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+  cam-demo-04:
+    runOnDemand: >-
+      ffmpeg -hide_banner -loglevel error -re -f lavfi -i testsrc=size=640x360:rate=15
+      -c:v libx264 -preset ultrafast -tune zerolatency -profile:v baseline -pix_fmt yuv420p
+      -g 30 -b:v 600k -f rtsp -rtsp_transport tcp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+  cam-demo-05:
+    runOnDemand: >-
+      ffmpeg -hide_banner -loglevel error -re -f lavfi -i life=size=640x360:rate=15:mold=10:ratio=0.2
+      -vf format=yuv420p
+      -c:v libx264 -preset ultrafast -tune zerolatency -profile:v baseline -pix_fmt yuv420p
+      -g 30 -b:v 600k -f rtsp -rtsp_transport tcp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+  cam-demo-06:
+    runOnDemand: >-
+      ffmpeg -hide_banner -loglevel error -re -f lavfi -i rgbtestsrc=size=640x360:rate=15
+      -c:v libx264 -preset ultrafast -tune zerolatency -profile:v baseline -pix_fmt yuv420p
+      -g 30 -b:v 600k -f rtsp -rtsp_transport tcp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+
+  # ── EXEMPLO de câmera real (só depois do convênio assinado) ──
+  # O nome do caminho é o `stream_path` da tabela `cameras`; a fonte é a
+  # `url_stream`. Use sempre o substream (resolução menor) para o painel.
+  # gm-0001:
+  #   source: rtsp://USUARIO_DO_CONVENIO:SENHA@10.20.0.11:554/Streaming/Channels/102
+  #   sourceOnDemand: true

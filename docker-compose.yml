@@ -48,6 +48,22 @@ services:
     env_file: ./frontend/.env
     depends_on:
       - backend
+      - mediamtx
+
+  # Servidor de mídia das câmeras do SOS Mulher (RTSP -> WebRTC/HLS).
+  # As câmeras demo são sinais de teste sintéticos (ver infra/mediamtx).
+  mediamtx:
+    build: ./infra/mediamtx
+    ports:
+      - "8888:8888"        # HLS direto (debug; o painel usa /cam/hls via nginx)
+      - "8889:8889"        # WebRTC/WHEP direto (debug; o painel usa /cam/webrtc)
+      - "8189:8189/udp"    # mídia WebRTC (ICE UDP)
+      - "8189:8189/tcp"    # mídia WebRTC (ICE TCP, reserva)
+    environment:
+      - MTX_WEBRTCADDITIONALHOSTS=127.0.0.1
+      # Descomente para exigir login do operador também no vídeo:
+      # - MTX_AUTHMETHOD=http
+      # - MTX_AUTHHTTPADDRESS=http://backend:8000/internal/mediamtx/auth
 
 volumes:
   redis_data:

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.auth import get_current_user
-from app.api import denuncias, ocorrencias, sos, dashboard, feedbacks, recompensas, protocolo, noticias, arborizacao
+from app.api import denuncias, ocorrencias, sos, dashboard, feedbacks, recompensas, protocolo, noticias, arborizacao, cameras
 from app.webhooks import denuncias as wh_denuncias
 from app.webhooks import sos_mulher as wh_sos
 from app.webhooks import ocorrencias as wh_ocorrencias
@@ -41,6 +41,11 @@ app.include_router(recompensas.router, prefix="/api/recompensas", tags=["Recompe
 app.include_router(protocolo.router, prefix="/api/protocolo", tags=["Protocolo"], dependencies=_auth)
 app.include_router(noticias.router, prefix="/api/noticias", tags=["Radar de Notícias"], dependencies=_auth)
 app.include_router(arborizacao.router, prefix="/api/arborizacao", tags=["Arborização"], dependencies=_auth)
+app.include_router(cameras.router, prefix="/api/cameras", tags=["Câmeras (SOS)"], dependencies=_auth)
+
+# ---- Rota interna: o MediaMTX pergunta se o operador pode ver o vídeo ----
+# Não passa pelo nginx (só /api, /webhook e /health são publicados).
+app.include_router(cameras.router_interno, tags=["Interno"])
 
 # ---- Webhook UNIFICADO (demo com numero unico — IA classifica tudo) ----
 app.include_router(wh_unificado.router, prefix="/webhook", tags=["Webhook Unificado"])
