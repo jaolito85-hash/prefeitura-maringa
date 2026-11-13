@@ -3174,7 +3174,7 @@ function CameraPlayer({cam,principal,alertaId}){
     }
 
     async function tocarWebRTC(){
-      if(!window.RTCPeerConnection) return tocarHLS();
+      if(!window.RTCPeerConnection||!cam.stream.webrtc) return tocarHLS();
       try{
         pc=new RTCPeerConnection({bundlePolicy:'max-bundle'});
         pc.addTransceiver('video',{direction:'recvonly'});

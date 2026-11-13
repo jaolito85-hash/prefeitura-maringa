@@ -100,9 +100,8 @@ services:
       # Vídeo só para operador logado: o MediaMTX pergunta ao backend
       - MTX_AUTHMETHOD=http
       - MTX_AUTHHTTPADDRESS=http://backend:8000/internal/mediamtx/auth
-    ports:
-      - "8189:8189/udp"
-      - "8189:8189/tcp"
+    # Sem "ports": nada novo exposto na VPS. O vídeo sai por HLS via nginx (/cam/hls).
+    # Para WebRTC (< 1 s): publicar 8189 UDP/TCP aqui e setar CAMERAS_WEBRTC=true no backend.
     depends_on:
       backend:
         condition: service_healthy

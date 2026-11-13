@@ -66,3 +66,14 @@ Ficam no bucket `evidencias/demo/` do Supabase. Licenças CC BY e CC BY-SA exige
 | `demo/oc_drenagem_01.jpg` | [Storm Drain Clogged - Mid-City New Orleans.jpg](https://commons.wikimedia.org/wiki/File:Storm_Drain_Clogged_-_Mid-City_New_Orleans.jpg) | CC BY 2.0 |
 | `demo/oc_drenagem_02.jpg` | [Sutphin Bl Jamaica Av td (2019-08-18) 14.jpg](https://commons.wikimedia.org/wiki/File:Sutphin_Bl_Jamaica_Av_td_(2019-08-18)_14.jpg) | CC BY-SA 4.0 |
 | `demo/oc_drenagem_03.jpg` | [Sutphin Bl Jamaica Av td (2019-08-18) 23.jpg](https://commons.wikimedia.org/wiki/File:Sutphin_Bl_Jamaica_Av_td_(2019-08-18)_23.jpg) | CC BY-SA 4.0 |
+
+## Vídeos das câmeras DEMO (SOS Mulher)
+
+Recortes de 40 s, 640x360, sem áudio, em `infra/mediamtx/videos/`. Tocam em loop nas câmeras `cam-demo-*`.
+São imagens de outras cidades: servem só para demonstrar o painel, não são câmeras de Maringá.
+
+| Arquivo | Obra original | Licença |
+|---|---|---|
+| `rua1.mp4` | [Road traffic on Stritarjeva street.webm](https://commons.wikimedia.org/wiki/File:Road_traffic_on_Stritarjeva_street.webm) | CC BY 3.0 |
+| `rua3.mp4` | [Cars Moving into pothole.webm](https://commons.wikimedia.org/wiki/File:Cars_Moving_into_pothole.webm) | CC BY-SA 4.0 |
+| `rua4.mp4` | [Roundabout 14 61.webm](https://commons.wikimedia.org/wiki/File:Roundabout_14_61.webm) | CC0 |

@@ -35,6 +35,9 @@ router_interno = APIRouter()
 # Prefixos que o nginx do frontend encaminha para o MediaMTX.
 WEBRTC_PREFIX = os.environ.get("CAMERAS_WEBRTC_PREFIX", "/cam/webrtc")
 HLS_PREFIX = os.environ.get("CAMERAS_HLS_PREFIX", "/cam/hls")
+# WebRTC (< 1 s) exige a porta 8189 UDP/TCP aberta na VPS. Desligado por padrão:
+# sem ela o painel vai direto para HLS (2 a 4 s), sem esperar o WebRTC falhar.
+WEBRTC_ATIVO = os.environ.get("CAMERAS_WEBRTC", "false").lower() == "true"
 # "auto" = banco, com catálogo demo se a tabela não existir; "demo" = só demo.
 FONTE = os.environ.get("CAMERAS_FONTE", "auto").lower()
 
@@ -122,7 +125,7 @@ def _publico(cam: dict, extra: dict) -> dict:
         **extra,
         "stream": {
             "path": path,
-            "webrtc": f"{WEBRTC_PREFIX}/{path}/whep" if path else None,
+            "webrtc": f"{WEBRTC_PREFIX}/{path}/whep" if (path and WEBRTC_ATIVO) else None,
             "hls": f"{HLS_PREFIX}/{path}/index.m3u8" if path else None,
         },
     }
