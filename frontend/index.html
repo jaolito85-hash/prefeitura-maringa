@@ -1307,7 +1307,7 @@ function MapboxMap({items=[],fullscreen=false,style={},showBases=false,route=nul
         }catch(e){}
         // inc-glow: aura externa (critica/alta)
         const gs=1+0.25*sin2;
-        const go=0.08+0.10*sin2;
+        const go=Math.max(0,0.08+0.10*sin2);
         try{
           map.setPaintProperty('inc-glow','circle-radius',[
             'match',['get','severidade'],'critica',28*gs,'alta',22*gs,18*gs
