@@ -3237,6 +3237,21 @@ function CameraPlayer({cam,principal,alertaId}){
 }
 
 function CamerasProximas({alerta,ponto,simAtivo,onToggleSim,onCameras}){
+  // Liga/desliga as câmeras (fica salvo neste navegador)
+  const [ligadas,setLigadas]=useState(()=>{try{return localStorage.getItem('nd_cameras_ligadas')!=='0';}catch(_){return true;}});
+  const alternarCameras=()=>{
+    const nova=!ligadas;
+    try{localStorage.setItem('nd_cameras_ligadas',nova?'1':'0');}catch(_){}
+    if(!nova){
+      if(simAtivo&&onToggleSim) onToggleSim();
+      setCams([]);setPrincipalId(null);setEventos([]);setInfo(null);setErro(null);
+      principalRef.current=null;
+    }
+    ultimaRef.current=null; // ao religar, busca na hora
+    setLigadas(nova);
+    // Mapa ocupa o espaço que a faixa liberou (ou devolve)
+    setTimeout(()=>window.dispatchEvent(new Event('resize')),60);
+  };
   const [cams,setCams]=useState([]);
   const [principalId,setPrincipalId]=useState(null);
   const [info,setInfo]=useState(null); // {fonte,total,fora}
@@ -3255,6 +3270,7 @@ function CamerasProximas({alerta,ponto,simAtivo,onToggleSim,onCameras}){
   useEffect(()=>{setCams([]);setPrincipalId(null);setEventos([]);setInfo(null);ultimaRef.current=null;principalRef.current=null;},[alerta?.id]);
 
   useEffect(()=>{
+    if(!ligadas) return;
     if(!ponto||ponto.lat==null||ponto.lng==null) return;
     const u=ultimaRef.current;
     const agora=Date.now();
@@ -3290,11 +3306,28 @@ function CamerasProximas({alerta,ponto,simAtivo,onToggleSim,onCameras}){
         setInfo({fonte:d.fonte,total:d.total_no_raio,fora:d.mais_proxima_fora_do_raio});
       })
       .catch(e=>{if(valida())setErro('Falha ao buscar câmeras ('+e.message+')');});
-  },[ponto?.lat,ponto?.lng,raio,tick]);
+  },[ponto?.lat,ponto?.lng,raio,tick,ligadas]);
 
   useEffect(()=>{if(onCameras) onCameras(cams,principalId);},[cams,principalId]);
 
   const temDemo=cams.some(c=>c.demo)||info?.fonte==='demo_local';
+  const chave=(
+    <button onClick={alternarCameras} role="switch" aria-checked={ligadas} title={ligadas?'Desligar câmeras':'Ligar câmeras'}
+      style={{display:'flex',alignItems:'center',gap:7,background:'none',border:'none',padding:0,cursor:'pointer',color:ligadas?'#22d3ee':'var(--text-muted)',fontSize:11,fontWeight:700,letterSpacing:'.6px'}}>
+      <span style={{position:'relative',width:34,height:18,borderRadius:9,background:ligadas?'#22d3ee':'rgba(148,163,184,.25)',border:`1px solid ${ligadas?'#22d3ee':'var(--border)'}`,transition:'background .2s, border-color .2s',flexShrink:0}}>
+        <span style={{position:'absolute',top:2,left:ligadas?18:2,width:12,height:12,borderRadius:'50%',background:ligadas?'#03040a':'#94a3b8',transition:'left .2s'}}/>
+      </span>
+      {ligadas?'ON':'OFF'}
+    </button>
+  );
+  if(!ligadas) return(
+    <div style={{flexShrink:0,borderTop:'1px solid var(--border)',background:'var(--surface)',display:'flex',alignItems:'center',gap:10,padding:'8px 12px'}}>
+      <span style={{width:7,height:7,borderRadius:'50%',background:'#64748b'}}/>
+      <span style={{fontSize:11,fontWeight:700,color:'var(--text-secondary)',textTransform:'uppercase',letterSpacing:'.8px'}}>Câmeras próximas</span>
+      <span style={{fontSize:11,color:'var(--text-muted)'}}>desligadas</span>
+      <span style={{marginLeft:'auto'}}>{chave}</span>
+    </div>
+  );
   return(
     <div style={{flexShrink:0,height:250,borderTop:'1px solid var(--border)',background:'var(--surface)',display:'flex',flexDirection:'column',padding:'10px 12px',gap:8}}>
       <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
@@ -3311,6 +3344,7 @@ function CamerasProximas({alerta,ponto,simAtivo,onToggleSim,onCameras}){
             {simAtivo?'■ Parar simulação':'▶ Simular deslocamento (demo)'}
           </button>
         )}
+        {chave}
       </div>
       <div style={{flex:1,minHeight:0,display:'flex',gap:8}}>
         {cams.length>0?cams.map(c=>(
